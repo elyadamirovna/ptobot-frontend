@@ -1,5 +1,11 @@
 import React, { useMemo, useState, useEffect, useRef } from "react";
 
+import {
+  CorporateStrictLayout,
+  GlassmorphismLayout,
+  MinimalistLayout,
+} from "@/components/LayoutVariants";
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -20,6 +26,7 @@ import {
   Users,
   Image as ImageIcon,
   Upload,
+  ChevronDown,
   History,
   ClipboardList,
   ShieldCheck,
@@ -45,18 +52,74 @@ type AccessRow = {
 };
 
 export default function TelegramWebAppGlassPure() {
+  const PREVIEW_COMPONENTS = useMemo(
+    () => ({
+      minimalist: MinimalistLayout,
+      glass: GlassmorphismLayout,
+      corporate: CorporateStrictLayout,
+    }),
+    []
+  );
+
   const [logoUrl, setLogoUrl] = useState<string>("");
+  const [previewVariant, setPreviewVariant] = useState<string | null>(null);
 
   useEffect(() => {
     try {
       const qs = new URLSearchParams(window.location.search);
       const fromQuery = qs.get("logo");
       setLogoUrl(fromQuery || "");
+      setPreviewVariant(qs.get("preview"));
     } catch (error) {
-      console.warn("Cannot parse logo query param", error);
+      console.warn("Cannot parse query params", error);
       setLogoUrl("");
+      setPreviewVariant(null);
     }
   }, []);
+
+  useEffect(() => {
+    const telegram = window.Telegram?.WebApp;
+
+    if (!telegram) {
+      return;
+    }
+
+    try {
+      telegram.ready();
+      telegram.expand();
+
+      if (typeof telegram.setSwipeBehavior === "function") {
+        telegram.setSwipeBehavior({ allowVerticalSwipe: false });
+      } else if (typeof telegram.disableVerticalSwipes === "function") {
+        telegram.disableVerticalSwipes();
+      }
+    } catch (error) {
+      console.warn("Cannot init Telegram WebApp behavior", error);
+    }
+
+    return () => {
+      try {
+        if (typeof telegram.setSwipeBehavior === "function") {
+          telegram.setSwipeBehavior({ allowVerticalSwipe: true });
+        } else if (typeof telegram.enableVerticalSwipes === "function") {
+          telegram.enableVerticalSwipes();
+        }
+      } catch (error) {
+        console.warn("Cannot restore Telegram WebApp behavior", error);
+      }
+    };
+  }, []);
+
+  const previewKey = previewVariant?.toLowerCase() as
+    | keyof typeof PREVIEW_COMPONENTS
+    | undefined;
+  const PreviewComponent = previewKey
+    ? PREVIEW_COMPONENTS[previewKey]
+    : undefined;
+
+  if (PreviewComponent) {
+    return <PreviewComponent />;
+  }
 
   const [activeTab, setActiveTab] = useState("report");
   const [project, setProject] = useState<string | undefined>("1");
@@ -219,8 +282,8 @@ export default function TelegramWebAppGlassPure() {
       <div className="pointer-events-none absolute bottom-0 right-[-120px] h-[420px] w-[420px] rounded-full bg-indigo-600/40 blur-[160px]" />
       <div className="pointer-events-none absolute inset-x-1/2 top-[40%] h-64 w-64 -translate-x-1/2 rounded-full bg-cyan-400/30 blur-[120px]" />
 
-      <div className="relative z-10 w-full max-w-[440px]">
-        <div className="relative overflow-hidden rounded-[44px] border border-white/25 bg-white/10 px-6 pb-8 pt-7 shadow-[0_35px_80px_rgba(6,24,74,0.6)] backdrop-blur-[32px]">
+      <div className="relative z-10 w-full max-w-[520px] sm:max-w-[600px]">
+        <div className="relative overflow-hidden rounded-[52px] border border-white/25 bg-white/10 px-8 pb-10 pt-8 shadow-[0_35px_100px_rgba(6,24,74,0.62)] backdrop-blur-[36px]">
           <div className="absolute inset-x-10 -top-32 h-48 rounded-full bg-white/10 blur-[120px]" />
           <div className="absolute inset-0 rounded-[44px] border border-white/10" />
 
@@ -289,7 +352,7 @@ export default function TelegramWebAppGlassPure() {
                         <div className="relative">
                           <Building2 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/65" />
                           <Select value={project} onValueChange={setProject}>
-                            <SelectTrigger className="h-11 rounded-2xl border border-white/20 bg-white/10 pl-9 pr-10 text-[13px] text-white/90 shadow-[0_16px_38px_rgba(7,24,74,0.55)] backdrop-blur">
+                            <SelectTrigger className="h-12 rounded-2xl border border-white/20 bg-white/10 pl-11 pr-12 text-[14px] font-medium text-white/90 shadow-[0_16px_38px_rgba(7,24,74,0.55)] backdrop-blur">
                               <SelectValue placeholder="Выберите объект" />
                             </SelectTrigger>
                             <SelectContent className="border border-white/15 bg-[#07132F]/95 text-white">
@@ -309,7 +372,7 @@ export default function TelegramWebAppGlassPure() {
                         <div className="relative">
                           <HardHat className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/65" />
                           <Select value={workType} onValueChange={setWorkType}>
-                            <SelectTrigger className="h-11 rounded-2xl border border-white/20 bg-white/10 pl-9 pr-10 text-[13px] text-white/90 shadow-[0_16px_38px_rgba(7,24,74,0.55)] backdrop-blur">
+                            <SelectTrigger className="h-12 rounded-2xl border border-white/20 bg-white/10 pl-11 pr-12 text-[14px] font-medium text-white/90 shadow-[0_16px_38px_rgba(7,24,74,0.55)] backdrop-blur">
                               <SelectValue placeholder="Выберите вид работ" />
                             </SelectTrigger>
                             <SelectContent className="border border-white/15 bg-[#07132F]/95 text-white">
@@ -334,9 +397,10 @@ export default function TelegramWebAppGlassPure() {
                             type="date"
                             value={date}
                             onChange={(event) => setDate(event.target.value)}
-                            className="h-11 rounded-2xl border border-white/20 bg-white/10 pr-10 text-[13px] text-white/90 placeholder:text-white/50"
+                            className="h-12 rounded-2xl border border-white/20 bg-white/10 pl-12 pr-12 text-[14px] font-medium text-white/90 placeholder:text-white/50 [appearance:none]"
                           />
-                          <CalendarDays className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/65" />
+                          <CalendarDays className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/65" />
+                          <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/55" />
                         </div>
                       </div>
                       <div className="space-y-1.5">
@@ -348,9 +412,9 @@ export default function TelegramWebAppGlassPure() {
                             placeholder="12,5"
                             value={volume}
                             onChange={(event) => setVolume(event.target.value)}
-                            className="h-11 flex-1 rounded-2xl border border-white/20 bg-white/10 text-[13px] text-white/90 placeholder:text-white/40"
+                            className="h-12 flex-1 rounded-2xl border border-white/20 bg-white/10 text-[14px] font-medium text-white/90 placeholder:text-white/40"
                           />
-                          <div className="flex h-11 items-center justify-center rounded-2xl border border-white/15 bg-white/10 px-3 text-[11px] text-white/75">
+                          <div className="flex h-12 items-center justify-center rounded-2xl border border-white/15 bg-white/10 px-4 text-[12px] text-white/75">
                             м³
                           </div>
                         </div>
@@ -364,9 +428,9 @@ export default function TelegramWebAppGlassPure() {
                             placeholder="3"
                             value={machines}
                             onChange={(event) => setMachines(event.target.value)}
-                            className="h-11 flex-1 rounded-2xl border border-white/20 bg-white/10 text-[13px] text-white/90 placeholder:text-white/40"
+                            className="h-12 flex-1 rounded-2xl border border-white/20 bg-white/10 text-[14px] font-medium text-white/90 placeholder:text-white/40"
                           />
-                          <div className="flex h-11 items-center justify-center rounded-2xl border border-white/15 bg-white/10 px-3 text-[11px] text-white/75">
+                          <div className="flex h-12 items-center justify-center rounded-2xl border border-white/15 bg-white/10 px-4 text-[12px] text-white/75">
                             шт.
                           </div>
                         </div>
@@ -384,7 +448,7 @@ export default function TelegramWebAppGlassPure() {
                           placeholder="кол-во человек"
                           value={people}
                           onChange={(event) => setPeople(event.target.value)}
-                          className="h-11 rounded-2xl border border-white/20 bg-white/10 pl-9 text-[13px] text-white/90 placeholder:text-white/40"
+                          className="h-12 rounded-2xl border border-white/20 bg-white/10 pl-11 text-[14px] font-medium text-white/90 placeholder:text-white/40"
                         />
                       </div>
                     </div>
