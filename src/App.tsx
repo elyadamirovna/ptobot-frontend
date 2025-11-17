@@ -279,41 +279,34 @@ export default function TelegramWebAppGlassPure() {
   }
 
   return (
-    <div className="relative min-h-screen w-full overflow-x-hidden bg-[#05122D] px-3 py-6 text-white sm:px-4 md:py-8 lg:py-10">
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#05122D] px-3 py-6 text-white md:px-4 md:py-10">
       <div className="pointer-events-none absolute -left-24 -top-32 h-72 w-72 rounded-full bg-sky-500/40 blur-[140px]" />
       <div className="pointer-events-none absolute bottom-0 right-[-120px] h-[420px] w-[420px] rounded-full bg-indigo-600/40 blur-[160px]" />
       <div className="pointer-events-none absolute inset-x-1/2 top-[40%] h-64 w-64 -translate-x-1/2 rounded-full bg-cyan-400/30 blur-[120px]" />
 
-      <div className="relative z-10 mx-auto w-full max-w-full md:max-w-[520px] lg:max-w-[600px]">
+      <div className="relative z-10 w-full max-w-full md:max-w-[520px] lg:max-w-[600px]">
         <div className="relative overflow-hidden rounded-[32px] border border-white/25 bg-white/10 px-4 pb-8 pt-6 shadow-[0_35px_100px_rgba(6,24,74,0.62)] backdrop-blur-[36px] sm:rounded-[44px] sm:px-6 sm:pb-9 sm:pt-7 lg:rounded-[52px] lg:px-8 lg:pb-10 lg:pt-8">
           <div className="absolute inset-x-6 -top-32 h-48 rounded-full bg-white/10 blur-[120px] sm:inset-x-8" />
           <div className="absolute inset-0 rounded-[28px] border border-white/10 sm:rounded-[36px] lg:rounded-[44px]" />
 
           <div className="relative">
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <div className="sticky top-4 z-20 -mx-2 -mt-2 space-y-4 rounded-[28px] border border-white/15 bg-[#030a1f]/90 px-3 pb-3 pt-4 backdrop-blur supports-[backdrop-filter]:bg-[#030a1f]/80 sm:-mx-3 sm:-mt-3 sm:rounded-[32px] sm:px-4 sm:pb-4 sm:pt-5 lg:-mx-4 lg:-mt-4 lg:rounded-[36px] lg:px-5">
-                <header className="flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-3">
-                    {logoUrl ? (
-                      <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-3xl border border-white/40 bg-white/80 shadow-[0_12px_32px_rgba(59,130,246,0.4)]">
-                        <img src={logoUrl} alt="Логотип" className="h-full w-full object-contain" />
-                      </div>
-                    ) : (
-                      <div className="flex h-10 w-10 items-center justify-center rounded-3xl bg-white/85 text-sm font-semibold text-sky-800 shadow-[0_12px_32px_rgба(3,144,255,0.7)]">
-                        РБК
-                      </div>
-                    )}
-                    <div className="leading-tight">
-                      <div className="text-[10px] uppercase tracking-[0.24em] text-white/70 sm:text-[11px]">
-                        Стройинвест
-                      </div>
-                      <div className="text-[11px] font-medium text-white/85 sm:text-xs">
-                        Ежедневные отчёты по объектам
-                      </div>
-                    </div>
+            <header className="mb-4 flex items-center justify-between gap-3 sm:mb-6">
+              <div className="flex items-center gap-3">
+                {logoUrl ? (
+                  <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-3xl border border-white/40 bg-white/80 shadow-[0_12px_32px_rgba(59,130,246,0.4)]">
+                    <img src={logoUrl} alt="Логотип" className="h-full w-full object-contain" />
                   </div>
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/75 text-[10px] font-semibold text-sky-900 shadow-[0_14px_34px_rgба(2,110,255,0.65)] sm:h-9 sm:w-9 sm:text-[11px]">
-                    ИП
+                ) : (
+                  <div className="flex h-10 w-10 items-center justify-center rounded-3xl bg-white/85 text-sm font-semibold text-sky-800 shadow-[0_12px_32px_rgba(3,144,255,0.7)]">
+                    РБК
+                  </div>
+                )}
+                <div className="leading-tight">
+                  <div className="text-[10px] uppercase tracking-[0.24em] text-white/70 sm:text-[11px]">
+                    Стройинвест
+                  </div>
+                  <div className="text-[11px] font-medium text-white/85 sm:text-xs">
+                    Ежедневные отчёты по объектам
                   </div>
                 </header>
 
@@ -338,8 +331,34 @@ export default function TelegramWebAppGlassPure() {
                   </TabsTrigger>
                 </TabsList>
               </div>
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/75 text-[10px] font-semibold text-sky-900 shadow-[0_14px_34px_rgba(2,110,255,0.65)] sm:h-9 sm:w-9 sm:text-[11px]">
+                ИП
+              </div>
+            </header>
 
-              <TabsContent value="report" className="mt-6 sm:mt-7">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+              <TabsList className="mb-4 grid grid-cols-3 gap-1 rounded-full bg-white/15 p-1 text-[11px] text-white/75 sm:mb-5 sm:text-[12px]">
+                <TabsTrigger
+                  value="report"
+                  className="flex items-center justify-center gap-1 rounded-full px-2 py-1.5 text-[10px] transition data-[state=active]:bg-white data-[state=active]:text-sky-900 data-[state=active]:shadow-[0_12px_30px_rgba(255,255,255,0.45)] sm:px-3 sm:py-2 sm:text-[12px]"
+                >
+                  <ClipboardList className="h-3.5 w-3.5" /> Отчёт
+                </TabsTrigger>
+                <TabsTrigger
+                  value="history"
+                  className="flex items-center justify-center gap-1 rounded-full px-2 py-1.5 text-[10px] transition data-[state=active]:bg-white data-[state=active]:text-sky-900 data-[state=active]:shadow-[0_12px_30px_rgba(255,255,255,0.45)] sm:px-3 sm:py-2 sm:text-[12px]"
+                >
+                  <History className="h-3.5 w-3.5" /> История
+                </TabsTrigger>
+                <TabsTrigger
+                  value="admin"
+                  className="flex items-center justify-center gap-1 rounded-full px-2 py-1.5 text-[10px] transition data-[state=active]:bg-white data-[state=active]:text-sky-900 data-[state=active]:shadow-[0_12px_30px_rgba(255,255,255,0.45)] sm:px-3 sm:py-2 sm:text-[12px]"
+                >
+                  <ShieldCheck className="h-3.5 w-3.5" /> Доступ
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="report" className="mt-0">
                 <Card className="border-white/20 bg-white/10 text-white shadow-[0_24px_60px_rgba(15,28,83,0.45)] backdrop-blur-[28px]">
                   <CardHeader className="pb-4">
                     <CardTitle className="text-[18px] font-semibold tracking-wide text-white sm:text-[20px]">
