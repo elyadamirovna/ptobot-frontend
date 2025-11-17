@@ -84,6 +84,8 @@ export default function TelegramWebAppGlassPure() {
       return;
     }
 
+    const cleanupFns: Array<() => void> = [];
+
     try {
       telegram.ready();
       if (typeof telegram.expand === "function") {
@@ -92,23 +94,46 @@ export default function TelegramWebAppGlassPure() {
 
       if (typeof telegram.setSwipeBehavior === "function") {
         telegram.setSwipeBehavior({ allowVerticalSwipe: false });
+        cleanupFns.push(() =>
+          telegram.setSwipeBehavior?.({ allowVerticalSwipe: true })
+        );
       } else if (typeof telegram.disableVerticalSwipes === "function") {
         telegram.disableVerticalSwipes();
+        cleanupFns.push(() => telegram.enableVerticalSwipes?.());
+      }
+
+      const backButton = telegram.BackButton;
+      if (backButton) {
+        const handleClose = () => {
+          try {
+            telegram.close();
+          } catch (error) {
+            console.warn("Cannot close WebApp via BackButton", error);
+          }
+        };
+        backButton.show();
+        backButton.onClick(handleClose);
+        cleanupFns.push(() => {
+          try {
+            backButton.offClick(handleClose);
+            backButton.hide();
+          } catch (error) {
+            console.warn("Cannot cleanup BackButton", error);
+          }
+        });
       }
     } catch (error) {
       console.warn("Cannot init Telegram WebApp behavior", error);
     }
 
     return () => {
-      try {
-        if (typeof telegram.setSwipeBehavior === "function") {
-          telegram.setSwipeBehavior({ allowVerticalSwipe: true });
-        } else if (typeof telegram.enableVerticalSwipes === "function") {
-          telegram.enableVerticalSwipes();
+      cleanupFns.forEach((cleanup) => {
+        try {
+          cleanup();
+        } catch (error) {
+          console.warn("Cannot execute Telegram cleanup", error);
         }
-      } catch (error) {
-        console.warn("Cannot restore Telegram WebApp behavior", error);
-      }
+      });
     };
   }, []);
 
