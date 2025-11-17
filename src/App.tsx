@@ -308,7 +308,28 @@ export default function TelegramWebAppGlassPure() {
                   <div className="text-[11px] font-medium text-white/85 sm:text-xs">
                     Ежедневные отчёты по объектам
                   </div>
-                </div>
+                </header>
+
+                <TabsList className="grid grid-cols-3 gap-1 rounded-full bg-white/15 p-1 text-[11px] text-white/75 sm:text-[12px]">
+                  <TabsTrigger
+                    value="report"
+                    className="flex items-center justify-center gap-1 rounded-full px-2 py-1.5 text-[10px] transition data-[state=active]:bg-white data-[state=active]:text-sky-900 data-[state=active]:shadow-[0_12px_30px_rgба(255,255,255,0.45)] sm:px-3 sm:py-2 sm:text-[12px]"
+                  >
+                    <ClipboardList className="h-3.5 w-3.5" /> Отчёт
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="history"
+                    className="flex items-center justify-center gap-1 rounded-full px-2 py-1.5 text-[10px] transition data-[state=active]:bg-white data-[state=active]:text-sky-900 data-[state=active]:shadow-[0_12px_30px_rgба(255,255,255,0.45)] sm:px-3 sm:py-2 sm:text-[12px]"
+                  >
+                    <History className="h-3.5 w-3.5" /> История
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="admin"
+                    className="flex items-center justify-center gap-1 rounded-full px-2 py-1.5 text-[10px] transition data-[state=active]:bg-white data-[state=active]:text-sky-900 data-[state=active]:shadow-[0_12px_30px_rgба(255,255,255,0.45)] sm:px-3 sm:py-2 sm:text-[12px]"
+                  >
+                    <ShieldCheck className="h-3.5 w-3.5" /> Доступ
+                  </TabsTrigger>
+                </TabsList>
               </div>
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/75 text-[10px] font-semibold text-sky-900 shadow-[0_14px_34px_rgba(2,110,255,0.65)] sm:h-9 sm:w-9 sm:text-[11px]">
                 ИП
