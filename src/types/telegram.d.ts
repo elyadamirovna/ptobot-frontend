@@ -1,20 +1,38 @@
+// src/types/telegram.d.ts
+
+export type TelegramSwipeBehaviorOptions = {
+  allowVerticalSwipe: boolean;
+};
+
+export type TelegramSettingsOptions = {
+  allow_vertical_swipe?: boolean;
+};
+
+export interface TelegramBackButton {
+  show(): void;
+  hide(): void;
+  onClick(handler: () => void): void;
+  offClick(handler: () => void): void;
+}
+
 export interface TelegramWebApp {
-  ready(): void;
-  expand(): void;
+  // базовые методы
+  ready?(): void;
+  expand?(): void;
   close(): void;
 
+  // информация о версии может быть, но нам не критична
+  version?: string;
+
+  // новая пара методов для свайпов
   disableVerticalSwipes?(): void;
   enableVerticalSwipes?(): void;
 
-  BackButton?: {
-    show(): void;
-    hide(): void;
-    onClick(handler: () => void): void;
-    offClick(handler: () => void): void;
-  };
+  // старые способы управления свайпами
+  setSwipeBehavior?(options: TelegramSwipeBehaviorOptions): void;
+  setSettings?(options: TelegramSettingsOptions): void;
 
-  version?: string;
-  isVersionAtLeast?(v: string): boolean;
+  BackButton?: TelegramBackButton;
 }
 
 declare global {
