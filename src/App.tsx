@@ -1,3 +1,4 @@
+// src/App.tsx
 import React, {
   useMemo,
   useState,
@@ -111,22 +112,19 @@ export default function TelegramWebAppGlassPure() {
   const telegramRef = useRef<TelegramWebApp | null>(null);
   const activeTabRef = useRef<TabKey>("report");
 
-  const changeTabBySwipe = useCallback(
-    (direction: 1 | -1) => {
-      setActiveTab((current) => {
-        const index = TAB_ORDER.indexOf(current);
-        const nextIndex = index + direction;
-        if (nextIndex < 0 || nextIndex >= TAB_ORDER.length) {
-          return current;
-        }
-        return TAB_ORDER[nextIndex];
-      });
-    },
-    [setActiveTab]
-  );
+  const changeTabBySwipe = useCallback((direction: 1 | -1) => {
+    setActiveTab((current) => {
+      const index = TAB_ORDER.indexOf(current);
+      const nextIndex = index + direction;
+      if (nextIndex < 0 || nextIndex >= TAB_ORDER.length) {
+        return current;
+      }
+      return TAB_ORDER[nextIndex];
+    });
+  }, []);
 
   // ------------------------------------------------------
-  // TELEGRAM useEffect: ready + отключение вертикальных свайпов
+  // TELEGRAM: ready + disable vertical swipes
   // ------------------------------------------------------
   useEffect(() => {
     const tg = typeof window !== "undefined" ? window.Telegram?.WebApp : undefined;
@@ -134,7 +132,7 @@ export default function TelegramWebAppGlassPure() {
     telegramRef.current = tg ?? null;
 
     if (!tg) {
-      console.log("[WebApp] Telegram.WebApp не найден (скорее всего, обычный браузер)");
+      console.log("[WebApp] Telegram.WebApp not found (probably regular browser)");
       return undefined;
     }
 
@@ -145,63 +143,66 @@ export default function TelegramWebAppGlassPure() {
       tg.ready?.();
       tg.expand?.();
     } catch (error) {
-      console.warn("[WebApp] Ошибка при вызове ready/expand", error);
+      console.warn("[WebApp] Error calling ready/expand", error);
     }
 
     const restoreSwipeBehavior = (() => {
+      // 1) Newer API: disableVerticalSwipes / enableVerticalSwipes
       if (typeof tg.disableVerticalSwipes === "function") {
-        console.log("[WebApp] disableVerticalSwipes() доступен, отключаем свайпы…");
+        console.log("[WebApp] disableVerticalSwipes() is available, disabling vertical swipe...");
         try {
           tg.disableVerticalSwipes();
           return () => {
             try {
               tg.enableVerticalSwipes?.();
-              console.log("[WebApp] enableVerticalSwipes() вызван в cleanup");
+              console.log("[WebApp] enableVerticalSwipes() called in cleanup");
             } catch (error) {
-              console.warn("[WebApp] Ошибка при enableVerticalSwipes в cleanup", error);
+              console.warn("[WebApp] Error calling enableVerticalSwipes in cleanup", error);
             }
           };
         } catch (error) {
-          console.warn("[WebApp] Не удалось отключить свайпы через disableVerticalSwipes", error);
+          console.warn("[WebApp] Failed to disable swipes via disableVerticalSwipes", error);
         }
       }
 
+      // 2) setSettings with allow_vertical_swipe (snake_case)
       if (typeof tg.setSettings === "function") {
-        console.log("[WebApp] Используем setSettings() для отключения свайпа");
+        console.log("[WebApp] Using setSettings() to disable vertical swipe");
         try {
           tg.setSettings({ allow_vertical_swipe: false });
           return () => {
             try {
               tg.setSettings?.({ allow_vertical_swipe: true });
-              console.log("[WebApp] Свайпы восстановлены через setSettings()");
+              console.log("[WebApp] Vertical swipes restored via setSettings()");
             } catch (error) {
-              console.warn("[WebApp] Ошибка при откате setSettings в cleanup", error);
+              console.warn("[WebApp] Error restoring setSettings in cleanup", error);
             }
           };
         } catch (error) {
-          console.warn("[WebApp] Ошибка при вызове setSettings", error);
+          console.warn("[WebApp] Error calling setSettings", error);
         }
       }
 
+      // 3) setSwipeBehavior with allowVerticalSwipe (camelCase)
       if (typeof tg.setSwipeBehavior === "function") {
-        console.log("[WebApp] Используем setSwipeBehavior() для отключения свайпа");
+        console.log("[WebApp] Using setSwipeBehavior() to disable vertical swipe");
         try {
-          tg.setSwipeBehavior({ allow_vertical_swipe: false });
+          tg.setSwipeBehavior({ allowVerticalSwipe: false });
           return () => {
             try {
-              tg.setSwipeBehavior?.({ allow_vertical_swipe: true });
-              console.log("[WebApp] Свайпы восстановлены через setSwipeBehavior()");
+              tg.setSwipeBehavior?.({ allowVerticalSwipe: true });
+              console.log("[WebApp] Vertical swipes restored via setSwipeBehavior()");
             } catch (error) {
-              console.warn("[WebApp] Ошибка при откате setSwipeBehavior в cleanup", error);
+              console.warn("[WebApp] Error restoring setSwipeBehavior in cleanup", error);
             }
           };
         } catch (error) {
-          console.warn("[WebApp] Ошибка при вызове setSwipeBehavior", error);
+          console.warn("[WebApp] Error calling setSwipeBehavior", error);
         }
       }
 
       console.warn(
-        "[WebApp] Нет доступных API для управления вертикальными свайпами (disableVerticalSwipes/setSettings/setSwipeBehavior)"
+        "[WebApp] No available API to control vertical swipes (disableVerticalSwipes / setSettings / setSwipeBehavior)"
       );
       return null;
     })();
@@ -211,23 +212,22 @@ export default function TelegramWebAppGlassPure() {
     }
 
     const handleExpandEvent = () => {
-      console.log("[WebApp] Событие web_app_expand");
+      console.log("[WebApp] Event web_app_expand");
     };
 
     const handleExitFullscreenEvent = () => {
-      console.log("[WebApp] Событие web_app_exit_fullscreen, пробуем expand ещё раз");
+      console.log("[WebApp] Event web_app_exit_fullscreen, trying expand again");
       try {
         tg.expand?.();
       } catch (error) {
-        console.warn("[WebApp] Ошибка повторного expand", error);
+        console.warn("[WebApp] Error on second expand", error);
       }
     };
 
     const syncBackButtonVisibility = () => {
       const backButton = tg.BackButton;
-      if (!backButton) {
-        return;
-      }
+      if (!backButton) return;
+
       try {
         if (activeTabRef.current !== "report") {
           backButton.show();
@@ -235,12 +235,12 @@ export default function TelegramWebAppGlassPure() {
           backButton.hide();
         }
       } catch (error) {
-        console.warn("[WebApp] Ошибка при обновлении BackButton", error);
+        console.warn("[WebApp] Error updating BackButton visibility", error);
       }
     };
 
     const handleBackButtonSetupEvent = () => {
-      console.log("[WebApp] Событие web_app_setup_back_button");
+      console.log("[WebApp] Event web_app_setup_back_button");
       syncBackButtonVisibility();
     };
 
@@ -249,10 +249,14 @@ export default function TelegramWebAppGlassPure() {
       pushCleanup(() => tg.offEvent?.("web_app_expand", handleExpandEvent));
 
       tg.onEvent("web_app_exit_fullscreen", handleExitFullscreenEvent);
-      pushCleanup(() => tg.offEvent?.("web_app_exit_fullscreen", handleExitFullscreenEvent));
+      pushCleanup(() =>
+        tg.offEvent?.("web_app_exit_fullscreen", handleExitFullscreenEvent)
+      );
 
       tg.onEvent("web_app_setup_back_button", handleBackButtonSetupEvent);
-      pushCleanup(() => tg.offEvent?.("web_app_setup_back_button", handleBackButtonSetupEvent));
+      pushCleanup(() =>
+        tg.offEvent?.("web_app_setup_back_button", handleBackButtonSetupEvent)
+      );
     }
 
     const handleBackButtonClick = () => {
@@ -264,7 +268,7 @@ export default function TelegramWebAppGlassPure() {
       try {
         tg.close?.();
       } catch (error) {
-        console.warn("[WebApp] Не удалось закрыть Mini App", error);
+        console.warn("[WebApp] Failed to close Mini App", error);
       }
     };
 
@@ -273,7 +277,7 @@ export default function TelegramWebAppGlassPure() {
         tg.BackButton.onClick(handleBackButtonClick);
         pushCleanup(() => tg.BackButton?.offClick(handleBackButtonClick));
       } catch (error) {
-        console.warn("[WebApp] Не удалось настроить BackButton", error);
+        console.warn("[WebApp] Failed to set up BackButton", error);
       }
       syncBackButtonVisibility();
     }
@@ -283,13 +287,12 @@ export default function TelegramWebAppGlassPure() {
         try {
           fn();
         } catch (error) {
-          console.warn("[WebApp] Ошибка в cleanup", error);
+          console.warn("[WebApp] Error in cleanup", error);
         }
       });
       telegramRef.current = null;
     };
-  }, [setActiveTab]);
-  // ------------------------------------------------------
+  }, []);
 
   useEffect(() => {
     activeTabRef.current = activeTab;
@@ -297,9 +300,7 @@ export default function TelegramWebAppGlassPure() {
 
   useEffect(() => {
     const backButton = telegramRef.current?.BackButton;
-    if (!backButton) {
-      return;
-    }
+    if (!backButton) return;
 
     try {
       if (activeTab !== "report") {
@@ -308,15 +309,14 @@ export default function TelegramWebAppGlassPure() {
         backButton.hide();
       }
     } catch (error) {
-      console.warn("[WebApp] Ошибка при обновлении BackButton из эффекта", error);
+      console.warn("[WebApp] Error updating BackButton from effect", error);
     }
   }, [activeTab]);
 
+  // Horizontal swipe to switch tabs inside the app (not Telegram swipe)
   useEffect(() => {
     const container = swipeAreaRef.current;
-    if (!container) {
-      return;
-    }
+    if (!container) return;
 
     let startX = 0;
     let startY = 0;
@@ -331,9 +331,7 @@ export default function TelegramWebAppGlassPure() {
     };
 
     const handleTouchStart = (event: TouchEvent) => {
-      if (event.touches.length !== 1) {
-        return;
-      }
+      if (event.touches.length !== 1) return;
       const touch = event.touches[0];
       startX = touch.clientX;
       startY = touch.clientY;
@@ -342,9 +340,7 @@ export default function TelegramWebAppGlassPure() {
     };
 
     const handleTouchMove = (event: TouchEvent) => {
-      if (!isTracking || event.touches.length !== 1) {
-        return;
-      }
+      if (!isTracking || event.touches.length !== 1) return;
       const touch = event.touches[0];
       const deltaX = touch.clientX - startX;
       const deltaY = touch.clientY - startY;
@@ -369,7 +365,8 @@ export default function TelegramWebAppGlassPure() {
       const touch = event.changedTouches[0];
       const deltaX = touch.clientX - startX;
       const deltaY = touch.clientY - startY;
-      const horizontalEnough = Math.abs(deltaX) >= 60 && Math.abs(deltaX) > Math.abs(deltaY);
+      const horizontalEnough =
+        Math.abs(deltaX) >= 60 && Math.abs(deltaX) > Math.abs(deltaY);
 
       if (isHorizontal && horizontalEnough) {
         if (deltaX < 0) {
@@ -430,7 +427,7 @@ export default function TelegramWebAppGlassPure() {
       .catch(() => {
         /* silent fallback to default workTypes */
       });
-  }, []);
+  }, [workType]);
 
   const projects = [
     { id: "1", name: "ЖК «Северный»", address: "ул. Парковая, 12" },
@@ -590,7 +587,11 @@ export default function TelegramWebAppGlassPure() {
               </div>
             </header>
 
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <Tabs
+              value={activeTab}
+              onValueChange={(value) => setActiveTab(value as TabKey)}
+              className="w-full"
+            >
               <TabsList className="mb-4 grid grid-cols-3 gap-1 rounded-full bg-white/15 p-1 text-[11px] text-white/75 sm:mb-5 sm:text-[12px]">
                 <TabsTrigger
                   value="report"
@@ -768,7 +769,7 @@ export default function TelegramWebAppGlassPure() {
                         </div>
                         <Button
                           type="button"
-                          className="flex items-center gap-2 rounded-full bg-gradient-to-r from-[#5FE0FF] via-[#7DF0FF] to-[#B5F5FF] px-4 py-1.5 text-[12px] font-semibold text-sky-900 shadow-[0_18px_50px_rgба(3,144,255,0.9)] hover:brightness-110"
+                          className="flex items-center gap-2 rounded-full bg-gradient-to-r from-[#5FE0FF] via-[#7DF0FF] to-[#B5F5FF] px-4 py-1.5 text-[12px] font-semibold text-sky-900 shadow-[0_18px_50px_rgba(3,144,255,0.9)] hover:brightness-110"
                           onClick={onPickFiles}
                         >
                           <Upload className="h-3.5 w-3.5" /> Выбрать
@@ -803,7 +804,7 @@ export default function TelegramWebAppGlassPure() {
                       <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                         <Button
                           type="button"
-                          className="h-11 rounded-full bg-gradient-to-r from-[#5FE0FF] via-[#7DF0FF] to-[#B5F5FF] px-6 text-[12px] font-semibold text-sky-900 shadow-[0_24px_60px_rgба(3,144,255,0.85)] hover:brightness-110 disabled:opacity-70 sm:text-[13px]"
+                          className="h-11 rounded-full bg-gradient-to-r from-[#5FE0FF] via-[#7DF0FF] to-[#B5F5FF] px-6 text-[12px] font-semibold text-sky-900 shadow-[0_24px_60px_rgba(3,144,255,0.85)] hover:brightness-110 disabled:opacity-70 sm:text-[13px]"
                           onClick={sendReport}
                           disabled={sending}
                         >
@@ -830,7 +831,7 @@ export default function TelegramWebAppGlassPure() {
 
               {/* TAB: ИСТОРИЯ */}
               <TabsContent value="history" className="mt-0">
-                <Card className="border-white/20 bg-white/10 text-white shadow-[0_24px_60px_rgба(15,28,83,0.45)] backdrop-blur-[28px]">
+                <Card className="border-white/20 bg-white/10 text-white shadow-[0_24px_60px_rgba(15,28,83,0.45)] backdrop-blur-[28px]">
                   <CardHeader className="pb-4">
                     <CardTitle className="flex items-center gap-2 text-[16px] font-semibold text-white sm:text-[18px]">
                       <History className="h-4 w-4" /> История отчётов
@@ -917,7 +918,7 @@ export default function TelegramWebAppGlassPure() {
 
               {/* TAB: ДОСТУП */}
               <TabsContent value="admin" className="mt-0">
-                <Card className="border-white/20 bg-white/10 text-white shadow-[0_24px_60px_rgба(15,28,83,0.45)] backdrop-blur-[28px]">
+                <Card className="border-white/20 bg-white/10 text-white shadow-[0_24px_60px_rgba(15,28,83,0.45)] backdrop-blur-[28px]">
                   <CardHeader className="pb-4">
                     <CardTitle className="flex items-center gap-2 text-[16px] font-semibold text-white sm:text-[18px]">
                       <ShieldCheck className="h-4 w-4" /> Назначение доступа
@@ -1005,7 +1006,7 @@ export default function TelegramWebAppGlassPure() {
                               <Button
                                 variant="secondary"
                                 size="sm"
-                                className="h-8 rounded-full border-none bg-white/85 px-3 text-[10px] font-semibold text-sky-800 shadow-[0_12px_32px_rgба(3,144,255,0.55)] hover:brightness-110 sm:text-[11px]"
+                                className="h-8 rounded-full border-none bg-white/85 px-3 text-[10px] font-semibold text-sky-800 shadow-[0_12px_32px_rgba(3,144,255,0.55)] hover:brightness-110 sm:text-[11px]"
                               >
                                 Изменить
                               </Button>
