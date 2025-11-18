@@ -92,12 +92,7 @@ export default function TelegramWebAppGlassPure() {
         telegram.expand();
       }
 
-      if (typeof telegram.setSwipeBehavior === "function") {
-        telegram.setSwipeBehavior({ allowVerticalSwipe: false });
-        cleanupFns.push(() =>
-          telegram.setSwipeBehavior?.({ allowVerticalSwipe: true })
-        );
-      } else if (typeof telegram.disableVerticalSwipes === "function") {
+      if (typeof telegram.disableVerticalSwipes === "function") {
         telegram.disableVerticalSwipes();
         cleanupFns.push(() => telegram.enableVerticalSwipes?.());
       }
