@@ -38,7 +38,7 @@ export interface TelegramWebApp {
   disableVerticalSwipes?(): void;
   enableVerticalSwipes?(): void;
   setSettings?(options: TelegramSettingsOptions): void;
-  setSwipeBehavior?(options: TelegramSwipeBehaviorOptions): void;
+  setSwipeBehavior?(options: { allow_vertical_swipe: boolean }): void;
   onEvent?(eventType: TelegramEventType, handler: TelegramEventHandler): void;
   offEvent?(eventType: TelegramEventType, handler: TelegramEventHandler): void;
   BackButton?: TelegramBackButton;
