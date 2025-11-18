@@ -1,7 +1,7 @@
 // src/types/telegram.d.ts
 
 export type TelegramSwipeBehaviorOptions = {
-  allowVerticalSwipe: boolean;
+  allow_vertical_swipe: boolean;
 };
 
 export type TelegramSettingsOptions = {
