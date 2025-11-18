@@ -105,7 +105,6 @@ export const GlassmorphismLayout: FC = () => (
               { icon: "⚙️", active: false },
             ].map(({ icon, active }, index) => (
               <span
-                // eslint-disable-next-line react/no-array-index-key
                 key={index}
                 className={`grid h-11 w-11 place-items-center rounded-2xl border border-white/5 ${
                   active ? "bg-white/15 text-white" : "bg-white/5 text-white/50"
@@ -144,7 +143,6 @@ export const GlassmorphismLayout: FC = () => (
               <div className="grid grid-cols-2 gap-3 text-white/80">
                 {["76k", "1.5m", "$3.6k", "47"].map((value, index) => (
                   <div
-                    // eslint-disable-next-line react/no-array-index-key
                     key={index}
                     className="rounded-3xl border border-white/10 bg-white/10 p-4 text-sm"
                   >
@@ -203,7 +201,6 @@ export const GlassmorphismLayout: FC = () => (
               <div className="space-y-3">
                 {[1, 2, 3].map((item) => (
                   <div
-                    // eslint-disable-next-line react/no-array-index-key
                     key={item}
                     className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5/70 px-4 py-3 text-sm text-white/80"
                   >
@@ -240,10 +237,9 @@ export const GlassmorphismLayout: FC = () => (
                     title: "Шаг 3",
                     description: "Фото, файлы и подтверждение",
                   },
-                ].map(({ title, description }, index) => (
+                ].map(({ title, description }) => (
                   <div
-                    // eslint-disable-next-line react/no-array-index-key
-                    key={index}
+                    key={title}
                     className="flex items-center gap-4 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white/80"
                   >
                     <span className="grid h-10 w-10 place-items-center rounded-2xl bg-gradient-to-br from-fuchsia-400/40 to-cyan-300/30 text-sm font-semibold text-white">
@@ -289,8 +285,7 @@ export const GlassmorphismLayout: FC = () => (
             <div className="space-y-3 text-sm text-white/80">
               {["Новый доступ выдан", "Отчёт принят", "Новый комментарий"].map((note, index) => (
                 <div
-                  // eslint-disable-next-line react/no-array-index-key
-                  key={index}
+                  key={note}
                   className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-4 py-3"
                 >
                   <div>
@@ -415,11 +410,3 @@ export const CorporateStrictLayout: FC = () => (
     </main>
   </div>
 );
-
-export const layoutVariants = {
-  MinimalistLayout,
-  GlassmorphismLayout,
-  CorporateStrictLayout,
-};
-
-export default layoutVariants;

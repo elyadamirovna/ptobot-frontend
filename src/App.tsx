@@ -34,7 +34,17 @@ import {
 
 const API_URL = "https://ptobot-backend.onrender.com";
 
+type QueryParams = {
+  logoUrl: string;
+  previewVariant: string | null;
+};
+
 type WorkType = { id: string; name: string };
+
+type WorkTypeApiRow = {
+  id: string | number;
+  name: string;
+};
 
 type HistoryRow = {
   id: number;
@@ -61,23 +71,21 @@ export default function TelegramWebAppGlassPure() {
     []
   );
 
-  const [logoUrl, setLogoUrl] = useState<string>("");
-  const [previewVariant, setPreviewVariant] = useState<string | null>(null);
+  const { logoUrl, previewVariant } = useMemo(() => readInitialQueryParams(), []);
+
+  const previewKey = previewVariant?.toLowerCase() as
+    | keyof typeof PREVIEW_COMPONENTS
+    | undefined;
+  const PreviewComponent = previewKey
+    ? PREVIEW_COMPONENTS[previewKey]
+    : undefined;
+  const isPreviewMode = Boolean(PreviewComponent);
 
   useEffect(() => {
-    try {
-      const qs = new URLSearchParams(window.location.search);
-      const fromQuery = qs.get("logo");
-      setLogoUrl(fromQuery || "");
-      setPreviewVariant(qs.get("preview"));
-    } catch (error) {
-      console.warn("Cannot parse query params", error);
-      setLogoUrl("");
-      setPreviewVariant(null);
+    if (isPreviewMode) {
+      return;
     }
-  }, []);
 
-  useEffect(() => {
     const telegram = window.Telegram?.WebApp;
 
     if (!telegram) {
@@ -140,18 +148,7 @@ export default function TelegramWebAppGlassPure() {
         }
       });
     };
-  }, []);
-
-  const previewKey = previewVariant?.toLowerCase() as
-    | keyof typeof PREVIEW_COMPONENTS
-    | undefined;
-  const PreviewComponent = previewKey
-    ? PREVIEW_COMPONENTS[previewKey]
-    : undefined;
-
-  if (PreviewComponent) {
-    return <PreviewComponent />;
-  }
+  }, [isPreviewMode]);
 
   const [activeTab, setActiveTab] = useState("report");
   const [project, setProject] = useState<string | undefined>("1");
@@ -169,25 +166,30 @@ export default function TelegramWebAppGlassPure() {
   ]);
 
   useEffect(() => {
+    if (isPreviewMode) {
+      return;
+    }
+
     fetch(`${API_URL}/work_types`)
-      .then((response) => (response.ok ? response.json() : Promise.reject()))
+      .then((response) =>
+        response.ok
+          ? (response.json() as Promise<WorkTypeApiRow[]>)
+          : Promise.reject(new Error("Failed to load work types"))
+      )
       .then((rows) => {
         if (Array.isArray(rows) && rows.length) {
-          const mapped: WorkType[] = rows.map((item: any) => ({
+          const mapped: WorkType[] = rows.map((item) => ({
             id: String(item.id),
             name: item.name,
           }));
           setWorkTypes(mapped);
-          if (!workType) {
-            setWorkType(mapped[0].id);
-          }
+          setWorkType((current) => current ?? mapped[0].id);
         }
       })
       .catch(() => {
         /* silent fallback to default workTypes */
       });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [isPreviewMode]);
 
   const projects = [
     { id: "1", name: "ЖК «Северный»", address: "ул. Парковая, 12" },
@@ -300,12 +302,20 @@ export default function TelegramWebAppGlassPure() {
       setComment("");
       setFiles([]);
       setPreviews([]);
-    } catch (error: any) {
-      alert(error?.message || "Ошибка при отправке отчёта");
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        alert(error.message);
+      } else {
+        alert("Ошибка при отправке отчёта");
+      }
     } finally {
       setSending(false);
       setTimeout(() => setProgress(0), 600);
     }
+  }
+
+  if (PreviewComponent) {
+    return <PreviewComponent />;
   }
 
   return (
@@ -760,4 +770,21 @@ function toOneLine(desc: string) {
   if (mach) parts.push(`Техника: ${mach}`);
   if (ppl) parts.push(`Люди: ${ppl}`);
   return parts.length ? parts.join(" • ") : source.replace(/\s+/g, " ").trim();
+}
+
+function readInitialQueryParams(): QueryParams {
+  if (typeof window === "undefined") {
+    return { logoUrl: "", previewVariant: null };
+  }
+
+  try {
+    const qs = new URLSearchParams(window.location.search);
+    return {
+      logoUrl: qs.get("logo") || "",
+      previewVariant: qs.get("preview"),
+    };
+  } catch (error) {
+    console.warn("Cannot parse query params", error);
+    return { logoUrl: "", previewVariant: null };
+  }
 }
