@@ -94,81 +94,51 @@ export default function TelegramWebAppGlassPure() {
       tg.ready?.();
       tg.expand?.();
 
-      const hasNativeSwipeApi = typeof tg.disableVerticalSwipes === "function";
-
-      if (hasNativeSwipeApi) {
-        tg.disableVerticalSwipes!();
-        console.log(
-          "[WebApp] Вертикальные свайпы отключены через disableVerticalSwipes()"
-        );
+      // 1) Новый способ: disableVerticalSwipes / enableVerticalSwipes
+      if (typeof tg.disableVerticalSwipes === "function") {
+        tg.disableVerticalSwipes();
+        console.log("[WebApp] Вертикальные свайпы отключены через disableVerticalSwipes()");
 
         if (typeof tg.enableVerticalSwipes === "function") {
           cleanupFns.push(() => {
             try {
               tg.enableVerticalSwipes!();
-              console.log(
-                "[WebApp] Вертикальные свайпы включены обратно через enableVerticalSwipes()"
-              );
-            } catch (error) {
-              console.warn(
-                "[WebApp] Ошибка при enableVerticalSwipes в cleanup",
-                error
-              );
+              console.log("[WebApp] Вертикальные свайпы включены обратно в cleanup");
+            } catch (e) {
+              console.warn("[WebApp] Ошибка при enableVerticalSwipes в cleanup", e);
             }
           });
         }
+      }
+      // 2) Фолбек: старый web_app_setup_settings
+      else if (typeof tg.setSettings === "function") {
+        tg.setSettings({ allow_vertical_swipe: false });
+        console.log("[WebApp] Вертикальные свайпы отключены через setSettings()");
+
+        cleanupFns.push(() => {
+          try {
+            tg.setSettings?.({ allow_vertical_swipe: true });
+            console.log("[WebApp] Вертикальные свайпы включены обратно (setSettings)");
+          } catch (e) {
+            console.warn("[WebApp] Ошибка при откате setSettings в cleanup", e);
+          }
+        });
+      }
+      // 3) Альтернативный старый способ: web_app_setup_swipe_behavior
+      else if (typeof tg.setSwipeBehavior === "function") {
+        tg.setSwipeBehavior({ allowVerticalSwipe: false });
+        console.log("[WebApp] Вертикальные свайпы отключены через setSwipeBehavior()");
+
+        cleanupFns.push(() => {
+          try {
+            tg.setSwipeBehavior?.({ allowVerticalSwipe: true });
+            console.log("[WebApp] Вертикальные свайпы включены обратно (setSwipeBehavior)");
+          } catch (e) {
+            console.warn("[WebApp] Ошибка при откате setSwipeBehavior в cleanup", e);
+          }
+        });
       } else {
-        let fallbackApplied = false;
-
-        if (typeof tg.setSettings === "function") {
-          tg.setSettings({ allow_vertical_swipe: false });
-          fallbackApplied = true;
-          console.log(
-            "[WebApp] Вертикальные свайпы отключены через setSettings()"
-          );
-
-          cleanupFns.push(() => {
-            try {
-              tg.setSettings?.({ allow_vertical_swipe: true });
-              console.log(
-                "[WebApp] Вертикальные свайпы включены обратно (setSettings)"
-              );
-            } catch (error) {
-              console.warn(
-                "[WebApp] Ошибка при откате setSettings в cleanup",
-                error
-              );
-            }
-          });
-        }
-
-        if (typeof tg.setSwipeBehavior === "function") {
-          tg.setSwipeBehavior({ allowVerticalSwipe: false });
-          fallbackApplied = true;
-          console.log(
-            "[WebApp] Вертикальные свайпы отключены через setSwipeBehavior()"
-          );
-
-          cleanupFns.push(() => {
-            try {
-              tg.setSwipeBehavior?.({ allowVerticalSwipe: true });
-              console.log(
-                "[WebApp] Вертикальные свайпы включены обратно (setSwipeBehavior)"
-              );
-            } catch (error) {
-              console.warn(
-                "[WebApp] Ошибка при откате setSwipeBehavior в cleanup",
-                error
-              );
-            }
-          });
-        }
-
-        if (!fallbackApplied) {
-          console.warn(
-            "[WebApp] Нет подходящего API (disableVerticalSwipes / setSettings / setSwipeBehavior)"
-          );
-        }
+        console.log("[WebApp] Нет ни disableVerticalSwipes, ни setSettings, ни setSwipeBehavior");
       }
 
       // BackButton как у тебя, с небольшими логами
