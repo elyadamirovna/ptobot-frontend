@@ -94,7 +94,17 @@ export default function TelegramWebAppGlassPure() {
 
       if (typeof telegram.disableVerticalSwipes === "function") {
         telegram.disableVerticalSwipes();
-        cleanupFns.push(() => telegram.enableVerticalSwipes?.());
+        console.info("[TelegramWebApp] disableVerticalSwipes applied");
+        cleanupFns.push(() => {
+          if (typeof telegram.enableVerticalSwipes === "function") {
+            telegram.enableVerticalSwipes();
+            console.info("[TelegramWebApp] enableVerticalSwipes restored");
+          }
+        });
+      } else {
+        console.info(
+          "[TelegramWebApp] disableVerticalSwipes is unavailable, check Bot API version"
+        );
       }
 
       const backButton = telegram.BackButton;
