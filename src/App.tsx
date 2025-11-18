@@ -391,13 +391,14 @@ export default function TelegramWebAppGlassPure() {
 
   return (
     <div className={`app-shell app-shell--${colorScheme}`}>
-      <div className="relative flex w-full flex-1 items-center justify-center overflow-hidden px-3 py-6 text-white md:px-4 md:py-10">
-        <div className="pointer-events-none absolute -left-24 -top-32 h-72 w-72 rounded-full bg-sky-500/40 blur-[140px]" />
-        <div className="pointer-events-none absolute bottom-0 right-[-120px] h-[420px] w-[420px] rounded-full bg-indigo-600/40 blur-[160px]" />
-        <div className="pointer-events-none absolute inset-x-1/2 top-[40%] h-64 w-64 -translate-x-1/2 rounded-full bg-cyan-400/30 blur-[120px]" />
+      <div className="app-shell__body">
+        <div className="relative flex w-full flex-1 items-center justify-center overflow-hidden px-3 py-6 text-white md:px-4 md:py-10">
+          <div className="pointer-events-none absolute -left-24 -top-32 h-72 w-72 rounded-full bg-sky-500/40 blur-[140px]" />
+          <div className="pointer-events-none absolute bottom-0 right-[-120px] h-[420px] w-[420px] rounded-full bg-indigo-600/40 blur-[160px]" />
+          <div className="pointer-events-none absolute inset-x-1/2 top-[40%] h-64 w-64 -translate-x-1/2 rounded-full bg-cyan-400/30 blur-[120px]" />
 
-        <div className="relative z-10 w-full max-w-full md:max-w-[520px] lg:max-w-[600px]">
-        <div className="relative overflow-hidden rounded-[32px] border border-white/25 bg-white/10 px-4 pb-8 pt-6 shadow-[0_35px_100px_rgba(6,24,74,0.62)] backdrop-blur-[36px] sm:rounded-[44px] sm:px-6 sm:pb-9 sm:pt-7 lg:rounded-[52px] lg:px-8 lg:pb-10 lg:pt-8">
+          <div className="relative z-10 w-full max-w-full md:max-w-[520px] lg:max-w-[600px]">
+            <div className="relative overflow-hidden rounded-[32px] border border-white/25 bg-white/10 px-4 pb-8 pt-6 shadow-[0_35px_100px_rgba(6,24,74,0.62)] backdrop-blur-[36px] sm:rounded-[44px] sm:px-6 sm:pb-9 sm:pt-7 lg:rounded-[52px] lg:px-8 lg:pb-10 lg:pt-8">
           <div className="absolute inset-x-6 -top-32 h-48 rounded-full bg-white/10 blur-[120px] sm:inset-x-8" />
           <div className="absolute inset-0 rounded-[28px] border border-white/10 sm:rounded-[36px] lg:rounded-[44px]" />
 
@@ -862,8 +863,9 @@ export default function TelegramWebAppGlassPure() {
           </div>
         </div>
       </div>
-      </div>
     </div>
+  </div>
+</div>
   );
 }
 
