@@ -16,19 +16,20 @@ export interface TelegramBackButton {
 }
 
 export interface TelegramWebApp {
-  // базовые методы
+  /** Telegram WebApp readiness */
   ready?(): void;
+  /** Expand Mini App to fullscreen */
   expand?(): void;
+  /** Close current Mini App */
   close(): void;
 
-  // информация о версии может быть, но нам не критична
   version?: string;
 
-  // новая пара методов для свайпов
+  /** Native swipe API (Bot API 7.7+) */
   disableVerticalSwipes?(): void;
   enableVerticalSwipes?(): void;
 
-  // старые способы управления свайпами
+  /** Legacy swipe APIs */
   setSwipeBehavior?(options: TelegramSwipeBehaviorOptions): void;
   setSettings?(options: TelegramSettingsOptions): void;
 
