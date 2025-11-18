@@ -186,10 +186,10 @@ export default function TelegramWebAppGlassPure() {
       if (typeof tg.setSwipeBehavior === "function") {
         console.log("[WebApp] Используем setSwipeBehavior() для отключения свайпа");
         try {
-          tg.setSwipeBehavior({ allowVerticalSwipe: false });
+          tg.setSwipeBehavior({ allow_vertical_swipe: false });
           return () => {
             try {
-              tg.setSwipeBehavior?.({ allowVerticalSwipe: true });
+              tg.setSwipeBehavior?.({ allow_vertical_swipe: true });
               console.log("[WebApp] Свайпы восстановлены через setSwipeBehavior()");
             } catch (error) {
               console.warn("[WebApp] Ошибка при откате setSwipeBehavior в cleanup", error);
