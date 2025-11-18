@@ -1,4 +1,10 @@
-import React, { useMemo, useState, useEffect, useRef } from "react";
+import React, {
+  useMemo,
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+} from "react";
 
 import {
   CorporateStrictLayout,
@@ -31,6 +37,7 @@ import {
   ClipboardList,
   ShieldCheck,
 } from "lucide-react";
+import type { TelegramWebApp } from "@/types/telegram";
 
 const API_URL = "https://ptobot-backend.onrender.com";
 
@@ -50,6 +57,9 @@ type AccessRow = {
   projects: string[];
   role: string;
 };
+
+type TabKey = "report" | "history" | "admin";
+const TAB_ORDER: TabKey[] = ["report", "history", "admin"];
 
 export default function TelegramWebAppGlassPure() {
   const PREVIEW_COMPONENTS = useMemo(
@@ -77,119 +87,7 @@ export default function TelegramWebAppGlassPure() {
     }
   }, []);
 
-  // ------------------------------------------------------
-  // TELEGRAM useEffect: ready + отключение вертикальных свайпов
-  // ------------------------------------------------------
-  useEffect(() => {
-    const tg = typeof window !== "undefined" ? window.Telegram?.WebApp : undefined;
-
-    if (!tg) {
-      console.log("[WebApp] Telegram.WebApp не найден (скорее всего, обычный браузер)");
-      return;
-    }
-
-    const cleanupFns: Array<() => void> = [];
-
-    try {
-      tg.ready();
-      tg.expand();
-
-      const pushCleanup = (fn: () => void) => cleanupFns.push(fn);
-
-      if (typeof tg.disableVerticalSwipes === "function") {
-        console.log("[WebApp] disableVerticalSwipes() доступен, отключаем свайпы…");
-        tg.disableVerticalSwipes();
-
-        if (typeof tg.enableVerticalSwipes === "function") {
-          pushCleanup(() => {
-            try {
-              tg.enableVerticalSwipes();
-              console.log("[WebApp] enableVerticalSwipes() вызван в cleanup");
-            } catch (error) {
-              console.warn("[WebApp] Ошибка при enableVerticalSwipes в cleanup", error);
-            }
-          });
-        }
-      } else if (typeof tg.setSettings === "function") {
-        console.log("[WebApp] Используем setSettings() для отключения свайпа");
-        tg.setSettings({ allow_vertical_swipe: false });
-
-        pushCleanup(() => {
-          try {
-            tg.setSettings?.({ allow_vertical_swipe: true });
-            console.log("[WebApp] Свайпы восстановлены через setSettings()");
-          } catch (error) {
-            console.warn("[WebApp] Ошибка при откате setSettings в cleanup", error);
-          }
-        });
-      } else if (typeof tg.setSwipeBehavior === "function") {
-        console.log("[WebApp] Используем setSwipeBehavior() для отключения свайпа");
-        tg.setSwipeBehavior({ allowVerticalSwipe: false });
-
-        pushCleanup(() => {
-          try {
-            tg.setSwipeBehavior?.({ allowVerticalSwipe: true });
-            console.log("[WebApp] Свайпы восстановлены через setSwipeBehavior()");
-          } catch (error) {
-            console.warn("[WebApp] Ошибка при откате setSwipeBehavior в cleanup", error);
-          }
-        });
-      } else {
-        console.warn(
-          "[WebApp] Нет доступных API для управления вертикальными свайпами (disableVerticalSwipes/setSettings/setSwipeBehavior)"
-        );
-      }
-
-      const backButton = tg.BackButton;
-      if (backButton) {
-        const handleClose = () => {
-          try {
-            tg.close();
-          } catch (error) {
-            console.warn("[WebApp] Не удалось закрыть Mini App через BackButton", error);
-          }
-        };
-
-        backButton.show();
-        backButton.onClick(handleClose);
-
-        pushCleanup(() => {
-          try {
-            backButton.offClick(handleClose);
-            backButton.hide();
-          } catch (error) {
-            console.warn("[WebApp] Не удалось очистить BackButton", error);
-          }
-        });
-      }
-    } catch (error) {
-      console.error("[WebApp] Ошибка инициализации", error);
-    }
-
-    return () => {
-      cleanupFns.forEach((fn) => {
-        try {
-          fn();
-        } catch (error) {
-          console.warn("[WebApp] Ошибка в cleanup", error);
-        }
-      });
-    };
-  }, []);
-  // ------------------------------------------------------
-
-  const previewKey = previewVariant?.toLowerCase() as
-    | keyof typeof PREVIEW_COMPONENTS
-    | undefined;
-  const PreviewComponent = previewKey
-    ? PREVIEW_COMPONENTS[previewKey]
-    : undefined;
-
-  if (PreviewComponent) {
-    return <PreviewComponent />;
-  }
-
-  const [activeTab, setActiveTab] = useState("report");
+  const [activeTab, setActiveTab] = useState<TabKey>("report");
   const [project, setProject] = useState<string | undefined>("1");
   const [workType, setWorkType] = useState<string | undefined>("2");
   const [date, setDate] = useState<string>(() =>
@@ -205,6 +103,312 @@ export default function TelegramWebAppGlassPure() {
     { id: "2", name: "Бетонирование" },
     { id: "3", name: "Монтаж конструкций" },
   ]);
+
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
+  const [previews, setPreviews] = useState<string[]>([]);
+  const swipeAreaRef = useRef<HTMLDivElement | null>(null);
+  const telegramRef = useRef<TelegramWebApp | null>(null);
+  const activeTabRef = useRef<TabKey>("report");
+
+  const changeTabBySwipe = useCallback(
+    (direction: 1 | -1) => {
+      setActiveTab((current) => {
+        const index = TAB_ORDER.indexOf(current);
+        const nextIndex = index + direction;
+        if (nextIndex < 0 || nextIndex >= TAB_ORDER.length) {
+          return current;
+        }
+        return TAB_ORDER[nextIndex];
+      });
+    },
+    [setActiveTab]
+  );
+
+  // ------------------------------------------------------
+  // TELEGRAM useEffect: ready + отключение вертикальных свайпов
+  // ------------------------------------------------------
+  useEffect(() => {
+    const tg = typeof window !== "undefined" ? window.Telegram?.WebApp : undefined;
+
+    telegramRef.current = tg ?? null;
+
+    if (!tg) {
+      console.log("[WebApp] Telegram.WebApp не найден (скорее всего, обычный браузер)");
+      return undefined;
+    }
+
+    const cleanupFns: Array<() => void> = [];
+    const pushCleanup = (fn: () => void) => cleanupFns.push(fn);
+
+    try {
+      tg.ready?.();
+      tg.expand?.();
+    } catch (error) {
+      console.warn("[WebApp] Ошибка при вызове ready/expand", error);
+    }
+
+    const restoreSwipeBehavior = (() => {
+      if (typeof tg.disableVerticalSwipes === "function") {
+        console.log("[WebApp] disableVerticalSwipes() доступен, отключаем свайпы…");
+        try {
+          tg.disableVerticalSwipes();
+          return () => {
+            try {
+              tg.enableVerticalSwipes?.();
+              console.log("[WebApp] enableVerticalSwipes() вызван в cleanup");
+            } catch (error) {
+              console.warn("[WebApp] Ошибка при enableVerticalSwipes в cleanup", error);
+            }
+          };
+        } catch (error) {
+          console.warn("[WebApp] Не удалось отключить свайпы через disableVerticalSwipes", error);
+        }
+      }
+
+      if (typeof tg.setSettings === "function") {
+        console.log("[WebApp] Используем setSettings() для отключения свайпа");
+        try {
+          tg.setSettings({ allow_vertical_swipe: false });
+          return () => {
+            try {
+              tg.setSettings?.({ allow_vertical_swipe: true });
+              console.log("[WebApp] Свайпы восстановлены через setSettings()");
+            } catch (error) {
+              console.warn("[WebApp] Ошибка при откате setSettings в cleanup", error);
+            }
+          };
+        } catch (error) {
+          console.warn("[WebApp] Ошибка при вызове setSettings", error);
+        }
+      }
+
+      if (typeof tg.setSwipeBehavior === "function") {
+        console.log("[WebApp] Используем setSwipeBehavior() для отключения свайпа");
+        try {
+          tg.setSwipeBehavior({ allowVerticalSwipe: false });
+          return () => {
+            try {
+              tg.setSwipeBehavior?.({ allowVerticalSwipe: true });
+              console.log("[WebApp] Свайпы восстановлены через setSwipeBehavior()");
+            } catch (error) {
+              console.warn("[WebApp] Ошибка при откате setSwipeBehavior в cleanup", error);
+            }
+          };
+        } catch (error) {
+          console.warn("[WebApp] Ошибка при вызове setSwipeBehavior", error);
+        }
+      }
+
+      console.warn(
+        "[WebApp] Нет доступных API для управления вертикальными свайпами (disableVerticalSwipes/setSettings/setSwipeBehavior)"
+      );
+      return null;
+    })();
+
+    if (restoreSwipeBehavior) {
+      pushCleanup(restoreSwipeBehavior);
+    }
+
+    const handleExpandEvent = () => {
+      console.log("[WebApp] Событие web_app_expand");
+    };
+
+    const handleExitFullscreenEvent = () => {
+      console.log("[WebApp] Событие web_app_exit_fullscreen, пробуем expand ещё раз");
+      try {
+        tg.expand?.();
+      } catch (error) {
+        console.warn("[WebApp] Ошибка повторного expand", error);
+      }
+    };
+
+    const syncBackButtonVisibility = () => {
+      const backButton = tg.BackButton;
+      if (!backButton) {
+        return;
+      }
+      try {
+        if (activeTabRef.current !== "report") {
+          backButton.show();
+        } else {
+          backButton.hide();
+        }
+      } catch (error) {
+        console.warn("[WebApp] Ошибка при обновлении BackButton", error);
+      }
+    };
+
+    const handleBackButtonSetupEvent = () => {
+      console.log("[WebApp] Событие web_app_setup_back_button");
+      syncBackButtonVisibility();
+    };
+
+    if (typeof tg.onEvent === "function") {
+      tg.onEvent("web_app_expand", handleExpandEvent);
+      pushCleanup(() => tg.offEvent?.("web_app_expand", handleExpandEvent));
+
+      tg.onEvent("web_app_exit_fullscreen", handleExitFullscreenEvent);
+      pushCleanup(() => tg.offEvent?.("web_app_exit_fullscreen", handleExitFullscreenEvent));
+
+      tg.onEvent("web_app_setup_back_button", handleBackButtonSetupEvent);
+      pushCleanup(() => tg.offEvent?.("web_app_setup_back_button", handleBackButtonSetupEvent));
+    }
+
+    const handleBackButtonClick = () => {
+      if (activeTabRef.current !== "report") {
+        setActiveTab("report");
+        return;
+      }
+
+      try {
+        tg.close?.();
+      } catch (error) {
+        console.warn("[WebApp] Не удалось закрыть Mini App", error);
+      }
+    };
+
+    if (tg.BackButton) {
+      try {
+        tg.BackButton.onClick(handleBackButtonClick);
+        pushCleanup(() => tg.BackButton?.offClick(handleBackButtonClick));
+      } catch (error) {
+        console.warn("[WebApp] Не удалось настроить BackButton", error);
+      }
+      syncBackButtonVisibility();
+    }
+
+    return () => {
+      cleanupFns.forEach((fn) => {
+        try {
+          fn();
+        } catch (error) {
+          console.warn("[WebApp] Ошибка в cleanup", error);
+        }
+      });
+      telegramRef.current = null;
+    };
+  }, [setActiveTab]);
+  // ------------------------------------------------------
+
+  useEffect(() => {
+    activeTabRef.current = activeTab;
+  }, [activeTab]);
+
+  useEffect(() => {
+    const backButton = telegramRef.current?.BackButton;
+    if (!backButton) {
+      return;
+    }
+
+    try {
+      if (activeTab !== "report") {
+        backButton.show();
+      } else {
+        backButton.hide();
+      }
+    } catch (error) {
+      console.warn("[WebApp] Ошибка при обновлении BackButton из эффекта", error);
+    }
+  }, [activeTab]);
+
+  useEffect(() => {
+    const container = swipeAreaRef.current;
+    if (!container) {
+      return;
+    }
+
+    let startX = 0;
+    let startY = 0;
+    let isTracking = false;
+    let isHorizontal = false;
+
+    const resetTracking = () => {
+      startX = 0;
+      startY = 0;
+      isTracking = false;
+      isHorizontal = false;
+    };
+
+    const handleTouchStart = (event: TouchEvent) => {
+      if (event.touches.length !== 1) {
+        return;
+      }
+      const touch = event.touches[0];
+      startX = touch.clientX;
+      startY = touch.clientY;
+      isTracking = true;
+      isHorizontal = false;
+    };
+
+    const handleTouchMove = (event: TouchEvent) => {
+      if (!isTracking || event.touches.length !== 1) {
+        return;
+      }
+      const touch = event.touches[0];
+      const deltaX = touch.clientX - startX;
+      const deltaY = touch.clientY - startY;
+
+      if (!isHorizontal) {
+        if (Math.abs(deltaX) > 12 || Math.abs(deltaY) > 12) {
+          if (Math.abs(deltaX) > Math.abs(deltaY)) {
+            isHorizontal = true;
+          } else {
+            resetTracking();
+          }
+        }
+      }
+    };
+
+    const finishSwipe = (event: TouchEvent) => {
+      if (!isTracking) {
+        resetTracking();
+        return;
+      }
+
+      const touch = event.changedTouches[0];
+      const deltaX = touch.clientX - startX;
+      const deltaY = touch.clientY - startY;
+      const horizontalEnough = Math.abs(deltaX) >= 60 && Math.abs(deltaX) > Math.abs(deltaY);
+
+      if (isHorizontal && horizontalEnough) {
+        if (deltaX < 0) {
+          changeTabBySwipe(1);
+        } else {
+          changeTabBySwipe(-1);
+        }
+      }
+
+      resetTracking();
+    };
+
+    const handleTouchCancel = () => {
+      resetTracking();
+    };
+
+    container.addEventListener("touchstart", handleTouchStart, { passive: true });
+    container.addEventListener("touchmove", handleTouchMove, { passive: true });
+    container.addEventListener("touchend", finishSwipe);
+    container.addEventListener("touchcancel", handleTouchCancel);
+
+    return () => {
+      container.removeEventListener("touchstart", handleTouchStart);
+      container.removeEventListener("touchmove", handleTouchMove);
+      container.removeEventListener("touchend", finishSwipe);
+      container.removeEventListener("touchcancel", handleTouchCancel);
+    };
+  }, [changeTabBySwipe]);
+
+  const previewKey = previewVariant?.toLowerCase() as
+    | keyof typeof PREVIEW_COMPONENTS
+    | undefined;
+  const PreviewComponent = previewKey
+    ? PREVIEW_COMPONENTS[previewKey]
+    : undefined;
+
+  if (PreviewComponent) {
+    return <PreviewComponent />;
+  }
 
   useEffect(() => {
     fetch(`${API_URL}/work_types`)
@@ -272,10 +476,6 @@ export default function TelegramWebAppGlassPure() {
       role: "reporter",
     },
   ];
-
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const [files, setFiles] = useState<File[]>([]);
-  const [previews, setPreviews] = useState<string[]>([]);
 
   const onPickFiles = () => fileInputRef.current?.click();
 
@@ -360,7 +560,7 @@ export default function TelegramWebAppGlassPure() {
           <div className="absolute inset-x-6 -top-32 h-48 rounded-full bg-white/10 blur-[120px] sm:inset-x-8" />
           <div className="absolute inset-0 rounded-[28px] border border-white/10 sm:rounded-[36px] lg:rounded-[44px]" />
 
-          <div className="relative">
+          <div className="relative" ref={swipeAreaRef}>
             <header className="mb-4 flex items-center justify-between gap-3 sm:mb-6">
               <div className="flex items-center gap-3">
                 {logoUrl ? (
