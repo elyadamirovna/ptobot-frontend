@@ -1,14 +1,12 @@
 // src/types/telegram.d.ts
 
 export type TelegramSwipeBehaviorOptions = {
-  // NOTE: this is camelCase, per Telegram WebApp docs:
-  // WebApp.setSwipeBehavior({ allowVerticalSwipe: false })
-  allowVerticalSwipe: boolean;
+  // поле из web_app_setup_swipe_behavior
+  allow_vertical_swipe: boolean;
 };
 
 export type TelegramSettingsOptions = {
-  // NOTE: this is snake_case, per Telegram WebApp docs:
-  // WebApp.setSettings({ allow_vertical_swipe: false })
+  // то же поле, когда Telegram даёт setSettings
   allow_vertical_swipe?: boolean;
 };
 
@@ -41,9 +39,11 @@ export interface TelegramWebApp {
   expand(): void;
   close(): void;
 
-  // Vertical swipe control (may not be available in all clients)
+  // старые/кастомные методы некоторых клиентов
   disableVerticalSwipes?(): void;
   enableVerticalSwipes?(): void;
+
+  // новые настройки
   setSettings?(options: TelegramSettingsOptions): void;
   setSwipeBehavior?(options: TelegramSwipeBehaviorOptions): void;
 
