@@ -94,49 +94,52 @@ export default function TelegramWebAppGlassPure() {
       tg.ready();
       tg.expand();
 
+      const pushCleanup = (fn: () => void) => cleanupFns.push(fn);
+
       if (typeof tg.disableVerticalSwipes === "function") {
+        console.log("[WebApp] disableVerticalSwipes() доступен, отключаем свайпы…");
         tg.disableVerticalSwipes();
-        console.log("[WebApp] Вертикальные свайпы отключены через disableVerticalSwipes()");
 
         if (typeof tg.enableVerticalSwipes === "function") {
-          cleanupFns.push(() => {
+          pushCleanup(() => {
             try {
               tg.enableVerticalSwipes();
-              console.log("[WebApp] Вертикальные свайпы включены обратно через enableVerticalSwipes()");
+              console.log("[WebApp] enableVerticalSwipes() вызван в cleanup");
             } catch (error) {
               console.warn("[WebApp] Ошибка при enableVerticalSwipes в cleanup", error);
             }
           });
         }
       } else if (typeof tg.setSettings === "function") {
+        console.log("[WebApp] Используем setSettings() для отключения свайпа");
         tg.setSettings({ allow_vertical_swipe: false });
-        console.log("[WebApp] Вертикальные свайпы отключены через setSettings() (fallback)");
 
-        cleanupFns.push(() => {
+        pushCleanup(() => {
           try {
             tg.setSettings?.({ allow_vertical_swipe: true });
-            console.log("[WebApp] Вертикальные свайпы включены обратно (setSettings)");
+            console.log("[WebApp] Свайпы восстановлены через setSettings()");
           } catch (error) {
             console.warn("[WebApp] Ошибка при откате setSettings в cleanup", error);
           }
         });
       } else if (typeof tg.setSwipeBehavior === "function") {
+        console.log("[WebApp] Используем setSwipeBehavior() для отключения свайпа");
         tg.setSwipeBehavior({ allowVerticalSwipe: false });
-        console.log("[WebApp] Вертикальные свайпы отключены через setSwipeBehavior() (fallback)");
 
-        cleanupFns.push(() => {
+        pushCleanup(() => {
           try {
             tg.setSwipeBehavior?.({ allowVerticalSwipe: true });
-            console.log("[WebApp] Вертикальные свайпы включены обратно (setSwipeBehavior)");
+            console.log("[WebApp] Свайпы восстановлены через setSwipeBehavior()");
           } catch (error) {
             console.warn("[WebApp] Ошибка при откате setSwipeBehavior в cleanup", error);
           }
         });
       } else {
-        console.warn("[WebApp] Нет подходящего API (disableVerticalSwipes / setSettings / setSwipeBehavior)");
+        console.warn(
+          "[WebApp] Нет доступных API для управления вертикальными свайпами (disableVerticalSwipes/setSettings/setSwipeBehavior)"
+        );
       }
 
-      // BackButton как у тебя, с небольшими логами
       const backButton = tg.BackButton;
       if (backButton) {
         const handleClose = () => {
@@ -150,7 +153,7 @@ export default function TelegramWebAppGlassPure() {
         backButton.show();
         backButton.onClick(handleClose);
 
-        cleanupFns.push(() => {
+        pushCleanup(() => {
           try {
             backButton.offClick(handleClose);
             backButton.hide();
