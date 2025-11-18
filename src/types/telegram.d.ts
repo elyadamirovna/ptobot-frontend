@@ -1,10 +1,14 @@
 // src/types/telegram.d.ts
 
 export type TelegramSwipeBehaviorOptions = {
-  allow_vertical_swipe: boolean;
+  // NOTE: this is camelCase, per Telegram WebApp docs:
+  // WebApp.setSwipeBehavior({ allowVerticalSwipe: false })
+  allowVerticalSwipe: boolean;
 };
 
 export type TelegramSettingsOptions = {
+  // NOTE: this is snake_case, per Telegram WebApp docs:
+  // WebApp.setSettings({ allow_vertical_swipe: false })
   allow_vertical_swipe?: boolean;
 };
 
@@ -32,15 +36,20 @@ export interface TelegramBackButton {
 export interface TelegramWebApp {
   version?: string;
   isVersionAtLeast?(version: string): boolean;
+
   ready(): void;
   expand(): void;
   close(): void;
+
+  // Vertical swipe control (may not be available in all clients)
   disableVerticalSwipes?(): void;
   enableVerticalSwipes?(): void;
   setSettings?(options: TelegramSettingsOptions): void;
-  setSwipeBehavior?(options: { allow_vertical_swipe: boolean }): void;
+  setSwipeBehavior?(options: TelegramSwipeBehaviorOptions): void;
+
   onEvent?(eventType: TelegramEventType, handler: TelegramEventHandler): void;
   offEvent?(eventType: TelegramEventType, handler: TelegramEventHandler): void;
+
   BackButton?: TelegramBackButton;
 }
 
