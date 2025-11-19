@@ -152,89 +152,6 @@ export default function TelegramWebAppGlassPure() {
       console.warn("[WebApp] Ошибка при вызове ready/expand", error);
     }
 
-    // Пытаемся запретить закрытие вертикальным свайпом
-    const restoreSwipeBehavior = (() => {
-      if (typeof tg.disableVerticalSwipes === "function") {
-        console.log(
-          "[WebApp] disableVerticalSwipes() доступен, отключаем свайпы…"
-        );
-        try {
-          tg.disableVerticalSwipes();
-          return () => {
-            try {
-              tg.enableVerticalSwipes?.();
-              console.log(
-                "[WebApp] enableVerticalSwipes() вызван в cleanup"
-              );
-            } catch (error) {
-              console.warn(
-                "[WebApp] Ошибка при enableVerticalSwipes в cleanup",
-                error
-              );
-            }
-          };
-        } catch (error) {
-          console.warn(
-            "[WebApp] Не удалось отключить свайпы через disableVerticalSwipes",
-            error
-          );
-        }
-      }
-
-      if (typeof tg.setSettings === "function") {
-        console.log("[WebApp] Используем setSettings() для отключения свайпа");
-        try {
-          tg.setSettings({ allow_vertical_swipe: false });
-          return () => {
-            try {
-              tg.setSettings?.({ allow_vertical_swipe: true });
-              console.log("[WebApp] Свайпы восстановлены через setSettings()");
-            } catch (error) {
-              console.warn(
-                "[WebApp] Ошибка при откате setSettings в cleanup",
-                error
-              );
-            }
-          };
-        } catch (error) {
-          console.warn("[WebApp] Ошибка при вызове setSettings", error);
-        }
-      }
-
-      if (typeof tg.setSwipeBehavior === "function") {
-        console.log(
-          "[WebApp] Используем setSwipeBehavior() для отключения свайпа"
-        );
-        try {
-          tg.setSwipeBehavior({ allow_vertical_swipe: false });
-          return () => {
-            try {
-              tg.setSwipeBehavior?.({ allow_vertical_swipe: true });
-              console.log(
-                "[WebApp] Свайпы восстановлены через setSwipeBehavior()"
-              );
-            } catch (error) {
-              console.warn(
-                "[WebApp] Ошибка при откате setSwipeBehavior в cleanup",
-                error
-              );
-            }
-          };
-        } catch (error) {
-          console.warn("[WebApp] Ошибка при вызове setSwipeBehavior", error);
-        }
-      }
-
-      console.warn(
-        "[WebApp] Нет доступных API для управления вертикальными свайпами (disableVerticalSwipes/setSettings/setSwipeBehavior)"
-      );
-      return null;
-    })();
-
-    if (restoreSwipeBehavior) {
-      pushCleanup(restoreSwipeBehavior);
-    }
-
     const handleExpandEvent = () => {
       console.log("[WebApp] Событие web_app_expand");
     };
@@ -435,6 +352,127 @@ export default function TelegramWebAppGlassPure() {
     };
   }, [changeTabBySwipe]);
 
+  useEffect(() => {
+    const tg =
+      typeof window !== "undefined" ? window.Telegram?.WebApp : undefined;
+
+    if (!tg) {
+      return;
+    }
+
+    let isActive = true;
+    let isApplied = false;
+    let restoreSwipeBehavior: (() => void | Promise<void>) | null = null;
+
+    const runRestore = () => {
+      if (!restoreSwipeBehavior) {
+        return;
+      }
+      const restore = restoreSwipeBehavior;
+      restoreSwipeBehavior = null;
+      Promise.resolve(restore()).catch((error) => {
+        console.warn("[WebApp] Ошибка при откате swipeBehavior", error);
+      });
+    };
+
+    const disableSwipes = async () => {
+      if (!isActive || isApplied) {
+        return;
+      }
+
+      try {
+        if (
+          tg.isVersionAtLeast?.("7.7") &&
+          typeof tg.setSwipeBehavior === "function"
+        ) {
+          const result = await tg.setSwipeBehavior({
+            allow_vertical_swipe: false,
+          });
+
+          if (result !== false) {
+            isApplied = true;
+            restoreSwipeBehavior = async () => {
+              try {
+                await tg.setSwipeBehavior?.({ allow_vertical_swipe: true });
+              } catch (error) {
+                console.warn(
+                  "[WebApp] Ошибка при восстановлении setSwipeBehavior",
+                  error
+                );
+              }
+            };
+            return;
+          }
+        }
+
+        if (typeof tg.setSettings === "function") {
+          const result = await tg.setSettings({ allow_vertical_swipe: false });
+
+          if (result !== false) {
+            isApplied = true;
+            restoreSwipeBehavior = async () => {
+              try {
+                await tg.setSettings?.({ allow_vertical_swipe: true });
+              } catch (error) {
+                console.warn(
+                  "[WebApp] Ошибка при восстановлении setSettings",
+                  error
+                );
+              }
+            };
+            return;
+          }
+        }
+
+        if (typeof tg.disableVerticalSwipes === "function") {
+          tg.disableVerticalSwipes();
+          isApplied = true;
+          restoreSwipeBehavior = () => {
+            try {
+              tg.enableVerticalSwipes?.();
+            } catch (error) {
+              console.warn(
+                "[WebApp] Ошибка при enableVerticalSwipes в cleanup",
+                error
+              );
+            }
+          };
+          return;
+        }
+
+        console.warn(
+          "[WebApp] Нет доступного API для управления вертикальными свайпами"
+        );
+      } catch (error) {
+        console.warn("[WebApp] Ошибка при настройке свайпов", error);
+      }
+    };
+
+    const handleSetupSwipeBehavior = () => {
+      void disableSwipes();
+    };
+
+    if (typeof tg.onEvent === "function") {
+      tg.onEvent("web_app_setup_swipe_behavior", handleSetupSwipeBehavior);
+
+      return () => {
+        isActive = false;
+        tg.offEvent?.(
+          "web_app_setup_swipe_behavior",
+          handleSetupSwipeBehavior
+        );
+        runRestore();
+      };
+    }
+
+    void disableSwipes();
+
+    return () => {
+      isActive = false;
+      runRestore();
+    };
+  }, []);
+
   const previewKey = previewVariant?.toLowerCase() as
     | keyof typeof PREVIEW_COMPONENTS
     | undefined;
@@ -584,13 +622,13 @@ export default function TelegramWebAppGlassPure() {
   }
 
   return (
-    <div className="relative flex min-h-screen w-full flex-col items-stretch justify-start overflow-y-auto overflow-x-hidden bg-[#05122D] px-3 py-6 text-white md:px-4 md:py-10">
+    <div className="relative flex min-h-[100dvh] w-full flex-col items-stretch justify-start overflow-x-hidden bg-[#05122D] px-3 py-6 text-white md:px-4 md:py-10">
       <div className="pointer-events-none absolute -left-24 -top-32 h-72 w-72 rounded-full bg-sky-500/40 blur-[140px]" />
       <div className="pointer-events-none absolute bottom-0 right-[-120px] h-[420px] w-[420px] rounded-full bg-indigo-600/40 blur-[160px]" />
       <div className="pointer-events-none absolute inset-x-1/2 top-[40%] h-64 w-64 -translate-x-1/2 rounded-full bg-cyan-400/30 blur-[120px]" />
 
       <div className="relative z-10 w-full max-w-full md:max-w-[520px] lg:max-w-[600px] mx-auto">
-        <div className="relative overflow-hidden rounded-[32px] border border-white/25 bg-white/10 px-4 pb-8 pt-6 shadow-[0_35px_100px_rgba(6,24,74,0.62)] backdrop-blur-[36px] sm:rounded-[44px] sm:px-6 sm:pb-9 sm:pt-7 lg:rounded-[52px] lg:px-8 lg:pb-10 lg:pt-8">
+        <div className="relative max-h-[calc(100dvh-48px)] overflow-y-auto rounded-[32px] border border-white/25 bg-white/10 px-4 pb-8 pt-6 shadow-[0_35px_100px_rgba(6,24,74,0.62)] backdrop-blur-[36px] sm:rounded-[44px] sm:px-6 sm:pb-9 sm:pt-7 lg:rounded-[52px] lg:px-8 lg:pb-10 lg:pt-8">
           <div className="absolute inset-x-6 -top-32 h-48 rounded-full bg-white/10 blur-[120px] sm:inset-x-8" />
           <div className="absolute inset-0 rounded-[28px] border border-white/10 sm:rounded-[36px] lg:rounded-[44px]" />
 
