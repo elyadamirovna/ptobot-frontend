@@ -108,6 +108,7 @@ export default function TelegramWebAppGlassPure() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [files, setFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
+
   const swipeAreaRef = useRef<HTMLDivElement | null>(null);
   const telegramRef = useRef<TelegramWebApp | null>(null);
   const activeTabRef = useRef<TabKey>("report");
@@ -126,9 +127,9 @@ export default function TelegramWebAppGlassPure() {
     []
   );
 
-  // ------------------------------------------------------
-  // TELEGRAM useEffect: ready + отключение вертикальных свайпов
-  // ------------------------------------------------------
+  // ------------------------------------------------------------------
+  // Telegram WebApp: ready/expand, BackButton, отключение вертикальных свайпов
+  // ------------------------------------------------------------------
   useEffect(() => {
     const tg =
       typeof window !== "undefined" ? window.Telegram?.WebApp : undefined;
@@ -145,12 +146,56 @@ export default function TelegramWebAppGlassPure() {
     const cleanupFns: Array<() => void> = [];
     const pushCleanup = (fn: () => void) => cleanupFns.push(fn);
 
+    // ready / expand
     try {
       tg.ready?.();
       tg.expand?.();
     } catch (error) {
       console.warn("[WebApp] Ошибка при вызове ready/expand", error);
     }
+
+    // --- BackButton видимость и поведение ---
+    const syncBackButtonVisibility = () => {
+      const backButton = tg.BackButton;
+      if (!backButton) return;
+
+      try {
+        if (activeTabRef.current !== "report") {
+          backButton.show();
+        } else {
+          backButton.hide();
+        }
+      } catch (error) {
+        console.warn("[WebApp] Ошибка при обновлении BackButton", error);
+      }
+    };
+
+    const handleBackButtonClick = () => {
+      if (activeTabRef.current !== "report") {
+        setActiveTab("report");
+        return;
+      }
+      try {
+        tg.close?.();
+      } catch (error) {
+        console.warn("[WebApp] Не удалось закрыть Mini App", error);
+      }
+    };
+
+    if (tg.BackButton) {
+      try {
+        tg.BackButton.onClick(handleBackButtonClick);
+        pushCleanup(() => tg.BackButton?.offClick(handleBackButtonClick));
+        syncBackButtonVisibility();
+      } catch (error) {
+        console.warn("[WebApp] Не удалось настроить BackButton", error);
+      }
+    }
+
+    const handleBackButtonSetupEvent = () => {
+      console.log("[WebApp] Событие web_app_setup_back_button");
+      syncBackButtonVisibility();
+    };
 
     const handleExpandEvent = () => {
       console.log("[WebApp] Событие web_app_expand");
@@ -165,27 +210,6 @@ export default function TelegramWebAppGlassPure() {
       } catch (error) {
         console.warn("[WebApp] Ошибка повторного expand", error);
       }
-    };
-
-    const syncBackButtonVisibility = () => {
-      const backButton = tg.BackButton;
-      if (!backButton) {
-        return;
-      }
-      try {
-        if (activeTabRef.current !== "report") {
-          backButton.show();
-        } else {
-          backButton.hide();
-        }
-      } catch (error) {
-        console.warn("[WebApp] Ошибка при обновлении BackButton", error);
-      }
-    };
-
-    const handleBackButtonSetupEvent = () => {
-      console.log("[WebApp] Событие web_app_setup_back_button");
-      syncBackButtonVisibility();
     };
 
     if (typeof tg.onEvent === "function") {
@@ -203,30 +227,103 @@ export default function TelegramWebAppGlassPure() {
       );
     }
 
-    const handleBackButtonClick = () => {
-      if (activeTabRef.current !== "report") {
-        setActiveTab("report");
-        return;
-      }
+    // --- Отключение системного vertical swipe (pull-to-close) ---
+    let isDestroyed = false;
+    let isSwipeApplied = false;
+    let restoreSwipeBehavior: (() => void | Promise<void>) | null = null;
+
+    const previousAllowSwipe = tg.settings?.allow_vertical_swipe;
+
+    const runRestore = () => {
+      if (!restoreSwipeBehavior) return;
+      const restore = restoreSwipeBehavior;
+      restoreSwipeBehavior = null;
+      Promise.resolve(restore()).catch((error) => {
+        console.warn("[WebApp] Ошибка при откате swipeBehavior", error);
+      });
+    };
+
+    const applySwipeBehavior = async () => {
+      if (isDestroyed || isSwipeApplied) return;
 
       try {
-        tg.close?.();
+        // Новый API: setSwipeBehavior (v7.7+)
+        if (
+          tg.isVersionAtLeast?.("7.7") &&
+          typeof tg.setSwipeBehavior === "function"
+        ) {
+          const result = await tg.setSwipeBehavior({
+            allow_vertical_swipe: false,
+          });
+
+          if (result !== false) {
+            isSwipeApplied = true;
+            restoreSwipeBehavior = async () => {
+              await tg.setSwipeBehavior?.({ allow_vertical_swipe: true });
+            };
+            return;
+          }
+        }
+
+        // setSettings fallback
+        if (typeof tg.setSettings === "function") {
+          const result = await tg.setSettings({ allow_vertical_swipe: false });
+
+          if (result !== false) {
+            isSwipeApplied = true;
+            restoreSwipeBehavior = async () => {
+              const targetValue =
+                typeof previousAllowSwipe === "boolean"
+                  ? previousAllowSwipe
+                  : true;
+              await tg.setSettings?.({ allow_vertical_swipe: targetValue });
+            };
+            return;
+          }
+        }
+
+        // Старый API: disableVerticalSwipes
+        if (typeof tg.disableVerticalSwipes === "function" && !isSwipeApplied) {
+          tg.disableVerticalSwipes();
+          isSwipeApplied = true;
+          restoreSwipeBehavior = () => {
+            try {
+              tg.enableVerticalSwipes?.();
+            } catch (error) {
+              console.warn(
+                "[WebApp] Ошибка при enableVerticalSwipes в cleanup",
+                error
+              );
+            }
+          };
+        }
       } catch (error) {
-        console.warn("[WebApp] Не удалось закрыть Mini App", error);
+        console.warn("[WebApp] Ошибка при настройке свайпов", error);
       }
     };
 
-    if (tg.BackButton) {
-      try {
-        tg.BackButton.onClick(handleBackButtonClick);
-        pushCleanup(() => tg.BackButton?.offClick(handleBackButtonClick));
-      } catch (error) {
-        console.warn("[WebApp] Не удалось настроить BackButton", error);
-      }
-      syncBackButtonVisibility();
+    const handleSetupSwipeBehavior = () => {
+      if (isSwipeApplied || isDestroyed) return;
+      void applySwipeBehavior();
+    };
+
+    const supportsSwipeSetupEvent =
+      typeof tg.onEvent === "function" &&
+      (typeof tg.isVersionAtLeast !== "function" ||
+        tg.isVersionAtLeast("7.7"));
+
+    if (supportsSwipeSetupEvent) {
+      tg.onEvent("web_app_setup_swipe_behavior", handleSetupSwipeBehavior);
+      pushCleanup(() =>
+        tg.offEvent?.("web_app_setup_swipe_behavior", handleSetupSwipeBehavior)
+      );
+    } else {
+      // для старых клиентов пробуем сразу
+      void applySwipeBehavior();
     }
 
     return () => {
+      isDestroyed = true;
       cleanupFns.forEach((fn) => {
         try {
           fn();
@@ -234,19 +331,17 @@ export default function TelegramWebAppGlassPure() {
           console.warn("[WebApp] Ошибка в cleanup", error);
         }
       });
+      runRestore();
       telegramRef.current = null;
     };
   }, []);
 
+  // актуальный таб для BackButton
   useEffect(() => {
     activeTabRef.current = activeTab;
-  }, [activeTab]);
 
-  useEffect(() => {
     const backButton = telegramRef.current?.BackButton;
-    if (!backButton) {
-      return;
-    }
+    if (!backButton) return;
 
     try {
       if (activeTab !== "report") {
@@ -262,11 +357,10 @@ export default function TelegramWebAppGlassPure() {
     }
   }, [activeTab]);
 
+  // Горизонтальный свайп по контенту (между табами), вертикальный остаётся скроллом
   useEffect(() => {
     const container = swipeAreaRef.current;
-    if (!container) {
-      return;
-    }
+    if (!container) return;
 
     let startX = 0;
     let startY = 0;
@@ -281,9 +375,7 @@ export default function TelegramWebAppGlassPure() {
     };
 
     const handleTouchStart = (event: TouchEvent) => {
-      if (event.touches.length !== 1) {
-        return;
-      }
+      if (event.touches.length !== 1) return;
       const touch = event.touches[0];
       startX = touch.clientX;
       startY = touch.clientY;
@@ -292,9 +384,7 @@ export default function TelegramWebAppGlassPure() {
     };
 
     const handleTouchMove = (event: TouchEvent) => {
-      if (!isTracking || event.touches.length !== 1) {
-        return;
-      }
+      if (!isTracking || event.touches.length !== 1) return;
       const touch = event.touches[0];
       const deltaX = touch.clientX - startX;
       const deltaY = touch.clientY - startY;
@@ -304,6 +394,7 @@ export default function TelegramWebAppGlassPure() {
           if (Math.abs(deltaX) > Math.abs(deltaY)) {
             isHorizontal = true;
           } else {
+            // вертикальный жест — отдаём браузеру / Telegram для скролла
             resetTracking();
           }
         }
@@ -324,8 +415,10 @@ export default function TelegramWebAppGlassPure() {
 
       if (isHorizontal && horizontalEnough) {
         if (deltaX < 0) {
+          // свайп влево → следующая вкладка
           changeTabBySwipe(1);
         } else {
+          // свайп вправо → предыдущая вкладка
           changeTabBySwipe(-1);
         }
       }
@@ -352,140 +445,6 @@ export default function TelegramWebAppGlassPure() {
     };
   }, [changeTabBySwipe]);
 
-  useEffect(() => {
-    const tg =
-      typeof window !== "undefined" ? window.Telegram?.WebApp : undefined;
-
-    if (!tg) {
-      return;
-    }
-
-    let isDestroyed = false;
-    let isApplied = false;
-    let restoreSwipeBehavior: (() => void | Promise<void>) | null = null;
-
-    const previousAllowSwipe = tg.settings?.allow_vertical_swipe;
-
-    const runRestore = () => {
-      if (!restoreSwipeBehavior) {
-        return;
-      }
-      const restore = restoreSwipeBehavior;
-      restoreSwipeBehavior = null;
-      Promise.resolve(restore()).catch((error) => {
-        console.warn("[WebApp] Ошибка при откате swipeBehavior", error);
-      });
-    };
-
-    const applySwipeBehavior = async () => {
-      if (isDestroyed || isApplied) {
-        return;
-      }
-
-      try {
-        if (
-          tg.isVersionAtLeast?.("7.7") &&
-          typeof tg.setSwipeBehavior === "function"
-        ) {
-          const result = await tg.setSwipeBehavior({
-            allow_vertical_swipe: false,
-          });
-
-          if (result !== false) {
-            isApplied = true;
-            restoreSwipeBehavior = async () => {
-              await tg.setSwipeBehavior?.({ allow_vertical_swipe: true });
-            };
-            return;
-          }
-        }
-
-        if (typeof tg.setSettings === "function") {
-          const result = await tg.setSettings({ allow_vertical_swipe: false });
-
-          if (result !== false) {
-            isApplied = true;
-            restoreSwipeBehavior = async () => {
-              const targetValue =
-                typeof previousAllowSwipe === "boolean"
-                  ? previousAllowSwipe
-                  : true;
-              await tg.setSettings?.({ allow_vertical_swipe: targetValue });
-            };
-            return;
-          }
-        }
-
-        if (
-          typeof tg.disableVerticalSwipes === "function" &&
-          !isApplied
-        ) {
-          tg.disableVerticalSwipes();
-          isApplied = true;
-          restoreSwipeBehavior = () => {
-            try {
-              tg.enableVerticalSwipes?.();
-            } catch (error) {
-              console.warn(
-                "[WebApp] Ошибка при enableVerticalSwipes в cleanup",
-                error
-              );
-            }
-          };
-        }
-      } catch (error) {
-        console.warn("[WebApp] Ошибка при настройке свайпов", error);
-      }
-    };
-
-    const handleSetupSwipeBehavior = () => {
-      if (isApplied || isDestroyed) {
-        return;
-      }
-      void applySwipeBehavior();
-    };
-
-    const supportsSwipeSetupEvent =
-      typeof tg.onEvent === "function" &&
-      (typeof tg.isVersionAtLeast !== "function" ||
-        tg.isVersionAtLeast("7.7"));
-
-    if (supportsSwipeSetupEvent) {
-      tg.onEvent("web_app_setup_swipe_behavior", handleSetupSwipeBehavior);
-    } else if (
-      typeof tg.disableVerticalSwipes === "function" &&
-      typeof tg.enableVerticalSwipes === "function"
-    ) {
-      tg.disableVerticalSwipes();
-      isApplied = true;
-      restoreSwipeBehavior = () => {
-        try {
-          tg.enableVerticalSwipes?.();
-        } catch (error) {
-          console.warn(
-            "[WebApp] Ошибка при enableVerticalSwipes в cleanup",
-            error
-          );
-        }
-      };
-    } else {
-      console.warn(
-        "[WebApp] Нет поддерживаемого API для управления вертикальными свайпами"
-      );
-    }
-
-    return () => {
-      isDestroyed = true;
-      if (supportsSwipeSetupEvent) {
-        tg.offEvent?.(
-          "web_app_setup_swipe_behavior",
-          handleSetupSwipeBehavior
-        );
-      }
-      runRestore();
-    };
-  }, []);
-
   const previewKey = previewVariant?.toLowerCase() as
     | keyof typeof PREVIEW_COMPONENTS
     | undefined;
@@ -493,10 +452,13 @@ export default function TelegramWebAppGlassPure() {
     ? PREVIEW_COMPONENTS[previewKey]
     : undefined;
 
+  // В режиме превью лэйаута нам всё равно нужно корректное поведение свайпа,
+  // но сам макет рендерим отдельно (логика Telegram уже инициализирована выше)
   if (PreviewComponent) {
     return <PreviewComponent />;
   }
 
+  // --- загрузка видов работ ---
   useEffect(() => {
     fetch(`${API_URL}/work_types`)
       .then((response) => (response.ok ? response.json() : Promise.reject()))
@@ -650,468 +612,476 @@ export default function TelegramWebAppGlassPure() {
               <header className="mb-4 flex items-center justify-between gap-3 sm:mb-6">
                 <div className="flex items-center gap-3">
                   {logoUrl ? (
-                  <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-3xl border border-white/40 bg-white/80 shadow-[0_12px_32px_rgba(59,130,246,0.4)]">
-                    <img
-                      src={logoUrl}
-                      alt="Логотип"
-                      className="h-full w-full object-contain"
-                    />
-                  </div>
-                ) : (
-                  <div className="flex h-10 w-10 items-center justify-center rounded-3xl bg-white/85 text-sm font-semibold text-sky-800 shadow-[0_12px_32px_rgba(3,144,255,0.7)]">
-                    РБК
-                  </div>
-                )}
-                <div className="leading-tight">
-                  <div className="text-[10px] uppercase tracking-[0.24em] text-white/70 sm:text-[11px]">
-                    Стройинвест
-                  </div>
-                  <div className="text-[11px] font-medium text-white/85 sm:text-xs">
-                    Ежедневные отчёты по объектам
+                    <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-3xl border border-white/40 bg-white/80 shadow-[0_12px_32px_rgba(59,130,246,0.4)]">
+                      <img
+                        src={logoUrl}
+                        alt="Логотип"
+                        className="h-full w-full object-contain"
+                      />
+                    </div>
+                  ) : (
+                    <div className="flex h-10 w-10 items-center justify-center rounded-3xl bg-white/85 text-sm font-semibold text-sky-800 shadow-[0_12px_32px_rgba(3,144,255,0.7)]">
+                      РБК
+                    </div>
+                  )}
+                  <div className="leading-tight">
+                    <div className="text-[10px] uppercase tracking-[0.24em] text-white/70 sm:text-[11px]">
+                      Стройинвест
+                    </div>
+                    <div className="text-[11px] font-medium text-white/85 sm:text-xs">
+                      Ежедневные отчёты по объектам
+                    </div>
                   </div>
                 </div>
-              </div>
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/75 text-[10px] font-semibold text-sky-900 shadow-[0_14px_34px_rgba(2,110,255,0.65)] sm:h-9 sm:w-9 sm:text-[11px]">
-                ИП
-              </div>
-            </header>
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/75 text-[10px] font-semibold text-sky-900 shadow-[0_14px_34px_rgba(2,110,255,0.65)] sm:h-9 sm:w-9 sm:text-[11px]">
+                  ИП
+                </div>
+              </header>
 
-            <Tabs
-              value={activeTab}
-              onValueChange={(v) => setActiveTab(v as TabKey)}
-              className="w-full"
-            >
-              <TabsList className="mb-4 grid grid-cols-3 gap-1 rounded-full bg-white/15 p-1 text-[11px] text-white/75 sm:mb-5 sm:text-[12px]">
-                <TabsTrigger
-                  value="report"
-                  className="flex items-center justify-center gap-1 rounded-full px-2 py-1.5 text-[10px] transition data-[state=active]:bg-white data-[state=active]:text-sky-900 data-[state=active]:shadow-[0_12px_30px_rgba(255,255,255,0.45)] sm:px-3 sm:py-2 sm:text-[12px]"
-                >
-                  <ClipboardList className="h-3.5 w-3.5" /> Отчёт
-                </TabsTrigger>
-                <TabsTrigger
-                  value="history"
-                  className="flex items-center justify-center gap-1 rounded-full px-2 py-1.5 text-[10px] transition data-[state=active]:bg-white data-[state=active]:text-sky-900 data-[state=active]:shadow-[0_12px_30px_rgba(255,255,255,0.45)] sm:px-3 sm:py-2 sm:text-[12px]"
-                >
-                  <History className="h-3.5 w-3.5" /> История
-                </TabsTrigger>
-                <TabsTrigger
-                  value="admin"
-                  className="flex items-center justify-center gap-1 rounded-full px-2 py-1.5 text-[10px] transition data-[state=active]:bg-white data-[state=active]:text-sky-900 data-[state=active]:shadow-[0_12px_30px_rgba(255,255,255,0.45)] sm:px-3 sm:py-2 sm:text-[12px]"
-                >
-                  <ShieldCheck className="h-3.5 w-3.5" /> Доступ
-                </TabsTrigger>
-              </TabsList>
+              <Tabs
+                value={activeTab}
+                onValueChange={(v) => setActiveTab(v as TabKey)}
+                className="w-full"
+              >
+                <TabsList className="mb-4 grid grid-cols-3 gap-1 rounded-full bg-white/15 p-1 text-[11px] text-white/75 sm:mb-5 sm:text-[12px]">
+                  <TabsTrigger
+                    value="report"
+                    className="flex items-center justify-center gap-1 rounded-full px-2 py-1.5 text-[10px] transition data-[state=active]:bg-white data-[state=active]:text-sky-900 data-[state=active]:shadow-[0_12px_30px_rgba(255,255,255,0.45)] sm:px-3 sm:py-2 sm:text-[12px]"
+                  >
+                    <ClipboardList className="h-3.5 w-3.5" /> Отчёт
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="history"
+                    className="flex items-center justify-center gap-1 rounded-full px-2 py-1.5 text-[10px] transition data-[state=active]:bg-white data-[state=active]:text-sky-900 data-[state=active]:shadow-[0_12px_30px_rgba(255,255,255,0.45)] sm:px-3 sm:py-2 sm:text-[12px]"
+                  >
+                    <History className="h-3.5 w-3.5" /> История
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="admin"
+                    className="flex items-center justify-center gap-1 rounded-full px-2 py-1.5 text-[10px] transition data-[state=active]:bg-white data-[state=active]:text-sky-900 data-[state=active]:shadow-[0_12px_30px_rgba(255,255,255,0.45)] sm:px-3 sm:py-2 sm:text-[12px]"
+                  >
+                    <ShieldCheck className="h-3.5 w-3.5" /> Доступ
+                  </TabsTrigger>
+                </TabsList>
 
-              {/* TAB: ОТЧЁТ */}
-              <TabsContent value="report" className="mt-0">
-                <Card className="border-white/20 bg-white/10 text-white shadow-[0_24px_60px_rgba(15,28,83,0.45)] backdrop-blur-[28px]">
-                  <CardHeader className="pb-4">
-                    <CardTitle className="text-[18px] font-semibold tracking-wide text-white sm:text-[20px]">
-                      Ежедневный отчёт
-                    </CardTitle>
-                    <p className="text-xs text-white/80">{formatRu(date)}</p>
-                  </CardHeader>
-                  <CardContent className="space-y-5 text-[12px] sm:text-[13px]">
-                    <div className="grid gap-3 rounded-3xl border border-white/20 bg-white/5 p-4 backdrop-blur-xl">
-                      <div className="space-y-1.5">
-                        <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/60 sm:text-[11px]">
-                          Объект
-                        </p>
-                        <div className="relative">
-                          <Building2 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/65" />
-                          <Select value={project} onValueChange={setProject}>
-                            <SelectTrigger className="h-11 rounded-2xl border border-white/20 bg-white/10 pl-11 pr-12 text-[13px] font-medium text-white/90 shadow-[0_16px_38px_rgba(7,24,74,0.55)] backdrop-blur sm:h-12 sm:text-[14px]">
-                              <SelectValue placeholder="Выберите объект" />
-                            </SelectTrigger>
-                            <SelectContent className="border border-white/15 bg-[#07132F]/95 text-white">
-                              {projects.map((item) => (
-                                <SelectItem key={item.id} value={item.id}>
-                                  {item.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                {/* TAB: ОТЧЁТ */}
+                <TabsContent value="report" className="mt-0">
+                  <Card className="border-white/20 bg-white/10 text-white shadow-[0_24px_60px_rgba(15,28,83,0.45)] backdrop-blur-[28px]">
+                    <CardHeader className="pb-4">
+                      <CardTitle className="text-[18px] font-semibold tracking-wide text-white sm:text-[20px]">
+                        Ежедневный отчёт
+                      </CardTitle>
+                      <p className="text-xs text-white/80">{formatRu(date)}</p>
+                    </CardHeader>
+                    <CardContent className="space-y-5 text-[12px] sm:text-[13px]">
+                      <div className="grid gap-3 rounded-3xl border border-white/20 bg-white/5 p-4 backdrop-blur-xl">
+                        <div className="space-y-1.5">
+                          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/60 sm:text-[11px]">
+                            Объект
+                          </p>
+                          <div className="relative">
+                            <Building2 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/65" />
+                            <Select value={project} onValueChange={setProject}>
+                              <SelectTrigger className="h-11 rounded-2xl border border-white/20 bg-white/10 pl-11 pr-12 text-[13px] font-medium text-white/90 shadow-[0_16px_38px_rgba(7,24,74,0.55)] backdrop-blur sm:h-12 sm:text-[14px]">
+                                <SelectValue placeholder="Выберите объект" />
+                              </SelectTrigger>
+                              <SelectContent className="border border-white/15 bg-[#07132F]/95 text-white">
+                                {projects.map((item) => (
+                                  <SelectItem key={item.id} value={item.id}>
+                                    {item.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
                         </div>
-                      </div>
-                      <div className="space-y-1.5">
-                        <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/60 sm:text-[11px]">
-                          Вид работ
-                        </p>
-                        <div className="relative">
-                          <HardHat className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/65" />
-                          <Select value={workType} onValueChange={setWorkType}>
-                            <SelectTrigger className="h-11 rounded-2xl border border-white/20 bg-white/10 pl-11 pr-12 text-[13px] font-medium text-white/90 shadow-[0_16px_38px_rgba(7,24,74,0.55)] backdrop-blur sm:h-12 sm:text-[14px]">
-                              <SelectValue placeholder="Выберите вид работ" />
-                            </SelectTrigger>
-                            <SelectContent className="border border-white/15 bg-[#07132F]/95 text-white">
-                              {workTypes.map((item) => (
-                                <SelectItem key={item.id} value={item.id}>
-                                  {item.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="grid gap-3 sm:grid-cols-3">
-                      <div className="space-y-1.5">
-                        <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/60 sm:text-[11px]">
-                          Дата
-                        </p>
-                        <div className="relative">
-                          <Input
-                            type="date"
-                            value={date}
-                            onChange={(event) => setDate(event.target.value)}
-                            className="h-11 rounded-2xl border border-white/20 bg-white/10 pl-12 pr-12 text-[13px] font-medium text-white/90 placeholder:text-white/50 [appearance:none] sm:h-12 sm:text-[14px]"
-                          />
-                          <CalendarDays className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/65" />
-                          <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/55" />
-                        </div>
-                      </div>
-                      <div className="space-y-1.5">
-                        <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/60 sm:text-[11px]">
-                          Объём
-                        </p>
-                        <div className="flex items-center gap-2">
-                          <Input
-                            placeholder="12,5"
-                            value={volume}
-                            onChange={(event) => setVolume(event.target.value)}
-                            className="h-11 flex-1 rounded-2xl border border-white/20 bg-white/10 text-[13px] font-medium text-white/90 placeholder:text-white/40 sm:h-12 sm:text-[14px]"
-                          />
-                          <div className="flex h-11 items-center justify-center rounded-2xl border border-white/15 bg-white/10 px-3 text-[11px] text-white/75 sm:h-12 sm:px-4 sm:text-[12px]">
-                            м³
+                        <div className="space-y-1.5">
+                          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/60 sm:text-[11px]">
+                            Вид работ
+                          </p>
+                          <div className="relative">
+                            <HardHat className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/65" />
+                            <Select value={workType} onValueChange={setWorkType}>
+                              <SelectTrigger className="h-11 rounded-2xl border border-white/20 bg-white/10 pl-11 pr-12 text-[13px] font-medium text-white/90 shadow-[0_16px_38px_rgba(7,24,74,0.55)] backdrop-blur sm:h-12 sm:text-[14px]">
+                                <SelectValue placeholder="Выберите вид работ" />
+                              </SelectTrigger>
+                              <SelectContent className="border border-white/15 bg-[#07132F]/95 text-white">
+                                {workTypes.map((item) => (
+                                  <SelectItem key={item.id} value={item.id}>
+                                    {item.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
                           </div>
                         </div>
                       </div>
-                      <div className="space-y-1.5">
-                        <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/60 sm:text-[11px]">
-                          Техника
-                        </p>
-                        <div className="flex items-center gap-2">
-                          <Input
-                            placeholder="3"
-                            value={machines}
-                            onChange={(event) => setMachines(event.target.value)}
-                            className="h-11 flex-1 rounded-2xl border border-white/20 bg-white/10 text-[13px] font-medium text-white/90 placeholder:text-white/40 sm:h-12 sm:text-[14px]"
-                          />
-                          <div className="flex h-11 items-center justify-center rounded-2xl border border-white/15 bg-white/10 px-3 text-[11px] text-white/75 sm:h-12 sm:px-4 sm:text-[12px]">
-                            шт.
+
+                      <div className="grid gap-3 sm:grid-cols-3">
+                        <div className="space-y-1.5">
+                          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/60 sm:text-[11px]">
+                            Дата
+                          </p>
+                          <div className="relative">
+                            <Input
+                              type="date"
+                              value={date}
+                              onChange={(event) => setDate(event.target.value)}
+                              className="h-11 rounded-2xl border border-white/20 bg-white/10 pl-12 pr-12 text-[13px] font-medium text-white/90 placeholder:text-white/50 [appearance:none] sm:h-12 sm:text-[14px]"
+                            />
+                            <CalendarDays className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/65" />
+                            <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/55" />
+                          </div>
+                        </div>
+                        <div className="space-y-1.5">
+                          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/60 sm:text-[11px]">
+                            Объём
+                          </p>
+                          <div className="flex items-center gap-2">
+                            <Input
+                              placeholder="12,5"
+                              value={volume}
+                              onChange={(event) => setVolume(event.target.value)}
+                              className="h-11 flex-1 rounded-2xl border border-white/20 bg-white/10 text-[13px] font-medium text-white/90 placeholder:text-white/40 sm:h-12 sm:text-[14px]"
+                            />
+                            <div className="flex h-11 items-center justify-center rounded-2xl border border-white/15 bg-white/10 px-3 text-[11px] text-white/75 sm:h-12 sm:px-4 sm:text-[12px]">
+                              м³
+                            </div>
+                          </div>
+                        </div>
+                        <div className="space-y-1.5">
+                          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/60 sm:text-[11px]">
+                            Техника
+                          </p>
+                          <div className="flex items-center gap-2">
+                            <Input
+                              placeholder="3"
+                              value={machines}
+                              onChange={(event) =>
+                                setMachines(event.target.value)
+                              }
+                              className="h-11 flex-1 rounded-2xl border border-white/20 bg-white/10 text-[13px] font-medium text-white/90 placeholder:text-white/40 sm:h-12 sm:text-[14px]"
+                            />
+                            <div className="flex h-11 items-center justify-center rounded-2xl border border-white/15 bg-white/10 px-3 text-[11px] text-white/75 sm:h-12 sm:px-4 sm:text-[12px]">
+                              шт.
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
 
-                    <div className="space-y-1.5">
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/60 sm:text-[11px]">
-                        Люди
-                      </p>
-                      <div className="relative">
-                        <Users className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/65" />
-                        <Input
-                          inputMode="numeric"
-                          placeholder="кол-во человек"
-                          value={people}
-                          onChange={(event) => setPeople(event.target.value)}
-                          className="h-11 rounded-2xl border border-white/20 bg-white/10 pl-11 text-[13px] font-medium text-white/90 placeholder:text-white/40 sm:h-12 sm:text-[14px]"
+                      <div className="space-y-1.5">
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/60 sm:text-[11px]">
+                          Люди
+                        </p>
+                        <div className="relative">
+                          <Users className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/65" />
+                          <Input
+                            inputMode="numeric"
+                            placeholder="кол-во человек"
+                            value={people}
+                            onChange={(event) => setPeople(event.target.value)}
+                            className="h-11 rounded-2xl border border-white/20 bg-white/10 pl-11 text-[13px] font-medium text-white/90 placeholder:text-white/40 sm:h-12 sm:text-[14px]"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/60 sm:text-[11px]">
+                          Комментарий
+                        </p>
+                        <Textarea
+                          value={comment}
+                          onChange={(event) => setComment(event.target.value)}
+                          placeholder="Кратко опишите выполненные работы…"
+                          className="min-h-[80px] rounded-3xl border border-white/20 bg-white/10 text-[12px] text-white/90 placeholder:text-white/45 sm:min-h-[96px] sm:text-[13px]"
                         />
                       </div>
-                    </div>
 
-                    <div className="space-y-1.5">
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/60 sm:text-[11px]">
-                        Комментарий
-                      </p>
-                      <Textarea
-                        value={comment}
-                        onChange={(event) => setComment(event.target.value)}
-                        placeholder="Кратко опишите выполненные работы…"
-                        className="min-h-[80px] rounded-3xl border border-white/20 bg-white/10 text-[12px] text-white/90 placeholder:text-white/45 sm:min-h-[96px] sm:text-[13px]"
-                      />
-                    </div>
-
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between text-[10px] font-semibold uppercase tracking-[0.16em] text-white/65 sm:text-[11px]">
-                        <span className="flex items-center gap-1.5">
-                          <ImageIcon className="h-3.5 w-3.5" /> Выберите фото
-                        </span>
-                        <span className="text-white/55">
-                          JPG/PNG/HEIC, до 10 МБ
-                        </span>
-                      </div>
-
-                      <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept="image/*"
-                        multiple
-                        className="hidden"
-                        onChange={onFilesSelected}
-                      />
-
-                      <div className="flex flex-col gap-3 rounded-3xl border border-dashed border-white/30 bg-white/5 px-4 py-3 text-sm text-white/75 sm:flex-row sm:items-center">
-                        <div className="flex-1 text-[11px] leading-tight sm:text-[12px]">
-                          Перетащите фото или нажмите «Выбрать»
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between text-[10px] font-semibold uppercase tracking-[0.16em] text-white/65 sm:text-[11px]">
+                          <span className="flex items-center gap-1.5">
+                            <ImageIcon className="h-3.5 w-3.5" /> Выберите фото
+                          </span>
+                          <span className="text-white/55">
+                            JPG/PNG/HEIC, до 10 МБ
+                          </span>
                         </div>
-                        <Button
-                          type="button"
-                          className="flex items-center gap-2 rounded-full bg-gradient-to-r from-[#5FE0FF] via-[#7DF0FF] to-[#B5F5FF] px-4 py-1.5 text-[12px] font-semibold text-sky-900 shadow-[0_18px_50px_rgba(3,144,255,0.9)] hover:brightness-110"
-                          onClick={onPickFiles}
-                        >
-                          <Upload className="h-3.5 w-3.5" /> Выбрать
-                        </Button>
+
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          accept="image/*"
+                          multiple
+                          className="hidden"
+                          onChange={onFilesSelected}
+                        />
+
+                        <div className="flex flex-col gap-3 rounded-3xl border border-dashed border-white/30 bg-white/5 px-4 py-3 text-sm text-white/75 sm:flex-row sm:items-center">
+                          <div className="flex-1 text-[11px] leading-tight sm:text-[12px]">
+                            Перетащите фото или нажмите «Выбрать»
+                          </div>
+                          <Button
+                            type="button"
+                            className="flex items-center gap-2 rounded-full bg-gradient-to-r from-[#5FE0FF] via-[#7DF0FF] to-[#B5F5FF] px-4 py-1.5 text-[12px] font-semibold text-sky-900 shadow-[0_18px_50px_rgba(3,144,255,0.9)] hover:brightness-110"
+                            onClick={onPickFiles}
+                          >
+                            <Upload className="h-3.5 w-3.5" /> Выбрать
+                          </Button>
+                        </div>
+
+                        <div className="grid grid-cols-4 gap-2 sm:grid-cols-3 sm:gap-3">
+                          {(previews.length ? previews : [null, null, null])
+                            .slice(0, 3)
+                            .map((src, index) => (
+                              <div
+                                // eslint-disable-next-line react/no-array-index-key
+                                key={index}
+                                className="flex aspect-square items-center justify-center rounded-xl border border-white/20 bg-white/5 sm:aspect-[4/3] sm:rounded-2xl"
+                              >
+                                {src ? (
+                                  <img
+                                    src={src}
+                                    alt="Предпросмотр"
+                                    className="h-full w-full rounded-xl object-cover sm:rounded-2xl"
+                                  />
+                                ) : (
+                                  <span className="text-[10px] text-white/45 sm:text-[11px]">
+                                    Фото
+                                  </span>
+                                )}
+                              </div>
+                            ))}
+                        </div>
                       </div>
 
-                      <div className="grid grid-cols-4 gap-2 sm:grid-cols-3 sm:gap-3">
-                        {(previews.length ? previews : [null, null, null])
-                          .slice(0, 3)
-                          .map((src, index) => (
-                            <div
-                              key={index}
-                              className="flex aspect-square items-center justify-center rounded-xl border border-white/20 bg-white/5 sm:aspect-[4/3] sm:rounded-2xl"
-                            >
-                              {src ? (
-                                <img
-                                  src={src}
-                                  alt="Предпросмотр"
-                                  className="h-full w-full rounded-xl object-cover sm:rounded-2xl"
-                                />
-                              ) : (
-                                <span className="text-[10px] text-white/45 sm:text-[11px]">
-                                  Фото
-                                </span>
-                              )}
+                      <div className="space-y-2">
+                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                          <Button
+                            type="button"
+                            className="h-11 rounded-full bg-gradient-to-r from-[#5FE0FF] via-[#7DF0FF] to-[#B5F5FF] px-6 text-[12px] font-semibold text-sky-900 shadow-[0_24px_60px_rgba(3,144,255,0.85)] hover:brightness-110 disabled:opacity-70 sm:text-[13px]"
+                            onClick={sendReport}
+                            disabled={sending}
+                          >
+                            {sending ? "Отправка…" : "Отправить отчёт"}
+                          </Button>
+                          <div className="flex-1">
+                            <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/15">
+                              <div
+                                className="h-full rounded-full bg-gradient-to-r from-[#5FE0FF] via-[#7DF0FF] to-[#B5F5FF] transition-all"
+                                style={{ width: `${progress}%` }}
+                              />
                             </div>
-                          ))}
+                          </div>
+                        </div>
+                        {progress > 0 && (
+                          <p className="text-[10px] text-white/70 sm:text-[11px]">
+                            Загрузка: {progress}%
+                          </p>
+                        )}
                       </div>
-                    </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
 
-                    <div className="space-y-2">
-                      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                        <Button
-                          type="button"
-                          className="h-11 rounded-full bg-gradient-to-r from-[#5FE0FF] via-[#7DF0FF] to-[#B5F5FF] px-6 text-[12px] font-semibold text-sky-900 shadow-[0_24px_60px_rgba(3,144,255,0.85)] hover:brightness-110 disabled:opacity-70 sm:text-[13px]"
-                          onClick={sendReport}
-                          disabled={sending}
-                        >
-                          {sending ? "Отправка…" : "Отправить отчёт"}
-                        </Button>
-                        <div className="flex-1">
-                          <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/15">
-                            <div
-                              className="h-full rounded-full bg-gradient-to-r from-[#5FE0FF] via-[#7DF0FF] to-[#B5F5FF] transition-all"
-                              style={{ width: `${progress}%` }}
+                {/* TAB: ИСТОРИЯ */}
+                <TabsContent value="history" className="mt-0">
+                  <Card className="border-white/20 bg-white/10 text-white shadow-[0_24px_60px_rgba(15,28,83,0.45)] backdrop-blur-[28px]">
+                    <CardHeader className="pb-4">
+                      <CardTitle className="flex items-center gap-2 text-[16px] font-semibold text-white sm:text-[18px]">
+                        <History className="h-4 w-4" /> История отчётов
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-5 text-[11px] sm:text-[12px]">
+                      <div className="grid gap-3 rounded-3xl border border-white/15 bg-white/5 p-4 backdrop-blur">
+                        <div className="grid gap-3 sm:grid-cols-4">
+                          <div className="space-y-1.5 sm:col-span-2">
+                            <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-white/60 sm:text-[10px]">
+                              Объект
+                            </p>
+                            <Select value={project} onValueChange={setProject}>
+                              <SelectTrigger className="h-9 rounded-2xl border border-white/20 bg-white/10 text-[11px] text-white/90 sm:text-[12px]">
+                                <SelectValue placeholder="Объект" />
+                              </SelectTrigger>
+                              <SelectContent className="border border-white/15 bg-[#07132F]/95 text-white">
+                                {projects.map((item) => (
+                                  <SelectItem key={item.id} value={item.id}>
+                                    {item.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-1.5">
+                            <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-white/60 sm:text-[10px]">
+                              С даты
+                            </p>
+                            <Input
+                              type="date"
+                              className="h-9 rounded-2xl border border-white/20 bg-white/10 text-[11px] text-white/90 sm:text-[12px]"
+                            />
+                          </div>
+                          <div className="space-y-1.5">
+                            <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-white/60 sm:text-[10px]">
+                              По дату
+                            </p>
+                            <Input
+                              type="date"
+                              className="h-9 rounded-2xl border border-white/20 bg-white/10 text-[11px] text-white/90 sm:text-[12px]"
                             />
                           </div>
                         </div>
                       </div>
-                      {progress > 0 && (
-                        <p className="text-[10px] text-white/70 sm:text-[11px]">
-                          Загрузка: {progress}%
-                        </p>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
 
-              {/* TAB: ИСТОРИЯ */}
-              <TabsContent value="history" className="mt-0">
-                <Card className="border-white/20 bg-white/10 text-white shadow-[0_24px_60px_rgba(15,28,83,0.45)] backdrop-blur-[28px]">
-                  <CardHeader className="pb-4">
-                    <CardTitle className="flex items-center gap-2 text-[16px] font-semibold text-white sm:text-[18px]">
-                      <History className="h-4 w-4" /> История отчётов
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-5 text-[11px] sm:text-[12px]">
-                    <div className="grid gap-3 rounded-3xl border border-white/15 bg-white/5 p-4 backdrop-blur">
-                      <div className="grid gap-3 sm:grid-cols-4">
-                        <div className="space-y-1.5 sm:col-span-2">
-                          <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-white/60 sm:text-[10px]">
-                            Объект
-                          </p>
-                          <Select value={project} onValueChange={setProject}>
-                            <SelectTrigger className="h-9 rounded-2xl border border-white/20 bg-white/10 text-[11px] text-white/90 sm:text-[12px]">
-                              <SelectValue placeholder="Объект" />
-                            </SelectTrigger>
-                            <SelectContent className="border border-white/15 bg-[#07132F]/95 text-white">
-                              {projects.map((item) => (
-                                <SelectItem key={item.id} value={item.id}>
-                                  {item.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div className="space-y-1.5">
-                          <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-white/60 sm:text-[10px]">
-                            С даты
-                          </p>
-                          <Input
-                            type="date"
-                            className="h-9 rounded-2xl border border-white/20 bg-white/10 text-[11px] text-white/90 sm:text-[12px]"
-                          />
-                        </div>
-                        <div className="space-y-1.5">
-                          <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-white/60 sm:text-[10px]">
-                            По дату
-                          </p>
-                          <Input
-                            type="date"
-                            className="h-9 rounded-2xl border border-white/20 bg-white/10 text-[11px] text-white/90 sm:text-[12px]"
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="space-y-3">
-                      {history
-                        .filter((item) => item.project_id === project)
-                        .map((item) => (
-                          <div
-                            key={item.id}
-                            className="rounded-3xl border border-white/15 bg-white/5 p-3 text-white/85 backdrop-blur"
-                          >
-                            <div className="flex flex-col gap-1 text-[11px] sm:flex-row sm:items-center sm:justify-between sm:text-[12px]">
-                              <span>{formatRu(item.date)}</span>
-                              <span className="text-white/75">
-                                {
-                                  workTypes.find(
-                                    (row) => row.id === item.work_type_id
-                                  )?.name
-                                }
-                              </span>
+                      <div className="space-y-3">
+                        {history
+                          .filter((item) => item.project_id === project)
+                          .map((item) => (
+                            <div
+                              key={item.id}
+                              className="rounded-3xl border border-white/15 bg-white/5 p-3 text-white/85 backdrop-blur"
+                            >
+                              <div className="flex flex-col gap-1 text-[11px] sm:flex-row sm:items-center sm:justify-between sm:text-[12px]">
+                                <span>{formatRu(item.date)}</span>
+                                <span className="text-white/75">
+                                  {
+                                    workTypes.find(
+                                      (row) => row.id === item.work_type_id
+                                    )?.name
+                                  }
+                                </span>
+                              </div>
+                              <p className="mt-1 text-[11px] text-white/85 sm:text-[12px]">
+                                {toOneLine(item.description)}
+                              </p>
+                              <div className="mt-2 flex flex-wrap gap-2">
+                                {item.photos.map((src, index) => (
+                                  <img
+                                    // eslint-disable-next-line react/no-array-index-key
+                                    key={index}
+                                    src={src}
+                                    alt="Фото отчёта"
+                                    className="h-14 w-20 rounded-lg border border-white/35 object-cover sm:h-16 sm:w-24 sm:rounded-xl"
+                                  />
+                                ))}
+                              </div>
                             </div>
-                            <p className="mt-1 text-[11px] text-white/85 sm:text-[12px]">
-                              {toOneLine(item.description)}
+                          ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+
+                {/* TAB: ДОСТУП */}
+                <TabsContent value="admin" className="mt-0">
+                  <Card className="border-white/20 bg-white/10 text-white shadow-[0_24px_60px_rgba(15,28,83,0.45)] backdrop-blur-[28px]">
+                    <CardHeader className="pb-4">
+                      <CardTitle className="flex items-center gap-2 text-[16px] font-semibold text-white sm:text-[18px]">
+                        <ShieldCheck className="h-4 w-4" /> Назначение доступа
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-5 text-[11px] sm:text-[12px]">
+                      <div className="grid gap-3 rounded-3xl border border-white/15 bg-white/5 p-4 backdrop-blur">
+                        <div className="grid gap-3 sm:grid-cols-3">
+                          <div className="space-y-1.5 sm:col-span-1">
+                            <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-white/60 sm:text-[10px]">
+                              Найти подрядчика
                             </p>
-                            <div className="mt-2 flex flex-wrap gap-2">
-                              {item.photos.map((src, index) => (
-                                <img
-                                  key={index}
-                                  src={src}
-                                  alt="Фото отчёта"
-                                  className="h-14 w-20 rounded-lg border border-white/35 object-cover sm:h-16 sm:w-24 sm:rounded-xl"
-                                />
-                              ))}
-                            </div>
+                            <Input
+                              placeholder="Поиск по названию / Telegram"
+                              className="h-9 rounded-2xl border border-white/20 bg-white/10 text-[11px] text-white/90 placeholder:text-white/50 sm:text-[12px]"
+                            />
                           </div>
-                        ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-
-              {/* TAB: ДОСТУП */}
-              <TabsContent value="admin" className="mt-0">
-                <Card className="border-white/20 bg-white/10 text-white shadow-[0_24px_60px_rgba(15,28,83,0.45)] backdrop-blur-[28px]">
-                  <CardHeader className="pb-4">
-                    <CardTitle className="flex items-center gap-2 text-[16px] font-semibold text-white sm:text-[18px]">
-                      <ShieldCheck className="h-4 w-4" /> Назначение доступа
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-5 text-[11px] sm:text-[12px]">
-                    <div className="grid gap-3 rounded-3xl border border-white/15 bg-white/5 p-4 backdrop-blur">
-                      <div className="grid gap-3 sm:grid-cols-3">
-                        <div className="space-y-1.5 sm:col-span-1">
-                          <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-white/60 sm:text-[10px]">
-                            Найти подрядчика
-                          </p>
-                          <Input
-                            placeholder="Поиск по названию / Telegram"
-                            className="h-9 rounded-2xl border border-white/20 bg-white/10 text-[11px] text-white/90 placeholder:text-white/50 sm:text-[12px]"
-                          />
-                        </div>
-                        <div className="space-y-1.5">
-                          <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-white/60 sm:text-[10px]">
-                            Объект
-                          </p>
-                          <Select value={project} onValueChange={setProject}>
-                            <SelectTrigger className="h-9 rounded-2xl border border-white/20 bg-white/10 text-[11px] text-white/90 sm:text-[12px]">
-                              <SelectValue placeholder="Выберите объект" />
-                            </SelectTrigger>
-                            <SelectContent className="border border-white/15 bg-[#07132F]/95 text-white">
-                              {projects.map((item) => (
-                                <SelectItem key={item.id} value={item.id}>
-                                  {item.name}
+                          <div className="space-y-1.5">
+                            <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-white/60 sm:text-[10px]">
+                              Объект
+                            </p>
+                            <Select value={project} onValueChange={setProject}>
+                              <SelectTrigger className="h-9 rounded-2xl border border-white/20 bg-white/10 text-[11px] text-white/90 sm:text-[12px]">
+                                <SelectValue placeholder="Выберите объект" />
+                              </SelectTrigger>
+                              <SelectContent className="border border-white/15 bg-[#07132F]/95 text-white">
+                                {projects.map((item) => (
+                                  <SelectItem key={item.id} value={item.id}>
+                                    {item.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-1.5">
+                            <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-white/60 sm:text-[10px]">
+                              Роль
+                            </p>
+                            <Select defaultValue="reporter">
+                              <SelectTrigger className="h-9 rounded-2xl border border-white/20 bg-white/10 text-[11px] text-white/90 sm:text-[12px]">
+                                <SelectValue placeholder="Роль" />
+                              </SelectTrigger>
+                              <SelectContent className="border border-white/15 bg-[#07132F]/95 text-white">
+                                <SelectItem value="reporter">
+                                  Может отправлять отчёты
                                 </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div className="space-y-1.5">
-                          <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-white/60 sm:text-[10px]">
-                            Роль
-                          </p>
-                          <Select defaultValue="reporter">
-                            <SelectTrigger className="h-9 rounded-2xl border border-white/20 bg-white/10 text-[11px] text-white/90 sm:text-[12px]">
-                              <SelectValue placeholder="Роль" />
-                            </SelectTrigger>
-                            <SelectContent className="border border-white/15 bg-[#07132F]/95 text-white">
-                              <SelectItem value="reporter">
-                                Может отправлять отчёты
-                              </SelectItem>
-                              <SelectItem value="viewer">
-                                Только просмотр
-                              </SelectItem>
-                              <SelectItem value="manager">Менеджер</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/65 sm:text-[11px]">
-                        Текущие назначения
-                      </p>
-                      <div className="space-y-2">
-                        {accessList.map((row, index) => (
-                          <div
-                            key={index}
-                            className="flex flex-col gap-3 rounded-2xl border border-white/15 bg-white/5 px-3 py-3 backdrop-blur sm:flex-row sm:items-center sm:justify-between"
-                          >
-                            <div>
-                              <div className="text-[12px] font-medium text-white/90 sm:text-[13px]">
-                                {row.user.name}
-                              </div>
-                              <div className="text-[10px] text-white/65 sm:text-[11px]">
-                                Проекты:{" "}
-                                {row.projects
-                                  .map(
-                                    (pid) =>
-                                      projects.find((p) => p.id === pid)?.name
-                                  )
-                                  .join(", ")}
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-[10px] text-white/70 sm:text-[11px]">
-                                Роль: {row.role}
-                              </span>
-                              <Button
-                                variant="secondary"
-                                size="sm"
-                                className="h-8 rounded-full border-none bg-white/85 px-3 text-[10px] font-semibold text-sky-800 shadow-[0_12px_32px_rgba(3,144,255,0.55)] hover:brightness-110 sm:text-[11px]"
-                              >
-                                Изменить
-                              </Button>
-                            </div>
+                                <SelectItem value="viewer">
+                                  Только просмотр
+                                </SelectItem>
+                                <SelectItem value="manager">
+                                  Менеджер
+                                </SelectItem>
+                              </SelectContent>
+                            </Select>
                           </div>
-                        ))}
+                        </div>
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-            </Tabs>
+
+                      <div className="space-y-2">
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/65 sm:text-[11px]">
+                          Текущие назначения
+                        </p>
+                        <div className="space-y-2">
+                          {accessList.map((row, index) => (
+                            <div
+                              // eslint-disable-next-line react/no-array-index-key
+                              key={index}
+                              className="flex flex-col gap-3 rounded-2xl border border-white/15 bg-white/5 px-3 py-3 backdrop-blur sm:flex-row sm:items-center sm:justify-between"
+                            >
+                              <div>
+                                <div className="text-[12px] font-medium text-white/90 sm:text-[13px]">
+                                  {row.user.name}
+                                </div>
+                                <div className="text-[10px] text-white/65 sm:text-[11px]">
+                                  Проекты:{" "}
+                                  {row.projects
+                                    .map(
+                                      (pid) =>
+                                        projects.find((p) => p.id === pid)
+                                          ?.name
+                                    )
+                                    .join(", ")}
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className="text-[10px] text-white/70 sm:text-[11px]">
+                                  Роль: {row.role}
+                                </span>
+                                <Button
+                                  variant="secondary"
+                                  size="sm"
+                                  className="h-8 rounded-full border-none bg-white/85 px-3 text-[10px] font-semibold text-sky-800 shadow-[0_12px_32px_rgba(3,144,255,0.55)] hover:brightness-110 sm:text-[11px]"
+                                >
+                                  Изменить
+                                </Button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+              </Tabs>
+            </div>
           </div>
         </div>
-      </div>
-    </main>
+      </main>
     </div>
   );
 }
