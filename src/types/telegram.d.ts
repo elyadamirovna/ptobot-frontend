@@ -36,6 +36,11 @@ export interface TelegramWebApp {
   version?: string;
   isVersionAtLeast?(version: string): boolean;
 
+  settings?: {
+    allow_vertical_swipe?: boolean;
+    [key: string]: unknown;
+  };
+
   ready(): void;
   expand(): void;
   close(): void;
