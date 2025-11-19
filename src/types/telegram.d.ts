@@ -49,7 +49,7 @@ export interface TelegramWebApp {
   disableVerticalSwipes?(): void;
   enableVerticalSwipes?(): void;
 
-  // новые настройки
+  // новые настройки (v7.7+)
   setSettings?(options: TelegramSettingsOptions): Promise<boolean> | boolean | void;
   setSwipeBehavior?(options: TelegramSwipeBehaviorOptions):
     | Promise<boolean>
