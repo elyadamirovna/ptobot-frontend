@@ -360,11 +360,9 @@ export default function TelegramWebAppGlassPure() {
       return;
     }
 
-    let isDestroyed = false;
+    let isActive = true;
     let isApplied = false;
     let restoreSwipeBehavior: (() => void | Promise<void>) | null = null;
-
-    const previousAllowSwipe = tg.settings?.allow_vertical_swipe;
 
     const runRestore = () => {
       if (!restoreSwipeBehavior) {
@@ -377,8 +375,8 @@ export default function TelegramWebAppGlassPure() {
       });
     };
 
-    const applySwipeBehavior = async () => {
-      if (isDestroyed || isApplied) {
+    const disableSwipes = async () => {
+      if (!isActive || isApplied) {
         return;
       }
 
@@ -394,7 +392,14 @@ export default function TelegramWebAppGlassPure() {
           if (result !== false) {
             isApplied = true;
             restoreSwipeBehavior = async () => {
-              await tg.setSwipeBehavior?.({ allow_vertical_swipe: true });
+              try {
+                await tg.setSwipeBehavior?.({ allow_vertical_swipe: true });
+              } catch (error) {
+                console.warn(
+                  "[WebApp] Ошибка при восстановлении setSwipeBehavior",
+                  error
+                );
+              }
             };
             return;
           }
@@ -406,20 +411,20 @@ export default function TelegramWebAppGlassPure() {
           if (result !== false) {
             isApplied = true;
             restoreSwipeBehavior = async () => {
-              const targetValue =
-                typeof previousAllowSwipe === "boolean"
-                  ? previousAllowSwipe
-                  : true;
-              await tg.setSettings?.({ allow_vertical_swipe: targetValue });
+              try {
+                await tg.setSettings?.({ allow_vertical_swipe: true });
+              } catch (error) {
+                console.warn(
+                  "[WebApp] Ошибка при восстановлении setSettings",
+                  error
+                );
+              }
             };
             return;
           }
         }
 
-        if (
-          typeof tg.disableVerticalSwipes === "function" &&
-          !isApplied
-        ) {
+        if (typeof tg.disableVerticalSwipes === "function") {
           tg.disableVerticalSwipes();
           isApplied = true;
           restoreSwipeBehavior = () => {
@@ -432,56 +437,38 @@ export default function TelegramWebAppGlassPure() {
               );
             }
           };
+          return;
         }
+
+        console.warn(
+          "[WebApp] Нет доступного API для управления вертикальными свайпами"
+        );
       } catch (error) {
         console.warn("[WebApp] Ошибка при настройке свайпов", error);
       }
     };
 
     const handleSetupSwipeBehavior = () => {
-      if (isApplied || isDestroyed) {
-        return;
-      }
-      void applySwipeBehavior();
+      void disableSwipes();
     };
 
-    const supportsSwipeSetupEvent =
-      typeof tg.onEvent === "function" &&
-      (typeof tg.isVersionAtLeast !== "function" ||
-        tg.isVersionAtLeast("7.7"));
-
-    if (supportsSwipeSetupEvent) {
+    if (typeof tg.onEvent === "function") {
       tg.onEvent("web_app_setup_swipe_behavior", handleSetupSwipeBehavior);
-    } else if (
-      typeof tg.disableVerticalSwipes === "function" &&
-      typeof tg.enableVerticalSwipes === "function"
-    ) {
-      tg.disableVerticalSwipes();
-      isApplied = true;
-      restoreSwipeBehavior = () => {
-        try {
-          tg.enableVerticalSwipes?.();
-        } catch (error) {
-          console.warn(
-            "[WebApp] Ошибка при enableVerticalSwipes в cleanup",
-            error
-          );
-        }
-      };
-    } else {
-      console.warn(
-        "[WebApp] Нет поддерживаемого API для управления вертикальными свайпами"
-      );
-    }
 
-    return () => {
-      isDestroyed = true;
-      if (supportsSwipeSetupEvent) {
+      return () => {
+        isActive = false;
         tg.offEvent?.(
           "web_app_setup_swipe_behavior",
           handleSetupSwipeBehavior
         );
-      }
+        runRestore();
+      };
+    }
+
+    void disableSwipes();
+
+    return () => {
+      isActive = false;
       runRestore();
     };
   }, []);
@@ -635,21 +622,20 @@ export default function TelegramWebAppGlassPure() {
   }
 
   return (
-    <div className="relative flex min-h-[100dvh] w-full flex-col overflow-hidden bg-[#05122D] text-white">
+    <div className="relative flex min-h-[100dvh] w-full flex-col items-stretch justify-start overflow-x-hidden bg-[#05122D] px-3 py-6 text-white md:px-4 md:py-10">
       <div className="pointer-events-none absolute -left-24 -top-32 h-72 w-72 rounded-full bg-sky-500/40 blur-[140px]" />
       <div className="pointer-events-none absolute bottom-0 right-[-120px] h-[420px] w-[420px] rounded-full bg-indigo-600/40 blur-[160px]" />
       <div className="pointer-events-none absolute inset-x-1/2 top-[40%] h-64 w-64 -translate-x-1/2 rounded-full bg-cyan-400/30 blur-[120px]" />
 
-      <main className="relative z-10 flex min-h-[100dvh] w-full flex-1 justify-center overflow-y-auto px-3 py-6 touch-pan-y md:px-4 md:py-10">
-        <div className="mx-auto w-full max-w-full md:max-w-[520px] lg:max-w-[600px]">
-          <div className="relative rounded-[32px] border border-white/25 bg-white/10 px-4 pb-8 pt-6 shadow-[0_35px_100px_rgba(6,24,74,0.62)] backdrop-blur-[36px] sm:rounded-[44px] sm:px-6 sm:pb-9 sm:pt-7 lg:rounded-[52px] lg:px-8 lg:pb-10 lg:pt-8">
-            <div className="absolute inset-x-6 -top-32 h-48 rounded-full bg-white/10 blur-[120px] sm:inset-x-8" />
-            <div className="absolute inset-0 rounded-[28px] border border-white/10 sm:rounded-[36px] lg:rounded-[44px]" />
+      <div className="relative z-10 w-full max-w-full md:max-w-[520px] lg:max-w-[600px] mx-auto">
+        <div className="relative max-h-[calc(100dvh-48px)] overflow-y-auto rounded-[32px] border border-white/25 bg-white/10 px-4 pb-8 pt-6 shadow-[0_35px_100px_rgba(6,24,74,0.62)] backdrop-blur-[36px] sm:rounded-[44px] sm:px-6 sm:pb-9 sm:pt-7 lg:rounded-[52px] lg:px-8 lg:pb-10 lg:pt-8">
+          <div className="absolute inset-x-6 -top-32 h-48 rounded-full bg-white/10 blur-[120px] sm:inset-x-8" />
+          <div className="absolute inset-0 rounded-[28px] border border-white/10 sm:rounded-[36px] lg:rounded-[44px]" />
 
-            <div className="relative" ref={swipeAreaRef}>
-              <header className="mb-4 flex items-center justify-between gap-3 sm:mb-6">
-                <div className="flex items-center gap-3">
-                  {logoUrl ? (
+          <div className="relative" ref={swipeAreaRef}>
+            <header className="mb-4 flex items-center justify-between gap-3 sm:mb-6">
+              <div className="flex items-center gap-3">
+                {logoUrl ? (
                   <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-3xl border border-white/40 bg-white/80 shadow-[0_12px_32px_rgba(59,130,246,0.4)]">
                     <img
                       src={logoUrl}
@@ -1111,7 +1097,6 @@ export default function TelegramWebAppGlassPure() {
           </div>
         </div>
       </div>
-    </main>
     </div>
   );
 }
