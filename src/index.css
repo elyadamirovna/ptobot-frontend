@@ -2,27 +2,32 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Базовая геометрия документа под Telegram WebApp */
 html,
 body {
   height: 100%;
   min-height: 100dvh;
+  margin: 0;
+  padding: 0;
   overflow-x: hidden;
+  /* Чтобы Телега не пыталась «тянуть» сам webview при вертикальном свайпе */
   overscroll-behavior-x: none;
   overscroll-behavior-y: none;
 }
 
+/* React-корень занимает всю высоту, скролл дальше организуем в App.tsx */
 #root {
   height: 100%;
   min-height: 100dvh;
 }
 
+/* Базовые tailwind-стили + шрифт */
 body {
   @apply bg-slate-50 text-slate-900;
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  overflow: hidden;
 }
 
-
+/* Токены темы + фон */
 @layer base {
   :root {
     --background: 0 0% 100%;
@@ -51,6 +56,7 @@ body {
     --chart-5: 27 87% 67%;
     --radius: 0.5rem;
   }
+
   .dark {
     --background: 0 0% 3.9%;
     --foreground: 0 0% 98%;
@@ -79,11 +85,11 @@ body {
   }
 }
 
-
 @layer base {
   * {
     @apply border-border;
   }
+
   body {
     @apply font-sans;
     background-color: #05122d;
