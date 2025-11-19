@@ -16,6 +16,7 @@ export type TelegramEventType =
   | "web_app_exit_fullscreen"
   | "web_app_close"
   | "web_app_setup_back_button"
+  | "web_app_setup_swipe_behavior"
   | "web_app_setup_main_button"
   | "back_button_pressed"
   | "themeChanged"
@@ -44,8 +45,11 @@ export interface TelegramWebApp {
   enableVerticalSwipes?(): void;
 
   // новые настройки
-  setSettings?(options: TelegramSettingsOptions): void;
-  setSwipeBehavior?(options: TelegramSwipeBehaviorOptions): void;
+  setSettings?(options: TelegramSettingsOptions): Promise<boolean> | boolean | void;
+  setSwipeBehavior?(options: TelegramSwipeBehaviorOptions):
+    | Promise<boolean>
+    | boolean
+    | void;
 
   onEvent?(eventType: TelegramEventType, handler: TelegramEventHandler): void;
   offEvent?(eventType: TelegramEventType, handler: TelegramEventHandler): void;
