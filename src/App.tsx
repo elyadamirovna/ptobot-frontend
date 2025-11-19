@@ -469,15 +469,14 @@ export default function TelegramWebAppGlassPure() {
             name: item.name,
           }));
           setWorkTypes(mapped);
-          if (!workType) {
-            setWorkType(mapped[0].id);
-          }
+          setWorkType((current) => current ?? mapped[0].id);
         }
       })
-      .catch(() => {
+      .catch((error) => {
+        console.warn("Не удалось загрузить work_types", error);
         /* silent fallback to default workTypes */
       });
-  }, [workType]);
+  }, []);
 
   const projects = [
     { id: "1", name: "ЖК «Северный»", address: "ул. Парковая, 12" },
