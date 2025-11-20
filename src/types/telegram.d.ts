@@ -1,12 +1,14 @@
+// src/types/telegram.d.ts
+
 export type TelegramSwipeBehaviorOptions = {
-  // поле из web_app_setup_swipe_behavior
   allow_vertical_swipe: boolean;
 };
 
 export type TelegramSettingsOptions = {
-  // то же поле, когда Telegram даёт setSettings
   allow_vertical_swipe?: boolean;
 };
+
+export type TelegramHeaderColorKey = "bg_color" | "secondary_bg_color";
 
 export type TelegramEventType =
   | "web_app_ready"
@@ -48,11 +50,19 @@ export interface TelegramWebApp {
   enableVerticalSwipes?(): void;
 
   // новые настройки (v7.7+)
-  setSettings?(options: TelegramSettingsOptions): Promise<boolean> | boolean | void;
-  setSwipeBehavior?(options: TelegramSwipeBehaviorOptions):
-    | Promise<boolean>
-    | boolean
-    | void;
+  setSettings?(
+    options: TelegramSettingsOptions
+  ): Promise<boolean> | boolean | void;
+
+  setSwipeBehavior?(
+    options: TelegramSwipeBehaviorOptions
+  ): Promise<boolean> | boolean | void;
+
+  /** Цвет фона под web-view (hex без #) */
+  setBackgroundColor?(color: string): void;
+
+  /** Цвет хедера: bg_color | secondary_bg_color или hex */
+  setHeaderColor?(colorKey: TelegramHeaderColorKey | string): void;
 
   onEvent?(eventType: TelegramEventType, handler: TelegramEventHandler): void;
   offEvent?(eventType: TelegramEventType, handler: TelegramEventHandler): void;
@@ -69,5 +79,3 @@ declare global {
 }
 
 export {};
-
-
