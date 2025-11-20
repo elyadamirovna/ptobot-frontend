@@ -23,7 +23,7 @@ export type TelegramEventType =
   | "viewportChanged"
   | string;
 
-export type TelegramEventHandler<T = any> = (eventData?: T) => void;
+export type TelegramEventHandler<T = unknown> = (eventData?: T) => void;
 
 export interface TelegramBackButton {
   show(): void;
