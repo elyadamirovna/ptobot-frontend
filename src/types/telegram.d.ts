@@ -10,6 +10,24 @@ export type TelegramSettingsOptions = {
   allow_vertical_swipe?: boolean;
 };
 
+export type TelegramSafeAreaInsets = {
+  top?: number;
+  bottom?: number;
+  left?: number;
+  right?: number;
+};
+
+export type TelegramViewportState = {
+  height?: number;
+  width?: number;
+  stableHeight?: number;
+  safeAreaInsets?: TelegramSafeAreaInsets;
+};
+
+export type TelegramViewportChangedData = TelegramViewportState & {
+  isStateStable?: boolean;
+};
+
 export type TelegramEventType =
   | "web_app_ready"
   | "web_app_expand"
@@ -35,6 +53,11 @@ export interface TelegramBackButton {
 export interface TelegramWebApp {
   version?: string;
   isVersionAtLeast?(version: string): boolean;
+
+  viewport?: TelegramViewportState;
+  viewportHeight?: number;
+  viewportStableHeight?: number;
+  safeAreaInsets?: TelegramSafeAreaInsets;
 
   settings?: {
     allow_vertical_swipe?: boolean;
