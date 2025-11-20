@@ -729,34 +729,7 @@ export default function TelegramWebAppGlassPure() {
             <div className="absolute inset-0 rounded-[28px] border border-white/10 sm:rounded-[36px] lg:rounded-[44px]" />
 
             <div className="relative" ref={swipeAreaRef}>
-              <header className="mb-4 flex items-center justify-between gap-3 sm:mb-6">
-                <div className="flex items-center gap-3">
-                  {logoUrl ? (
-                    <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-3xl border border-white/40 bg-white/80 shadow-[0_12px_32px_rgba(59,130,246,0.4)]">
-                      <img
-                        src={logoUrl}
-                        alt="Логотип"
-                        className="h-full w-full object-contain"
-                      />
-                    </div>
-                  ) : (
-                    <div className="flex h-10 w-10 items-center justify-center rounded-3xl bg-white/85 text-sm font-semibold text-sky-800 shadow-[0_12px_32px_rgba(3,144,255,0.7)]">
-                      РБК
-                    </div>
-                  )}
-                  <div className="leading-tight">
-                    <div className="text-[10px] uppercase tracking-[0.24em] text-white/70 sm:text-[11px]">
-                      Стройинвест
-                    </div>
-                    <div className="text-[11px] font-medium text-white/85 sm:text-xs">
-                      Ежедневные отчёты по объектам
-                    </div>
-                  </div>
-                </div>
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/75 text-[10px] font-semibold text-sky-900 shadow-[0_14px_34px_rgba(2,110,255,0.65)] sm:h-9 sm:w-9 sm:text-[11px]">
-                  ИП
-                </div>
-              </header>
+              <header className="mb-4 sm:mb-6" />
 
               <Tabs
                 value={activeTab}
