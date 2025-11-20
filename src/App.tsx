@@ -39,7 +39,6 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import type {
-  TelegramSafeAreaInsets,
   TelegramViewportChangedData,
   TelegramWebApp,
 } from "@/types/telegram";
@@ -139,30 +138,21 @@ export default function TelegramWebAppGlassPure() {
     };
 
     const syncInsets = (eventData?: TelegramViewportChangedData) => {
-      type ExtendedSafeArea = {
-        contentSafeAreaInset?: TelegramSafeAreaInsets;
-        safeAreaInset?: TelegramSafeAreaInsets;
-      };
-
-      const eventWithFallback =
-        eventData as (TelegramViewportChangedData & ExtendedSafeArea) | undefined;
-      const tgWithFallback = tg as TelegramWebApp & ExtendedSafeArea;
-
       // 1) Safe area с учётом UI Telegram (верхняя панель, нижние кнопки)
       const contentSafeArea =
-        eventWithFallback?.contentSafeAreaInsets ??
-        eventWithFallback?.contentSafeAreaInset ??
+        eventData?.contentSafeAreaInsets ??
+        eventData?.contentSafeAreaInset ??
         tg.viewport?.contentSafeAreaInsets ??
-        tgWithFallback.contentSafeAreaInsets ??
-        tgWithFallback.contentSafeAreaInset;
+        tg.contentSafeAreaInsets ??
+        tg.contentSafeAreaInset;
 
       // 2) Системный safe area устройства
       const safeArea =
-        eventWithFallback?.safeAreaInsets ??
+        eventData?.safeAreaInsets ??
+        eventData?.safeAreaInset ??
         tg.viewport?.safeAreaInsets ??
         tg.safeAreaInsets ??
-        eventWithFallback?.safeAreaInset ??
-        tgWithFallback.safeAreaInset;
+        tg.safeAreaInset;
 
       const top = contentSafeArea?.top ?? safeArea?.top ?? 0;
       const bottom = contentSafeArea?.bottom ?? safeArea?.bottom ?? 0;
