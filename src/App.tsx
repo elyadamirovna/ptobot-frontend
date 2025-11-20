@@ -625,8 +625,6 @@ export default function TelegramWebAppGlassPure() {
       style={{
         backgroundColor: "var(--app-surface)",
         backgroundImage: "var(--app-surface-gradient)",
-        paddingTop: "env(safe-area-inset-top, 0px)",
-        paddingBottom: "env(safe-area-inset-bottom, 0px)",
       }}
     >
       <div className="pointer-events-none absolute -left-24 -top-32 h-72 w-72 rounded-full bg-indigo-500/40 blur-[140px]" />
@@ -635,12 +633,7 @@ export default function TelegramWebAppGlassPure() {
 
       <main
         className="relative z-10 flex min-h-[100dvh] w-full flex-1 justify-center overflow-y-auto px-3 py-6 touch-pan-y md:px-4 md:py-10"
-        style={{
-          WebkitOverflowScrolling: "touch",
-          overscrollBehaviorY: "auto",
-          paddingTop: "calc(1.5rem + env(safe-area-inset-top, 0px))",
-          paddingBottom: "calc(1.5rem + env(safe-area-inset-bottom, 0px))",
-        }}
+        style={{ WebkitOverflowScrolling: "touch", overscrollBehaviorY: "auto" }}
       >
         <div className="mx-auto w-full max-w-full md:max-w-[620px] lg:max-w-[700px]">
           <div className="relative rounded-[32px] border border-white/25 bg-white/10 px-4 pb-8 pt-6 shadow-[0_35px_100px_rgba(6,24,74,0.62)] backdrop-blur-[36px] sm:rounded-[44px] sm:px-6 sm:pb-9 sm:pt-7 lg:rounded-[52px] lg:px-8 lg:pb-10 lg:pt-8">
