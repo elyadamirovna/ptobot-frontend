@@ -21,7 +21,12 @@ export type TelegramViewportState = {
   height?: number;
   width?: number;
   stableHeight?: number;
+
+  // системный safe area (вырезы устройства)
   safeAreaInsets?: TelegramSafeAreaInsets;
+
+  // safe area с учётом UI Telegram (верхняя панель, нижние кнопки и т.п.)
+  contentSafeAreaInsets?: TelegramSafeAreaInsets;
 };
 
 export type TelegramViewportChangedData = TelegramViewportState & {
@@ -59,7 +64,17 @@ export interface TelegramWebApp {
   viewport?: TelegramViewportState;
   viewportHeight?: number;
   viewportStableHeight?: number;
+  
+  // системный safe area
   safeAreaInsets?: TelegramSafeAreaInsets;
+
+  // safe area с учётом UI Telegram
+  contentSafeAreaInsets?: TelegramSafeAreaInsets;
+
+  // на некоторых клиентах могут быть поля в единственном числе
+  // поэтому в коде мы ещё подстрахуемся через (tg as any).safeAreaInset и т.п.
+  // safeAreaInset?: TelegramSafeAreaInsets;
+  // contentSafeAreaInset?: TelegramSafeAreaInsets;
 
   settings?: {
     allow_vertical_swipe?: boolean;

@@ -39,6 +39,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import type {
+  TelegramSafeAreaInsets,
   TelegramViewportChangedData,
   TelegramWebApp,
 } from "@/types/telegram";
@@ -121,10 +122,11 @@ export default function TelegramWebAppGlassPure() {
   const activeTabRef = useRef<TabKey>("report");
 
   // ------------------------------------------------------------------
-  // Поддержка безопасной области (вырезы + верхняя панель Telegram)
+  // Поддержка безопасной области (вырезы устройства + UI Telegram)
   // ------------------------------------------------------------------
   useEffect(() => {
-    const tg = typeof window !== "undefined" ? window.Telegram?.WebApp : undefined;
+    const tg =
+      typeof window !== "undefined" ? window.Telegram?.WebApp : undefined;
 
     if (!tg || typeof document === "undefined") return undefined;
 
@@ -137,16 +139,40 @@ export default function TelegramWebAppGlassPure() {
     };
 
     const syncInsets = (eventData?: TelegramViewportChangedData) => {
-      const safeArea =
-        eventData?.safeAreaInsets ||
-        tg.viewport?.safeAreaInsets ||
-        tg.safeAreaInsets;
+      type ExtendedSafeArea = {
+        contentSafeAreaInset?: TelegramSafeAreaInsets;
+        safeAreaInset?: TelegramSafeAreaInsets;
+      };
 
-      if (safeArea) {
-        applyInsets(safeArea.top ?? 0, safeArea.bottom ?? 0);
+      const eventWithFallback =
+        eventData as (TelegramViewportChangedData & ExtendedSafeArea) | undefined;
+      const tgWithFallback = tg as TelegramWebApp & ExtendedSafeArea;
+
+      // 1) Safe area с учётом UI Telegram (верхняя панель, нижние кнопки)
+      const contentSafeArea =
+        eventWithFallback?.contentSafeAreaInsets ??
+        eventWithFallback?.contentSafeAreaInset ??
+        tg.viewport?.contentSafeAreaInsets ??
+        tgWithFallback.contentSafeAreaInsets ??
+        tgWithFallback.contentSafeAreaInset;
+
+      // 2) Системный safe area устройства
+      const safeArea =
+        eventWithFallback?.safeAreaInsets ??
+        tg.viewport?.safeAreaInsets ??
+        tg.safeAreaInsets ??
+        eventWithFallback?.safeAreaInset ??
+        tgWithFallback.safeAreaInset;
+
+      const top = contentSafeArea?.top ?? safeArea?.top ?? 0;
+      const bottom = contentSafeArea?.bottom ?? safeArea?.bottom ?? 0;
+
+      if (top !== 0 || bottom !== 0) {
+        applyInsets(top, bottom);
         return;
       }
 
+      // 3) Фолбэк через стабильную высоту
       const stableHeight = eventData?.stableHeight ?? tg.viewportStableHeight;
       const viewportHeight = eventData?.height ?? tg.viewportHeight ?? stableHeight;
 
@@ -156,21 +182,26 @@ export default function TelegramWebAppGlassPure() {
       }
     };
 
+    // первичная синхронизация
     syncInsets();
 
-    if (typeof tg.onEvent === "function") {
-      const handleViewportChange = (data?: TelegramViewportChangedData) => {
-        syncInsets(data);
-      };
+    const handleViewportChange = (data?: TelegramViewportChangedData) => {
+      syncInsets(data);
+    };
 
-      tg.onEvent("viewportChanged", handleViewportChange);
+    const handleSafeAreaChange = (data?: TelegramViewportChangedData) => {
+      syncInsets(data);
+    };
 
-      return () => {
-        tg.offEvent?.("viewportChanged", handleViewportChange);
-      };
-    }
+    tg.onEvent?.("viewportChanged", handleViewportChange);
+    tg.onEvent?.("safeAreaChanged", handleSafeAreaChange);
+    tg.onEvent?.("contentSafeAreaChanged", handleSafeAreaChange);
 
-    return undefined;
+    return () => {
+      tg.offEvent?.("viewportChanged", handleViewportChange);
+      tg.offEvent?.("safeAreaChanged", handleSafeAreaChange);
+      tg.offEvent?.("contentSafeAreaChanged", handleSafeAreaChange);
+    };
   }, []);
 
   const changeTabBySwipe = useCallback(
@@ -509,12 +540,12 @@ export default function TelegramWebAppGlassPure() {
   useEffect(() => {
     fetch(`${API_URL}/work_types`)
       .then((response) => (response.ok ? response.json() : Promise.reject()))
-        .then((rows: Array<{ id: string | number; name: string }>) => {
-          if (Array.isArray(rows) && rows.length) {
-            const mapped: WorkType[] = rows.map((item) => ({
-              id: String(item.id),
-              name: item.name,
-            }));
+      .then((rows: Array<{ id: string | number; name: string }>) => {
+        if (Array.isArray(rows) && rows.length) {
+          const mapped: WorkType[] = rows.map((item) => ({
+            id: String(item.id),
+            name: item.name,
+          }));
           setWorkTypes(mapped);
           if (!workType) {
             setWorkType(mapped[0].id);
