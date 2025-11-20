@@ -10,9 +10,10 @@ body {
   margin: 0;
   padding: 0;
   overflow-x: hidden;
-  /* Чтобы Телега не пыталась «тянуть» сам webview при вертикальном свайпе */
+  /* Оставляем запрет горизонтального «протягивания»,
+     но разрешаем вертикальный bounce внутри страницы */
   overscroll-behavior-x: none;
-  overscroll-behavior-y: none;
+  overscroll-behavior-y: contain;
 }
 
 /* React-корень занимает всю высоту, скролл дальше организуем в App.tsx */
@@ -23,7 +24,8 @@ body {
 
 /* Базовые tailwind-стили + шрифт */
 body {
-  @apply bg-slate-50 text-slate-900;
+  background-color: var(--app-surface);
+  color: var(--app-foreground);
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
@@ -55,6 +57,13 @@ body {
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
     --radius: 0.5rem;
+
+    --app-surface: #05122d;
+    --app-surface-gradient:
+      radial-gradient(circle at 20% 20%, rgba(59, 130, 246, 0.28), transparent 55%),
+      radial-gradient(circle at 80% 0%, rgba(165, 243, 252, 0.22), transparent 45%),
+      radial-gradient(circle at 50% 80%, rgba(37, 99, 235, 0.24), transparent 50%);
+    --app-foreground: #f8fbff;
   }
 
   .dark {
@@ -92,11 +101,13 @@ body {
 
   body {
     @apply font-sans;
-    background-color: #05122d;
-    color: #f8fbff;
-    background-image:
-      radial-gradient(circle at 20% 20%, rgba(59, 130, 246, 0.28), transparent 55%),
-      radial-gradient(circle at 80% 0%, rgba(165, 243, 252, 0.22), transparent 45%),
-      radial-gradient(circle at 50% 80%, rgba(37, 99, 235, 0.24), transparent 50%);
+  }
+
+  html,
+  body,
+  #root {
+    background-color: var(--app-surface);
+    color: var(--app-foreground);
+    background-image: var(--app-surface-gradient);
   }
 }
