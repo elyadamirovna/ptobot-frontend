@@ -601,7 +601,7 @@ export default function TelegramWebAppGlassPure() {
       <div className="pointer-events-none absolute inset-x-1/2 top-[40%] h-64 w-64 -translate-x-1/2 rounded-full bg-cyan-400/30 blur-[120px]" />
 
       <main
-        className="relative z-10 flex min-h-[100dvh] w-full flex-1 justify-center overflow-y-auto bg-[#05122D] px-3 py-6 touch-pan-y md:px-4 md:py-10"
+        className="relative z-10 flex min-h-[100dvh] w-full flex-1 justify-center overflow-y-auto px-3 py-6 touch-pan-y md:px-4 md:py-10"
         style={{ WebkitOverflowScrolling: "touch", overscrollBehaviorY: "auto" }}
       >
         <div className="mx-auto w-full max-w-full md:max-w-[520px] lg:max-w-[600px]">
