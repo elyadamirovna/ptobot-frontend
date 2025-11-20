@@ -113,19 +113,16 @@ export default function TelegramWebAppGlassPure() {
   const telegramRef = useRef<TelegramWebApp | null>(null);
   const activeTabRef = useRef<TabKey>("report");
 
-  const changeTabBySwipe = useCallback(
-    (direction: 1 | -1) => {
-      setActiveTab((current) => {
-        const index = TAB_ORDER.indexOf(current);
-        const nextIndex = index + direction;
-        if (nextIndex < 0 || nextIndex >= TAB_ORDER.length) {
-          return current;
-        }
-        return TAB_ORDER[nextIndex];
-      });
-    },
-    []
-  );
+  const changeTabBySwipe = useCallback((direction: 1 | -1) => {
+    setActiveTab((current) => {
+      const index = TAB_ORDER.indexOf(current);
+      const nextIndex = index + direction;
+      if (nextIndex < 0 || nextIndex >= TAB_ORDER.length) {
+        return current;
+      }
+      return TAB_ORDER[nextIndex];
+    });
+  }, []);
 
   // ------------------------------------------------------------------
   // Telegram WebApp: ready/expand, BackButton, отключение вертикальных свайпов
@@ -452,8 +449,7 @@ export default function TelegramWebAppGlassPure() {
     ? PREVIEW_COMPONENTS[previewKey]
     : undefined;
 
-  // В режиме превью лэйаута нам всё равно нужно корректное поведение свайпа,
-  // но сам макет рендерим отдельно (логика Telegram уже инициализирована выше)
+  // режим превью лэйаутов
   if (PreviewComponent) {
     return <PreviewComponent />;
   }
@@ -469,14 +465,15 @@ export default function TelegramWebAppGlassPure() {
             name: item.name,
           }));
           setWorkTypes(mapped);
-          setWorkType((current) => current ?? mapped[0].id);
+          if (!workType) {
+            setWorkType(mapped[0].id);
+          }
         }
       })
-      .catch((error) => {
-        console.warn("Не удалось загрузить work_types", error);
-        /* silent fallback to default workTypes */
+      .catch(() => {
+        /* fallback */
       });
-  }, []);
+  }, [workType]);
 
   const projects = [
     { id: "1", name: "ЖК «Северный»", address: "ул. Парковая, 12" },
@@ -596,12 +593,18 @@ export default function TelegramWebAppGlassPure() {
   }
 
   return (
-    <div className="relative flex min-h-[100dvh] w-full flex-col overflow-hidden bg-[#05122D] text-white">
-      <div className="pointer-events-none absolute -left-24 -top-32 h-72 w-72 rounded-full bg-sky-500/40 blur-[140px]" />
-      <div className="pointer-events-none absolute bottom-0 right-[-120px] h-[420px] w-[420px] rounded-full bg-indigo-600/40 blur-[160px]" />
-      <div className="pointer-events-none absolute inset-x-1/2 top-[40%] h-64 w-64 -translate-x-1/2 rounded-full bg-cyan-400/30 blur-[120px]" />
+    <div className="relative flex min-h-[100dvh] w-full flex-col bg-[#05122D] text-white">
+      {/* фиксированный фон под весь webview, в т.ч. при оверскролле */}
+      <div className="pointer-events-none fixed inset-0 -z-10 bg-[#05122D]" />
+      <div className="pointer-events-none fixed -left-24 -top-32 -z-10 h-72 w-72 rounded-full bg-sky-500/40 blur-[140px]" />
+      <div className="pointer-events-none fixed bottom-0 right-[-120px] -z-10 h-[420px] w-[420px] rounded-full bg-indigo-600/40 blur-[160px]" />
+      <div className="pointer-events-none fixed inset-x-1/2 top-[40%] -z-10 h-64 w-64 -translate-x-1/2 rounded-full bg-cyan-400/30 blur-[120px]" />
 
-      <main className="relative z-10 flex min-h-[100dvh] w-full flex-1 justify-center overflow-y-auto overscroll-contain bg-[#05122D] px-3 py-6 touch-pan-y md:px-4 md:py-10">
+      {/* основной контент; скролл теперь по всей странице, а не только по main */}
+      <main
+        className="relative z-10 flex w-full flex-1 justify-center px-3 py-6 touch-pan-y md:px-4 md:py-10 pb-[env(safe-area-inset-bottom)]"
+        style={{ WebkitOverflowScrolling: "touch" }}
+      >
         <div className="mx-auto w-full max-w-full md:max-w-[520px] lg:max-w-[600px]">
           <div className="relative rounded-[32px] border border-white/25 bg-white/10 px-4 pb-8 pt-6 shadow-[0_35px_100px_rgba(6,24,74,0.62)] backdrop-blur-[36px] sm:rounded-[44px] sm:px-6 sm:pb-9 sm:pt-7 lg:rounded-[52px] lg:px-8 lg:pb-10 lg:pt-8">
             <div className="absolute inset-x-6 -top-32 h-48 rounded-full bg-white/10 blur-[120px] sm:inset-x-8" />
