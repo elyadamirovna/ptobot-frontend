@@ -2,25 +2,30 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Базовая геометрия документа под Telegram WebApp */
+/* Базовая геометрия документа под Telegram WebApp
+   и фиксация фонового слоя под iOS, чтобы не мигал белый при scroll bounce */
 html,
 body {
   height: 100%;
-  min-height: 100dvh;
+  min-height: 100%;
   margin: 0;
   padding: 0;
   overflow-x: hidden;
-  /* Чтобы Телега не пыталась «тянуть» сам webview при вертикальном свайпе */
+  /* вертикальный скролл оставляем, но отключаем pull-to-close у webview */
+  overflow-y: auto;
   overscroll-behavior-x: none;
-  overscroll-behavior-y: none;
+  overscroll-behavior-y: contain;
+  /* единый тёмный фон под всеми градиентами */
+  background-color: #05122d;
+  /* чтобы на iOS скролл был плавным и без разрывов фона */
+  -webkit-overflow-scrolling: touch;
 }
 
 /* React-корень занимает всю высоту, скролл дальше организуем в App.tsx */
 #root {
   height: 100%;
-  min-height: 100dvh;
+  min-height: 100%;
 }
-
 /* Токены темы + фон */
 @layer base {
   :root {
@@ -79,20 +84,32 @@ body {
   }
 }
 
+/* Базовые tailwind-стили + шрифт (фон больше не задаём здесь) */
+body {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
 @layer base {
   * {
     @apply border-border;
   }
 
+  /* Главный layout-контейнер для мини-аппа:
+     — фиксированный градиентный фон
+     — текст по умолчанию светлый
+     — без «просветов» белого при быстром скролле на iOS */
   body {
     @apply font-sans;
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    background-color: #05122d;
+    position: relative;
     color: #f8fbff;
+    background-color: #05122d;
     background-image:
       radial-gradient(circle at 20% 20%, rgba(59, 130, 246, 0.28), transparent 55%),
       radial-gradient(circle at 80% 0%, rgba(165, 243, 252, 0.22), transparent 45%),
       radial-gradient(circle at 50% 80%, rgba(37, 99, 235, 0.24), transparent 50%);
+    /* фиксируем фон относительно viewport, чтобы не появлялась белая область
+       при bounce-скролле на iOS */
+    background-attachment: fixed;
   }
 }
 
