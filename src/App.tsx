@@ -620,27 +620,18 @@ export default function TelegramWebAppGlassPure() {
   return PreviewComponent ? (
     <PreviewComponent />
   ) : (
-    <div
-      className="relative flex min-h-[100dvh] w-full flex-col overflow-hidden text-white"
-      style={{
-        backgroundColor: "var(--app-surface)",
-        backgroundImage: "var(--app-surface-gradient)",
-      }}
-    >
+    <div className="app-shell">
       <div className="pointer-events-none absolute -left-24 -top-32 h-72 w-72 rounded-full bg-sky-500/40 blur-[140px]" />
       <div className="pointer-events-none absolute bottom-0 right-[-120px] h-[420px] w-[420px] rounded-full bg-indigo-600/40 blur-[160px]" />
       <div className="pointer-events-none absolute inset-x-1/2 top-[40%] h-64 w-64 -translate-x-1/2 rounded-full bg-cyan-400/30 blur-[120px]" />
 
-      <main
-        className="relative z-10 flex min-h-[100dvh] w-full flex-1 justify-center overflow-y-auto px-3 py-6 touch-pan-y md:px-4 md:py-10"
-        style={{ WebkitOverflowScrolling: "touch", overscrollBehaviorY: "auto" }}
-      >
-        <div className="mx-auto w-full max-w-full md:max-w-[520px] lg:max-w-[600px]">
-          <div className="relative rounded-[32px] border border-white/25 bg-white/10 px-4 pb-8 pt-6 shadow-[0_35px_100px_rgba(6,24,74,0.62)] backdrop-blur-[36px] sm:rounded-[44px] sm:px-6 sm:pb-9 sm:pt-7 lg:rounded-[52px] lg:px-8 lg:pb-10 lg:pt-8">
-            <div className="absolute inset-x-6 -top-32 h-48 rounded-full bg-white/10 blur-[120px] sm:inset-x-8" />
-            <div className="absolute inset-0 rounded-[28px] border border-white/10 sm:rounded-[36px] lg:rounded-[44px]" />
+      <main className="app-main">
+        <div className="app-scroll" ref={swipeAreaRef}>
+          <div className="glass-panel">
+            <div className="glass-panel__glow" />
+            <div className="glass-panel__outline" />
 
-            <div className="relative" ref={swipeAreaRef}>
+            <div className="relative">
               <header className="mb-4 flex items-center justify-between gap-3 sm:mb-6">
                 <div className="flex items-center gap-3">
                   {logoUrl ? (
@@ -698,7 +689,7 @@ export default function TelegramWebAppGlassPure() {
 
                 {/* TAB: ОТЧЁТ */}
                 <TabsContent value="report" className="mt-0">
-                  <Card className="border-white/20 bg-white/10 text-white shadow-[0_24px_60px_rgba(15,28,83,0.45)] backdrop-blur-[28px]">
+                  <Card className="section-card">
                     <CardHeader className="pb-4">
                       <CardTitle className="text-[18px] font-semibold tracking-wide text-white sm:text-[20px]">
                         Ежедневный отчёт
@@ -944,7 +935,7 @@ export default function TelegramWebAppGlassPure() {
 
                 {/* TAB: ИСТОРИЯ */}
                 <TabsContent value="history" className="mt-0">
-                  <Card className="border-white/20 bg-white/10 text-white shadow-[0_24px_60px_rgba(15,28,83,0.45)] backdrop-blur-[28px]">
+                  <Card className="section-card">
                     <CardHeader className="pb-4">
                       <CardTitle className="flex items-center gap-2 text-[16px] font-semibold text-white sm:text-[18px]">
                         <History className="h-4 w-4" /> История отчётов
@@ -1031,7 +1022,7 @@ export default function TelegramWebAppGlassPure() {
 
                 {/* TAB: ДОСТУП */}
                 <TabsContent value="admin" className="mt-0">
-                  <Card className="border-white/20 bg-white/10 text-white shadow-[0_24px_60px_rgba(15,28,83,0.45)] backdrop-blur-[28px]">
+                  <Card className="section-card">
                     <CardHeader className="pb-4">
                       <CardTitle className="flex items-center gap-2 text-[16px] font-semibold text-white sm:text-[18px]">
                         <ShieldCheck className="h-4 w-4" /> Назначение доступа
