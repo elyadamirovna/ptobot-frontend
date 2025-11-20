@@ -38,7 +38,10 @@ import {
   ClipboardList,
   ShieldCheck,
 } from "lucide-react";
-import type { TelegramWebApp } from "@/types/telegram";
+import type {
+  TelegramViewportChangedData,
+  TelegramWebApp,
+} from "@/types/telegram";
 
 const API_URL = "https://ptobot-backend.onrender.com";
 
@@ -116,6 +119,59 @@ export default function TelegramWebAppGlassPure() {
   const swipeAreaRef = useRef<HTMLDivElement | null>(null);
   const telegramRef = useRef<TelegramWebApp | null>(null);
   const activeTabRef = useRef<TabKey>("report");
+
+  // ------------------------------------------------------------------
+  // Поддержка безопасной области (вырезы + верхняя панель Telegram)
+  // ------------------------------------------------------------------
+  useEffect(() => {
+    const tg = typeof window !== "undefined" ? window.Telegram?.WebApp : undefined;
+
+    if (!tg || typeof document === "undefined") return undefined;
+
+    const rootStyle = document.documentElement?.style;
+    if (!rootStyle) return undefined;
+
+    const applyInsets = (top = 0, bottom = 0) => {
+      rootStyle.setProperty("--tg-safe-area-inset-top", `${top}px`);
+      rootStyle.setProperty("--tg-safe-area-inset-bottom", `${bottom}px`);
+    };
+
+    const syncInsets = (eventData?: TelegramViewportChangedData) => {
+      const safeArea =
+        eventData?.safeAreaInsets ||
+        tg.viewport?.safeAreaInsets ||
+        tg.safeAreaInsets;
+
+      if (safeArea) {
+        applyInsets(safeArea.top ?? 0, safeArea.bottom ?? 0);
+        return;
+      }
+
+      const stableHeight = eventData?.stableHeight ?? tg.viewportStableHeight;
+      const viewportHeight = eventData?.height ?? tg.viewportHeight ?? stableHeight;
+
+      if (typeof window !== "undefined" && viewportHeight) {
+        const bottomInset = Math.max(0, window.innerHeight - viewportHeight);
+        applyInsets(0, bottomInset);
+      }
+    };
+
+    syncInsets();
+
+    if (typeof tg.onEvent === "function") {
+      const handleViewportChange = (data?: TelegramViewportChangedData) => {
+        syncInsets(data);
+      };
+
+      tg.onEvent("viewportChanged", handleViewportChange);
+
+      return () => {
+        tg.offEvent?.("viewportChanged", handleViewportChange);
+      };
+    }
+
+    return undefined;
+  }, []);
 
   const changeTabBySwipe = useCallback(
     (direction: 1 | -1) => {
