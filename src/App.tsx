@@ -39,7 +39,10 @@ import {
   ClipboardList,
   ShieldCheck,
 } from "lucide-react";
-import type { TelegramViewportChangedData, TelegramWebApp } from "@/types/telegram";
+import type {
+  TelegramViewportChangedData,
+  TelegramWebApp,
+} from "@/types/telegram";
 
 const API_URL = "https://ptobot-backend.onrender.com";
 
@@ -121,7 +124,7 @@ export default function TelegramWebAppGlassPure() {
   // ------------------------------------------------------------------
   // Поддержка безопасной области (вырезы + верхняя панель Telegram)
   // ------------------------------------------------------------------
-  useLayoutEffect(() => {
+  useEffect(() => {
     const tg = typeof window !== "undefined" ? window.Telegram?.WebApp : undefined;
 
     if (!tg || typeof document === "undefined") return undefined;
@@ -129,62 +132,19 @@ export default function TelegramWebAppGlassPure() {
     const rootStyle = document.documentElement?.style;
     if (!rootStyle) return undefined;
 
-    let currentTop = 0;
-    let currentBottom = 0;
-
-    let envInsets: { top: number; bottom: number } | null = null;
-
-    const measureEnvInsets = () => {
-      if (envInsets || typeof window === "undefined" || !document.body) return;
-
-      try {
-        const probe = document.createElement("div");
-        probe.style.position = "fixed";
-        probe.style.inset = "0";
-        probe.style.paddingTop = "env(safe-area-inset-top)";
-        probe.style.paddingBottom = "env(safe-area-inset-bottom)";
-        probe.style.visibility = "hidden";
-        probe.style.pointerEvents = "none";
-        document.body.appendChild(probe);
-
-        const styles = window.getComputedStyle(probe);
-        envInsets = {
-          top: parseFloat(styles.paddingTop) || 0,
-          bottom: parseFloat(styles.paddingBottom) || 0,
-        };
-
-        document.body.removeChild(probe);
-      } catch (error) {
-        console.warn("[WebApp] Не удалось измерить env(safe-area-inset-*)", error);
-        envInsets = null;
-      }
-    };
-
     const applyInsets = (top = 0, bottom = 0) => {
-      currentTop = top;
-      currentBottom = bottom;
       rootStyle.setProperty("--tg-safe-area-inset-top", `${top}px`);
       rootStyle.setProperty("--tg-safe-area-inset-bottom", `${bottom}px`);
     };
 
     const syncInsets = (eventData?: TelegramViewportChangedData) => {
-      const contentSafeArea =
-        eventData?.contentSafeAreaInsets ||
-        eventData?.contentSafeAreaInset ||
-        tg.viewport?.contentSafeAreaInsets ||
-        tg.viewport?.contentSafeAreaInset ||
-        tg.contentSafeAreaInsets ||
-        tg.contentSafeAreaInset;
-
       const safeArea =
         eventData?.safeAreaInsets ||
         tg.viewport?.safeAreaInsets ||
         tg.safeAreaInsets;
 
-      if (contentSafeArea || safeArea) {
-        const top = contentSafeArea?.top ?? safeArea?.top ?? 0;
-        const bottom = contentSafeArea?.bottom ?? safeArea?.bottom ?? 0;
-        applyInsets(top, bottom);
+      if (safeArea) {
+        applyInsets(safeArea.top ?? 0, safeArea.bottom ?? 0);
         return;
       }
 
@@ -193,13 +153,7 @@ export default function TelegramWebAppGlassPure() {
 
       if (typeof window !== "undefined" && viewportHeight) {
         const bottomInset = Math.max(0, window.innerHeight - viewportHeight);
-        applyInsets(currentTop, bottomInset ?? currentBottom);
-        return;
-      }
-
-      measureEnvInsets();
-      if (envInsets) {
-        applyInsets(envInsets.top ?? currentTop, envInsets.bottom ?? currentBottom);
+        applyInsets(0, bottomInset);
       }
     };
 
@@ -212,22 +166,8 @@ export default function TelegramWebAppGlassPure() {
 
       tg.onEvent("viewportChanged", handleViewportChange);
 
-      const handleSafeAreaChange = (data?: TelegramViewportChangedData) => {
-        syncInsets(data);
-      };
-      tg.onEvent?.("safeAreaChanged", handleSafeAreaChange);
-
-      const handleContentSafeAreaChange = (
-        data?: TelegramViewportChangedData
-      ) => {
-        syncInsets(data);
-      };
-      tg.onEvent?.("contentSafeAreaChanged", handleContentSafeAreaChange);
-
       return () => {
         tg.offEvent?.("viewportChanged", handleViewportChange);
-        tg.offEvent?.("safeAreaChanged", handleSafeAreaChange);
-        tg.offEvent?.("contentSafeAreaChanged", handleContentSafeAreaChange);
       };
     }
 

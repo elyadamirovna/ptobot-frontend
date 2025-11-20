@@ -22,8 +22,6 @@ export type TelegramViewportState = {
   width?: number;
   stableHeight?: number;
   safeAreaInsets?: TelegramSafeAreaInsets;
-  contentSafeAreaInsets?: TelegramSafeAreaInsets;
-  contentSafeAreaInset?: TelegramSafeAreaInsets;
 };
 
 export type TelegramViewportChangedData = TelegramViewportState & {
@@ -62,8 +60,6 @@ export interface TelegramWebApp {
   viewportHeight?: number;
   viewportStableHeight?: number;
   safeAreaInsets?: TelegramSafeAreaInsets;
-  contentSafeAreaInsets?: TelegramSafeAreaInsets;
-  contentSafeAreaInset?: TelegramSafeAreaInsets;
 
   settings?: {
     allow_vertical_swipe?: boolean;
