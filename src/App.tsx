@@ -632,6 +632,7 @@ export default function TelegramWebAppGlassPure() {
     form.append("user_id", "1");
     form.append("project_id", String(project ?? ""));
     form.append("work_type_id", String(workType));
+    form.append("date", date);
     form.append("description", description);
     form.append("people", people);
     form.append("volume", volume);
