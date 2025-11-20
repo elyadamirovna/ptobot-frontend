@@ -16,9 +16,9 @@ body {
   /* горизонтальные свайпы нам не нужны */
   overflow-x: hidden;
 
-  /* чтобы Телега/браузер не дёргали сам webview */
+  /* даём нативное bounce-поведение по вертикали, но не даём скроллить по оси X */
   overscroll-behavior-x: none;
-  overscroll-behavior-y: none;
+  overscroll-behavior-y: auto;
 }
 
 /* React-корень занимает всю высоту */
