@@ -64,6 +64,16 @@ body {
       radial-gradient(circle at 82% 8%, rgba(56, 189, 248, 0.24), transparent 44%),
       radial-gradient(circle at 50% 82%, rgba(72, 187, 120, 0.22), transparent 52%);
     --app-foreground: #f8fbff;
+
+    /* Безопасные отступы для Telegram WebApp и экранных вырезов */
+    --safe-area-top: max(
+      env(safe-area-inset-top, 0px),
+      var(--tg-safe-area-inset-top, 0px)
+    );
+    --safe-area-bottom: max(
+      env(safe-area-inset-bottom, 0px),
+      var(--tg-safe-area-inset-bottom, 0px)
+    );
   }
 
   .dark {
@@ -109,5 +119,17 @@ body {
     background-color: var(--app-surface);
     color: var(--app-foreground);
     background-image: var(--app-surface-gradient);
+  }
+
+  .safe-area-page {
+    padding-top: calc(var(--safe-area-top) + 1.5rem);
+    padding-bottom: calc(var(--safe-area-bottom) + 1.5rem);
+  }
+
+  @media (min-width: 768px) {
+    .safe-area-page {
+      padding-top: calc(var(--safe-area-top) + 2.5rem);
+      padding-bottom: calc(var(--safe-area-bottom) + 2.5rem);
+    }
   }
 }
