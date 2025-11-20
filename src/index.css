@@ -2,26 +2,42 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Базовая геометрия документа под Telegram WebApp */
+/* ──────────────────────────────────────────────
+   БАЗОВАЯ ГЕОМЕТРИЯ ПОД TELEGRAM WEBAPP
+   ────────────────────────────────────────────── */
+
 html,
 body {
   height: 100%;
   min-height: 100dvh;
   margin: 0;
   padding: 0;
+
+  /* горизонтальные свайпы нам не нужны */
   overflow-x: hidden;
-  /* Чтобы Телега не пыталась «тянуть» сам webview при вертикальном свайпе */
+
+  /* чтобы Телега/браузер не дёргали сам webview */
   overscroll-behavior-x: none;
   overscroll-behavior-y: none;
 }
 
-/* React-корень занимает всю высоту, скролл дальше организуем в App.tsx */
+/* React-корень занимает всю высоту */
 #root {
   height: 100%;
   min-height: 100dvh;
 }
 
-/* Токены темы + фон */
+/* Базовый tailwind-фон + шрифт (будет переопределён ниже) */
+body {
+  @apply bg-slate-50 text-slate-900;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+}
+
+/* ──────────────────────────────────────────────
+   ТЕМАТИКА / ТОКЕНЫ
+   ────────────────────────────────────────────── */
+
 @layer base {
   :root {
     --background: 0 0% 100%;
@@ -79,6 +95,10 @@ body {
   }
 }
 
+/* ──────────────────────────────────────────────
+   ГЛОБАЛЬНЫЙ ТЁМНЫЙ ФОН ДЛЯ MINI APP
+   ────────────────────────────────────────────── */
+
 @layer base {
   * {
     @apply border-border;
@@ -86,14 +106,22 @@ body {
 
   body {
     @apply font-sans;
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    /* ВАЖНО: именно это цвет, который увидим при bounce-перетягивании */
     background-color: #05122d;
     color: #f8fbff;
+  }
+
+  /**
+   * app-shell-bg — фон с градиентом, который живёт
+   * внутри приложения (а не на body), чтобы при сильном
+   * перетягивании сверху/снизу мы видели просто тёмный цвет,
+   * как в официальных мини-аппах.
+   */
+  .app-shell-bg {
+    background-color: #05122d;
     background-image:
       radial-gradient(circle at 20% 20%, rgba(59, 130, 246, 0.28), transparent 55%),
       radial-gradient(circle at 80% 0%, rgba(165, 243, 252, 0.22), transparent 45%),
       radial-gradient(circle at 50% 80%, rgba(37, 99, 235, 0.24), transparent 50%);
   }
 }
-
-
