@@ -13,7 +13,7 @@ body {
   /* Оставляем запрет горизонтального «протягивания»,
      но разрешаем вертикальный bounce внутри страницы */
   overscroll-behavior-x: none;
-  overscroll-behavior-y: contain;
+  overscroll-behavior-y: auto;
 }
 
 /* React-корень занимает всю высоту, скролл дальше организуем в App.tsx */
@@ -109,5 +109,42 @@ body {
     background-color: var(--app-surface);
     color: var(--app-foreground);
     background-image: var(--app-surface-gradient);
+  }
+}
+
+@layer components {
+  .app-shell {
+    @apply relative flex min-h-[100dvh] w-full flex-col overflow-hidden text-white;
+    background-color: var(--app-surface);
+    background-image: var(--app-surface-gradient);
+  }
+
+  .app-main {
+    @apply relative z-10 flex min-h-[100dvh] flex-1 flex-col items-stretch justify-center px-3 py-6 md:px-4 md:py-10;
+  }
+
+  .app-scroll {
+    @apply relative mx-auto flex w-full max-w-full flex-1 flex-col overflow-y-auto bg-transparent touch-pan-y md:max-w-[520px] lg:max-w-[600px];
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: auto;
+    background-color: var(--app-surface);
+    background-image: var(--app-surface-gradient);
+    scrollbar-gutter: stable;
+  }
+
+  .glass-panel {
+    @apply relative rounded-[32px] border border-white/25 bg-white/10 px-4 pb-8 pt-6 shadow-[0_35px_100px_rgba(6,24,74,0.62)] backdrop-blur-[36px] sm:rounded-[44px] sm:px-6 sm:pb-9 sm:pt-7 lg:rounded-[52px] lg:px-8 lg:pb-10 lg:pt-8;
+  }
+
+  .glass-panel__glow {
+    @apply absolute inset-x-6 -top-32 h-48 rounded-full bg-white/10 blur-[120px] sm:inset-x-8;
+  }
+
+  .glass-panel__outline {
+    @apply absolute inset-0 rounded-[28px] border border-white/10 sm:rounded-[36px] lg:rounded-[44px];
+  }
+
+  .section-card {
+    @apply border-white/20 bg-white/10 text-white shadow-[0_24px_60px_rgba(15,28,83,0.45)] backdrop-blur-[28px];
   }
 }
