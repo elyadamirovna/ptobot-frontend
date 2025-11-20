@@ -10,9 +10,10 @@ body {
   margin: 0;
   padding: 0;
   overflow-x: hidden;
-  /* Чтобы Телега не пыталась «тянуть» сам webview при вертикальном свайпе */
+  /* Оставляем запрет горизонтального «протягивания»,
+     но разрешаем вертикальный bounce внутри страницы */
   overscroll-behavior-x: none;
-  overscroll-behavior-y: none;
+  overscroll-behavior-y: contain;
 }
 
 /* React-корень занимает всю высоту, скролл дальше организуем в App.tsx */
