@@ -98,6 +98,7 @@ export default function TelegramWebAppGlassPure() {
   const [machines, setMachines] = useState("");
   const [people, setPeople] = useState("");
   const [comment, setComment] = useState("");
+  const [requiredHintVisible, setRequiredHintVisible] = useState(false);
 
   const [workTypes, setWorkTypes] = useState<WorkType[]>([
     { id: "1", name: "Земляные работы" },
@@ -108,6 +109,9 @@ export default function TelegramWebAppGlassPure() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [files, setFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
+  const [fileValidationMessage, setFileValidationMessage] = useState<string | null>(
+    null
+  );
 
   const swipeAreaRef = useRef<HTMLDivElement | null>(null);
   const telegramRef = useRef<TelegramWebApp | null>(null);
@@ -515,6 +519,15 @@ export default function TelegramWebAppGlassPure() {
 
   const onFilesSelected = (event: React.ChangeEvent<HTMLInputElement>) => {
     const selected = Array.from(event.target.files || []);
+
+    if (!selected.length) {
+      setFileValidationMessage("Добавьте хотя бы одно фото для отчёта");
+      setFiles([]);
+      setPreviews([]);
+      return;
+    }
+
+    setFileValidationMessage(null);
     setFiles(selected);
 
     Promise.all(
@@ -532,13 +545,24 @@ export default function TelegramWebAppGlassPure() {
   const [sending, setSending] = useState(false);
   const [progress, setProgress] = useState(0);
 
+  const isFormReady = useMemo(
+    () => Boolean(project && workType && date && files.length > 0),
+    [project, workType, date, files.length]
+  );
+
+  const missingFields = useMemo(() => {
+    const fields: string[] = [];
+    if (!project) fields.push("объект");
+    if (!workType) fields.push("вид работ");
+    if (!date) fields.push("дату");
+    if (!files.length) fields.push("фото");
+    return fields;
+  }, [project, workType, date, files.length]);
+
   async function sendReport() {
-    if (!workType) {
-      alert("Выберите вид работ");
-      return;
-    }
-    if (!files.length) {
-      alert("Пожалуйста, выберите фото!");
+    setRequiredHintVisible(true);
+    if (!project || !workType || !date || !files.length) {
+      alert("Заполните обязательные поля перед отправкой");
       return;
     }
 
@@ -550,6 +574,7 @@ export default function TelegramWebAppGlassPure() {
 
     const form = new FormData();
     form.append("user_id", "1");
+    form.append("project_id", String(project ?? ""));
     form.append("work_type_id", String(workType));
     form.append("description", description);
     form.append("people", people);
@@ -834,7 +859,30 @@ export default function TelegramWebAppGlassPure() {
                           >
                             <Upload className="h-3.5 w-3.5" /> Выбрать
                           </Button>
+                          {Boolean(files.length) && (
+                            <Button
+                              type="button"
+                              variant="secondary"
+                              size="sm"
+                              className="h-8 rounded-full border-white/30 bg-white/15 px-3 text-[11px] text-white/80 backdrop-blur hover:bg-white/25"
+                              onClick={() => {
+                                setFiles([]);
+                                setPreviews([]);
+                                setFileValidationMessage(
+                                  "Добавьте хотя бы одно фото для отчёта"
+                                );
+                              }}
+                            >
+                              Очистить
+                            </Button>
+                          )}
                         </div>
+
+                        {fileValidationMessage && (
+                          <p className="text-[10px] font-medium text-amber-200/90 sm:text-[11px]">
+                            {fileValidationMessage}
+                          </p>
+                        )}
 
                         <div className="grid grid-cols-4 gap-2 sm:grid-cols-3 sm:gap-3">
                             {(previews.length ? previews : [null, null, null])
@@ -866,7 +914,7 @@ export default function TelegramWebAppGlassPure() {
                             type="button"
                             className="h-11 rounded-full bg-gradient-to-r from-[#5FE0FF] via-[#7DF0FF] to-[#B5F5FF] px-6 text-[12px] font-semibold text-sky-900 shadow-[0_24px_60px_rgba(3,144,255,0.85)] hover:brightness-110 disabled:opacity-70 sm:text-[13px]"
                             onClick={sendReport}
-                            disabled={sending}
+                            disabled={sending || !isFormReady}
                           >
                             {sending ? "Отправка…" : "Отправить отчёт"}
                           </Button>
@@ -879,6 +927,11 @@ export default function TelegramWebAppGlassPure() {
                             </div>
                           </div>
                         </div>
+                        {requiredHintVisible && !isFormReady && (
+                          <p className="text-[10px] font-medium text-amber-100/90 sm:text-[11px]">
+                            Чтобы отправить отчёт, заполните: {missingFields.join(", ")}.
+                          </p>
+                        )}
                         {progress > 0 && (
                           <p className="text-[10px] text-white/70 sm:text-[11px]">
                             Загрузка: {progress}%
