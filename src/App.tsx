@@ -595,7 +595,13 @@ export default function TelegramWebAppGlassPure() {
   return PreviewComponent ? (
     <PreviewComponent />
   ) : (
-    <div className="relative flex min-h-[100dvh] w-full flex-col overflow-hidden bg-[#05122D] text-white">
+    <div
+      className="relative flex min-h-[100dvh] w-full flex-col overflow-hidden text-white"
+      style={{
+        backgroundColor: "var(--app-surface)",
+        backgroundImage: "var(--app-surface-gradient)",
+      }}
+    >
       <div className="pointer-events-none absolute -left-24 -top-32 h-72 w-72 rounded-full bg-sky-500/40 blur-[140px]" />
       <div className="pointer-events-none absolute bottom-0 right-[-120px] h-[420px] w-[420px] rounded-full bg-indigo-600/40 blur-[160px]" />
       <div className="pointer-events-none absolute inset-x-1/2 top-[40%] h-64 w-64 -translate-x-1/2 rounded-full bg-cyan-400/30 blur-[120px]" />
