@@ -445,29 +445,16 @@ export default function TelegramWebAppGlassPure() {
     };
   }, [changeTabBySwipe]);
 
-  const previewKey = previewVariant?.toLowerCase() as
-    | keyof typeof PREVIEW_COMPONENTS
-    | undefined;
-  const PreviewComponent = previewKey
-    ? PREVIEW_COMPONENTS[previewKey]
-    : undefined;
-
-  // В режиме превью лэйаута нам всё равно нужно корректное поведение свайпа,
-  // но сам макет рендерим отдельно (логика Telegram уже инициализирована выше)
-  if (PreviewComponent) {
-    return <PreviewComponent />;
-  }
-
   // --- загрузка видов работ ---
   useEffect(() => {
     fetch(`${API_URL}/work_types`)
       .then((response) => (response.ok ? response.json() : Promise.reject()))
-      .then((rows) => {
-        if (Array.isArray(rows) && rows.length) {
-          const mapped: WorkType[] = rows.map((item: any) => ({
-            id: String(item.id),
-            name: item.name,
-          }));
+        .then((rows: Array<{ id: string | number; name: string }>) => {
+          if (Array.isArray(rows) && rows.length) {
+            const mapped: WorkType[] = rows.map((item) => ({
+              id: String(item.id),
+              name: item.name,
+            }));
           setWorkTypes(mapped);
           if (!workType) {
             setWorkType(mapped[0].id);
@@ -588,15 +575,26 @@ export default function TelegramWebAppGlassPure() {
       setComment("");
       setFiles([]);
       setPreviews([]);
-    } catch (error: any) {
-      alert(error?.message || "Ошибка при отправке отчёта");
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Ошибка при отправке отчёта";
+      alert(message);
     } finally {
       setSending(false);
       setTimeout(() => setProgress(0), 600);
     }
   }
 
-  return (
+  const previewKey = previewVariant?.toLowerCase() as
+    | keyof typeof PREVIEW_COMPONENTS
+    | undefined;
+  const PreviewComponent = previewKey
+    ? PREVIEW_COMPONENTS[previewKey]
+    : undefined;
+
+  return PreviewComponent ? (
+    <PreviewComponent />
+  ) : (
     <div className="relative flex min-h-[100dvh] w-full flex-col overflow-hidden bg-[#05122D] text-white">
       <div className="pointer-events-none absolute -left-24 -top-32 h-72 w-72 rounded-full bg-sky-500/40 blur-[140px]" />
       <div className="pointer-events-none absolute bottom-0 right-[-120px] h-[420px] w-[420px] rounded-full bg-indigo-600/40 blur-[160px]" />
@@ -830,12 +828,11 @@ export default function TelegramWebAppGlassPure() {
                         </div>
 
                         <div className="grid grid-cols-4 gap-2 sm:grid-cols-3 sm:gap-3">
-                          {(previews.length ? previews : [null, null, null])
-                            .slice(0, 3)
-                            .map((src, index) => (
-                              <div
-                                // eslint-disable-next-line react/no-array-index-key
-                                key={index}
+                            {(previews.length ? previews : [null, null, null])
+                              .slice(0, 3)
+                              .map((src, index) => (
+                                <div
+                                  key={index}
                                 className="flex aspect-square items-center justify-center rounded-xl border border-white/20 bg-white/5 sm:aspect-[4/3] sm:rounded-2xl"
                               >
                                 {src ? (
@@ -953,13 +950,12 @@ export default function TelegramWebAppGlassPure() {
                               <p className="mt-1 text-[11px] text-white/85 sm:text-[12px]">
                                 {toOneLine(item.description)}
                               </p>
-                              <div className="mt-2 flex flex-wrap gap-2">
-                                {item.photos.map((src, index) => (
-                                  <img
-                                    // eslint-disable-next-line react/no-array-index-key
-                                    key={index}
-                                    src={src}
-                                    alt="Фото отчёта"
+                                <div className="mt-2 flex flex-wrap gap-2">
+                                  {item.photos.map((src, index) => (
+                                    <img
+                                      key={index}
+                                      src={src}
+                                      alt="Фото отчёта"
                                     className="h-14 w-20 rounded-lg border border-white/35 object-cover sm:h-16 sm:w-24 sm:rounded-xl"
                                   />
                                 ))}
@@ -1036,13 +1032,12 @@ export default function TelegramWebAppGlassPure() {
                         <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/65 sm:text-[11px]">
                           Текущие назначения
                         </p>
-                        <div className="space-y-2">
-                          {accessList.map((row, index) => (
-                            <div
-                              // eslint-disable-next-line react/no-array-index-key
-                              key={index}
-                              className="flex flex-col gap-3 rounded-2xl border border-white/15 bg-white/5 px-3 py-3 backdrop-blur sm:flex-row sm:items-center sm:justify-between"
-                            >
+                          <div className="space-y-2">
+                            {accessList.map((row, index) => (
+                              <div
+                                key={index}
+                                className="flex flex-col gap-3 rounded-2xl border border-white/15 bg-white/5 px-3 py-3 backdrop-blur sm:flex-row sm:items-center sm:justify-between"
+                              >
                               <div>
                                 <div className="text-[12px] font-medium text-white/90 sm:text-[13px]">
                                   {row.user.name}

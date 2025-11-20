@@ -457,10 +457,3 @@ export const CorporateStrictLayout: FC = () => (
   </div>
 );
 
-export const layoutVariants = {
-  MinimalistLayout,
-  GlassmorphismLayout,
-  CorporateStrictLayout,
-};
-
-export default layoutVariants;
