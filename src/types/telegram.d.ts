@@ -39,6 +39,8 @@ export type TelegramEventType =
   | "back_button_pressed"
   | "themeChanged"
   | "viewportChanged"
+  | "safeAreaChanged"
+  | "contentSafeAreaChanged"
   | string;
 
 export type TelegramEventHandler<T = unknown> = (eventData?: T) => void;
