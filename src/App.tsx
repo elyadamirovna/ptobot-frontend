@@ -627,15 +627,15 @@ export default function TelegramWebAppGlassPure() {
         backgroundImage: "var(--app-surface-gradient)",
       }}
     >
-      <div className="pointer-events-none absolute -left-24 -top-32 h-72 w-72 rounded-full bg-sky-500/40 blur-[140px]" />
-      <div className="pointer-events-none absolute bottom-0 right-[-120px] h-[420px] w-[420px] rounded-full bg-indigo-600/40 blur-[160px]" />
-      <div className="pointer-events-none absolute inset-x-1/2 top-[40%] h-64 w-64 -translate-x-1/2 rounded-full bg-cyan-400/30 blur-[120px]" />
+      <div className="pointer-events-none absolute -left-24 -top-32 h-72 w-72 rounded-full bg-indigo-500/40 blur-[140px]" />
+      <div className="pointer-events-none absolute bottom-0 right-[-120px] h-[420px] w-[420px] rounded-full bg-sky-400/35 blur-[160px]" />
+      <div className="pointer-events-none absolute inset-x-1/2 top-[40%] h-64 w-64 -translate-x-1/2 rounded-full bg-emerald-400/30 blur-[120px]" />
 
       <main
         className="relative z-10 flex min-h-[100dvh] w-full flex-1 justify-center overflow-y-auto px-3 py-6 touch-pan-y md:px-4 md:py-10"
         style={{ WebkitOverflowScrolling: "touch", overscrollBehaviorY: "auto" }}
       >
-        <div className="mx-auto w-full max-w-full md:max-w-[520px] lg:max-w-[600px]">
+        <div className="mx-auto w-full max-w-full md:max-w-[620px] lg:max-w-[700px]">
           <div className="relative rounded-[32px] border border-white/25 bg-white/10 px-4 pb-8 pt-6 shadow-[0_35px_100px_rgba(6,24,74,0.62)] backdrop-blur-[36px] sm:rounded-[44px] sm:px-6 sm:pb-9 sm:pt-7 lg:rounded-[52px] lg:px-8 lg:pb-10 lg:pt-8">
             <div className="absolute inset-x-6 -top-32 h-48 rounded-full bg-white/10 blur-[120px] sm:inset-x-8" />
             <div className="absolute inset-0 rounded-[28px] border border-white/10 sm:rounded-[36px] lg:rounded-[44px]" />
@@ -675,7 +675,7 @@ export default function TelegramWebAppGlassPure() {
                 onValueChange={(v) => setActiveTab(v as TabKey)}
                 className="w-full"
               >
-                <TabsList className="mb-4 grid grid-cols-3 gap-1 rounded-full bg-white/15 p-1 text-[11px] text-white/75 sm:mb-5 sm:text-[12px]">
+                <TabsList className="mb-4 grid grid-cols-3 gap-1 rounded-full bg-white/12 p-1 text-[11px] text-white/80 shadow-[0_14px_40px_rgba(6,17,44,0.45)] sm:mb-5 sm:text-[12px]">
                   <TabsTrigger
                     value="report"
                     className="flex items-center justify-center gap-1 rounded-full px-2 py-1.5 text-[10px] transition data-[state=active]:bg-white data-[state=active]:text-sky-900 data-[state=active]:shadow-[0_12px_30px_rgba(255,255,255,0.45)] sm:px-3 sm:py-2 sm:text-[12px]"
@@ -698,14 +698,14 @@ export default function TelegramWebAppGlassPure() {
 
                 {/* TAB: ОТЧЁТ */}
                 <TabsContent value="report" className="mt-0">
-                  <Card className="border-white/20 bg-white/10 text-white shadow-[0_24px_60px_rgba(15,28,83,0.45)] backdrop-blur-[28px]">
-                    <CardHeader className="pb-4">
+                  <Card className="border-white/25 bg-gradient-to-br from-white/14 via-white/10 to-white/5 text-white shadow-[0_28px_80px_rgba(6,17,44,0.55)] backdrop-blur-[32px]">
+                    <CardHeader className="pb-5 sm:pb-6">
                       <CardTitle className="text-[18px] font-semibold tracking-wide text-white sm:text-[20px]">
                         Ежедневный отчёт
                       </CardTitle>
                       <p className="text-xs text-white/80">{formatRu(date)}</p>
                     </CardHeader>
-                    <CardContent className="space-y-5 text-[12px] sm:text-[13px]">
+                    <CardContent className="space-y-6 text-[12px] sm:p-7 sm:pt-1 sm:text-[13px]">
                       <div className="grid gap-3 rounded-3xl border border-white/20 bg-white/5 p-4 backdrop-blur-xl">
                         <div className="space-y-1.5">
                           <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/60 sm:text-[11px]">
@@ -944,13 +944,13 @@ export default function TelegramWebAppGlassPure() {
 
                 {/* TAB: ИСТОРИЯ */}
                 <TabsContent value="history" className="mt-0">
-                  <Card className="border-white/20 bg-white/10 text-white shadow-[0_24px_60px_rgba(15,28,83,0.45)] backdrop-blur-[28px]">
-                    <CardHeader className="pb-4">
+                  <Card className="border-white/25 bg-gradient-to-br from-white/14 via-white/10 to-white/5 text-white shadow-[0_28px_80px_rgba(6,17,44,0.55)] backdrop-blur-[32px]">
+                    <CardHeader className="pb-5 sm:pb-6">
                       <CardTitle className="flex items-center gap-2 text-[16px] font-semibold text-white sm:text-[18px]">
                         <History className="h-4 w-4" /> История отчётов
                       </CardTitle>
                     </CardHeader>
-                    <CardContent className="space-y-5 text-[11px] sm:text-[12px]">
+                    <CardContent className="space-y-6 text-[11px] sm:p-7 sm:pt-1 sm:text-[12px]">
                       <div className="grid gap-3 rounded-3xl border border-white/15 bg-white/5 p-4 backdrop-blur">
                         <div className="grid gap-3 sm:grid-cols-4">
                           <div className="space-y-1.5 sm:col-span-2">
@@ -997,7 +997,7 @@ export default function TelegramWebAppGlassPure() {
                           .map((item) => (
                             <div
                               key={item.id}
-                              className="rounded-3xl border border-white/15 bg-white/5 p-3 text-white/85 backdrop-blur"
+                              className="rounded-[22px] border border-white/12 bg-white/8 p-4 text-white/85 shadow-[0_14px_36px_rgba(6,17,44,0.35)] backdrop-blur"
                             >
                               <div className="flex flex-col gap-1 text-[11px] sm:flex-row sm:items-center sm:justify-between sm:text-[12px]">
                                 <span>{formatRu(item.date)}</span>
@@ -1031,13 +1031,13 @@ export default function TelegramWebAppGlassPure() {
 
                 {/* TAB: ДОСТУП */}
                 <TabsContent value="admin" className="mt-0">
-                  <Card className="border-white/20 bg-white/10 text-white shadow-[0_24px_60px_rgba(15,28,83,0.45)] backdrop-blur-[28px]">
-                    <CardHeader className="pb-4">
+                  <Card className="border-white/25 bg-gradient-to-br from-white/14 via-white/10 to-white/5 text-white shadow-[0_28px_80px_rgba(6,17,44,0.55)] backdrop-blur-[32px]">
+                    <CardHeader className="pb-5 sm:pb-6">
                       <CardTitle className="flex items-center gap-2 text-[16px] font-semibold text-white sm:text-[18px]">
                         <ShieldCheck className="h-4 w-4" /> Назначение доступа
                       </CardTitle>
                     </CardHeader>
-                    <CardContent className="space-y-5 text-[11px] sm:text-[12px]">
+                    <CardContent className="space-y-6 text-[11px] sm:p-7 sm:pt-1 sm:text-[12px]">
                       <div className="grid gap-3 rounded-3xl border border-white/15 bg-white/5 p-4 backdrop-blur">
                         <div className="grid gap-3 sm:grid-cols-3">
                           <div className="space-y-1.5 sm:col-span-1">
@@ -1098,7 +1098,7 @@ export default function TelegramWebAppGlassPure() {
                             {accessList.map((row, index) => (
                               <div
                                 key={index}
-                                className="flex flex-col gap-3 rounded-2xl border border-white/15 bg-white/5 px-3 py-3 backdrop-blur sm:flex-row sm:items-center sm:justify-between"
+                                className="flex flex-col gap-3 rounded-[18px] border border-white/12 bg-white/8 px-4 py-3 shadow-[0_12px_30px_rgba(6,17,44,0.35)] backdrop-blur sm:flex-row sm:items-center sm:justify-between"
                               >
                               <div>
                                 <div className="text-[12px] font-medium text-white/90 sm:text-[13px]">
