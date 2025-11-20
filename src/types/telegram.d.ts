@@ -24,9 +24,12 @@ export type TelegramViewportState = {
 
   // системный safe area (вырезы устройства)
   safeAreaInsets?: TelegramSafeAreaInsets;
+  // На всякий случай поддержим возможные варианты в единственном числе
+  safeAreaInset?: TelegramSafeAreaInsets;
 
   // safe area с учётом UI Telegram (верхняя панель, нижние кнопки и т.п.)
   contentSafeAreaInsets?: TelegramSafeAreaInsets;
+  contentSafeAreaInset?: TelegramSafeAreaInsets;
 };
 
 export type TelegramViewportChangedData = TelegramViewportState & {
@@ -67,9 +70,11 @@ export interface TelegramWebApp {
   
   // системный safe area
   safeAreaInsets?: TelegramSafeAreaInsets;
+  safeAreaInset?: TelegramSafeAreaInsets;
 
   // safe area с учётом UI Telegram
   contentSafeAreaInsets?: TelegramSafeAreaInsets;
+  contentSafeAreaInset?: TelegramSafeAreaInsets;
 
   // на некоторых клиентах могут быть поля в единственном числе
   // поэтому в коде мы ещё подстрахуемся через (tg as any).safeAreaInset и т.п.

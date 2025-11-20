@@ -65,6 +65,10 @@ body {
       radial-gradient(circle at 50% 82%, rgba(72, 187, 120, 0.22), transparent 52%);
     --app-foreground: #f8fbff;
 
+    /* Значения по умолчанию, пока JS из Telegram WebApp не выставит свои */
+    --tg-safe-area-inset-top: 0px;
+    --tg-safe-area-inset-bottom: 0px;
+
     /* Безопасные отступы для Telegram WebApp и экранных вырезов */
     --safe-area-top: max(
       env(safe-area-inset-top, 0px),
