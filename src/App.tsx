@@ -722,18 +722,22 @@ export default function TelegramWebAppGlassPure() {
             <div className="relative" ref={swipeAreaRef}>
               <header className="mb-4 flex items-center justify-center sm:mb-6">
                 <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-[18px] border border-white/40 bg-white/85 text-sm font-semibold text-sky-800 shadow-[0_14px_34px_rgba(2,110,255,0.65)] sm:h-14 sm:w-14">
-                  <img
-                    src={logoUrl}
-                    alt="Логотип компании"
-                    className="h-full w-full object-contain"
-                  />
+                  {logoUrl ? (
+                    <img
+                      src={logoUrl}
+                      alt="Логотип компании"
+                      className="h-full w-full object-contain"
+                    />
+                  ) : (
+                    <span>Лого</span>
+                  )}
                 </div>
               </header>
 
               <p className="mb-5 text-center text-[11px] leading-tight text-white/70 sm:text-xs">
-                По умолчанию используется загруженный логотип компании. При необходимости передайте прямую ссылку в параметре
-                <code className="rounded bg-white/10 px-1">?logo=</code>. Поддерживаются изображения в форматах PNG, JPG/JPEG, SVG
-                или WEBP; можно использовать и data URL вида <code className="rounded bg-white/10 px-1">data:image/png;base64,...</code>.
+                Передайте прямую ссылку на логотип в параметре <code className="rounded bg-white/10 px-1">?logo=</code>
+                . Поддерживаются изображения в форматах PNG, JPG/JPEG, SVG или WEBP; можно использовать и data URL вида
+                <code className="rounded bg-white/10 px-1">data:image/png;base64,...</code>.
               </p>
 
               <Tabs
