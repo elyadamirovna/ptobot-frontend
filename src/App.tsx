@@ -97,15 +97,6 @@ export default function TelegramWebAppGlassPure() {
     setLogoLoaded(false);
   }, [logoUrl]);
 
-  const handleLogoError = useCallback(() => {
-    if (logoUrl !== DEFAULT_LOGO_URL) {
-      setLogoUrl(DEFAULT_LOGO_URL);
-      return;
-    }
-
-    setLogoLoaded(true);
-  }, [logoUrl]);
-
   const [activeTab, setActiveTab] = useState<TabKey>("report");
   const [project, setProject] = useState<string | undefined>("1");
   const [workType, setWorkType] = useState<string | undefined>("2");
@@ -750,7 +741,6 @@ export default function TelegramWebAppGlassPure() {
                       alt="Логотип компании"
                       className={`h-full w-full object-contain transition duration-700 ease-out ${logoLoaded ? "scale-100 opacity-100" : "scale-95 opacity-0"}`}
                       onLoad={() => setLogoLoaded(true)}
-                      onError={handleLogoError}
                     />
                   ) : (
                     <span>Лого</span>
