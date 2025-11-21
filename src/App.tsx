@@ -77,6 +77,7 @@ export default function TelegramWebAppGlassPure() {
   );
 
   const [logoUrl, setLogoUrl] = useState<string>(DEFAULT_LOGO_URL);
+  const [logoLoaded, setLogoLoaded] = useState(false);
   const [previewVariant, setPreviewVariant] = useState<string | null>(null);
 
   useEffect(() => {
@@ -91,6 +92,10 @@ export default function TelegramWebAppGlassPure() {
       setPreviewVariant(null);
     }
   }, []);
+
+  useEffect(() => {
+    setLogoLoaded(false);
+  }, [logoUrl]);
 
   const [activeTab, setActiveTab] = useState<TabKey>("report");
   const [project, setProject] = useState<string | undefined>("1");
@@ -715,18 +720,16 @@ export default function TelegramWebAppGlassPure() {
         style={{ WebkitOverflowScrolling: "touch", overscrollBehaviorY: "auto" }}
       >
         <div className="mx-auto w-full max-w-full md:max-w-[620px] lg:max-w-[700px]">
-          <div className="relative rounded-[32px] border border-white/25 bg-white/10 px-4 pb-8 pt-6 shadow-[0_35px_100px_rgba(6,24,74,0.62)] backdrop-blur-[36px] sm:rounded-[44px] sm:px-6 sm:pb-9 sm:pt-7 lg:rounded-[52px] lg:px-8 lg:pb-10 lg:pt-8">
-            <div className="absolute inset-x-6 -top-32 h-48 rounded-full bg-white/10 blur-[120px] sm:inset-x-8" />
-            <div className="absolute inset-0 rounded-[28px] border border-white/10 sm:rounded-[36px] lg:rounded-[44px]" />
-
+          <div className="relative rounded-[32px] px-4 pb-8 pt-6 sm:rounded-[44px] sm:px-6 sm:pb-9 sm:pt-7 lg:rounded-[52px] lg:px-8 lg:pb-10 lg:pt-8">
             <div className="relative" ref={swipeAreaRef}>
               <header className="mb-4 flex items-center justify-center sm:mb-6">
-                <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-[22px] text-base font-semibold text-white shadow-[0_18px_40px_rgba(2,110,255,0.35)] sm:h-20 sm:w-20">
+                <div className="flex h-12 w-40 items-center justify-center overflow-hidden rounded-2xl text-base font-semibold text-white sm:h-14 sm:w-48">
                   {logoUrl ? (
                     <img
                       src={logoUrl}
                       alt="Логотип компании"
-                      className="h-full w-full object-contain"
+                      className={`h-full w-full object-contain transition duration-700 ease-out ${logoLoaded ? "scale-100 opacity-100" : "scale-95 opacity-0"}`}
+                      onLoad={() => setLogoLoaded(true)}
                     />
                   ) : (
                     <span>Лого</span>
