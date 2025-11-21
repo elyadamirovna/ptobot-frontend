@@ -733,6 +733,12 @@ export default function TelegramWebAppGlassPure() {
                 </div>
               </header>
 
+              <p className="mb-5 text-center text-[11px] leading-tight text-white/70 sm:text-xs">
+                Передайте прямую ссылку на логотип в параметре <code className="rounded bg-white/10 px-1">?logo=</code>
+                . Поддерживаются изображения в форматах PNG, JPG/JPEG, SVG или WEBP; можно использовать и data URL вида
+                <code className="rounded bg-white/10 px-1">data:image/png;base64,...</code>.
+              </p>
+
               <Tabs
                 value={activeTab}
                 onValueChange={(v) => setActiveTab(v as TabKey)}
