@@ -628,6 +628,16 @@ export default function TelegramWebAppGlassPure() {
   const [sending, setSending] = useState(false);
   const [progress, setProgress] = useState(0);
 
+  const formCompletion = useMemo(() => {
+    const total = 4;
+    const filled = [project, workType, date, files.length ? "files" : null].filter(
+      Boolean
+    ).length;
+    return Math.max(8, Math.round((filled / total) * 100));
+  }, [date, files.length, project, workType]);
+
+  const latestHistoryDate = history[0]?.date;
+
   const isFormReady = useMemo(
     () => Boolean(project && workType && date && files.length > 0),
     [project, workType, date, files.length]
@@ -721,6 +731,7 @@ export default function TelegramWebAppGlassPure() {
       >
         <div className="mx-auto w-full max-w-full md:max-w-[620px] lg:max-w-[700px]">
           <div className="relative rounded-[32px] px-4 pb-8 pt-6 sm:rounded-[44px] sm:px-6 sm:pb-9 sm:pt-7 lg:rounded-[52px] lg:px-8 lg:pb-10 lg:pt-8">
+            <div className="glass-grid-overlay" />
             <div className="relative" ref={swipeAreaRef}>
               <header className="mb-4 flex items-center justify-center sm:mb-6">
                 <div className="flex h-12 w-40 items-center justify-center overflow-hidden rounded-2xl text-base font-semibold text-white sm:h-14 sm:w-48">
@@ -737,12 +748,63 @@ export default function TelegramWebAppGlassPure() {
                 </div>
               </header>
 
+              <div className="mb-5 grid gap-3 sm:grid-cols-3">
+                <div className="glass-chip border border-white/25 bg-white/10 px-3.5 py-3 text-white shadow-[0_16px_40px_rgba(6,17,44,0.45)] sm:px-4">
+                  <div className="flex items-center justify-between text-[10px] font-semibold uppercase tracking-[0.14em] text-white/65">
+                    <span>Готовность</span>
+                    <span className="rounded-full bg-white/10 px-2 py-0.5 text-[9px] text-white/70">glass</span>
+                  </div>
+                  <div className="mt-1 flex items-end justify-between">
+                    <span className="text-[22px] font-semibold sm:text-[24px]">{formCompletion}%</span>
+                    <span className="rounded-full bg-emerald-300/20 px-2 py-1 text-[10px] font-medium text-emerald-100">
+                      {isFormReady ? "готово" : "заполните поля"}
+                    </span>
+                  </div>
+                  <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/10">
+                    <div
+                      className="h-full rounded-full bg-gradient-to-r from-cyan-300/90 via-indigo-300/80 to-emerald-300/90"
+                      style={{ width: `${formCompletion}%` }}
+                    />
+                  </div>
+                </div>
+
+                <div className="glass-chip border border-white/25 bg-white/10 px-3.5 py-3 text-white shadow-[0_16px_40px_rgba(6,17,44,0.45)] sm:px-4">
+                  <div className="flex items-center justify-between text-[10px] font-semibold uppercase tracking-[0.14em] text-white/65">
+                    <span>История</span>
+                    <span className="rounded-full bg-white/10 px-2 py-0.5 text-[9px] text-white/70">{history.length} отчёта</span>
+                  </div>
+                  <div className="mt-1 flex items-end justify-between">
+                    <span className="text-[22px] font-semibold sm:text-[24px]">
+                      {latestHistoryDate ? formatRu(latestHistoryDate) : "—"}
+                    </span>
+                    <span className="rounded-full bg-white/12 px-2 py-1 text-[10px] font-medium text-white/80">
+                      {workTypes.find((item) => item.id === workType)?.name ?? "Виды работ"}
+                    </span>
+                  </div>
+                  <p className="mt-2 text-[11px] text-white/70">Последний отчёт открыт для просмотра.</p>
+                </div>
+
+                <div className="glass-chip border border-white/25 bg-white/10 px-3.5 py-3 text-white shadow-[0_16px_40px_rgba(6,17,44,0.45)] sm:px-4">
+                  <div className="flex items-center justify-between text-[10px] font-semibold uppercase tracking-[0.14em] text-white/65">
+                    <span>Доступы</span>
+                    <span className="rounded-full bg-white/10 px-2 py-0.5 text-[9px] text-white/70">{accessList.length} партнёра</span>
+                  </div>
+                  <div className="mt-1 flex items-end justify-between">
+                    <span className="text-[22px] font-semibold sm:text-[24px]">{projects.length}</span>
+                    <span className="rounded-full bg-white/12 px-2 py-1 text-[10px] font-medium text-white/80">
+                      объектов на контроле
+                    </span>
+                  </div>
+                  <p className="mt-2 text-[11px] text-white/70">Управляйте ролями прямо в мини-приложении.</p>
+                </div>
+              </div>
+
               <Tabs
                 value={activeTab}
                 onValueChange={(v) => setActiveTab(v as TabKey)}
                 className="w-full"
               >
-                <TabsList className="mb-4 grid grid-cols-3 gap-1 rounded-full bg-white/12 p-1 text-[11px] text-white/80 shadow-[0_14px_40px_rgba(6,17,44,0.45)] sm:mb-5 sm:text-[12px]">
+                <TabsList className="glass-chip mb-4 grid grid-cols-3 gap-1 rounded-full bg-white/12 p-1 text-[11px] text-white/80 shadow-[0_14px_40px_rgba(6,17,44,0.45)] sm:mb-5 sm:text-[12px]">
                   <TabsTrigger
                     value="report"
                     className="flex items-center justify-center gap-1 rounded-full px-2 py-1.5 text-[10px] transition data-[state=active]:bg-white data-[state=active]:text-sky-900 data-[state=active]:shadow-[0_12px_30px_rgba(255,255,255,0.45)] sm:px-3 sm:py-2 sm:text-[12px]"
@@ -765,7 +827,7 @@ export default function TelegramWebAppGlassPure() {
 
                 {/* TAB: ОТЧЁТ */}
                 <TabsContent value="report" className="mt-0">
-                  <Card className="border-white/25 bg-gradient-to-br from-white/14 via-white/10 to-white/5 text-white shadow-[0_28px_80px_rgba(6,17,44,0.55)] backdrop-blur-[32px]">
+                  <Card className="glass-panel border-white/25 bg-gradient-to-br from-white/14 via-white/10 to-white/5 text-white shadow-[0_28px_80px_rgba(6,17,44,0.55)] backdrop-blur-[32px]">
                     <CardHeader className="pb-5 sm:pb-6">
                       <CardTitle className="text-[18px] font-semibold tracking-wide text-white sm:text-[20px]">
                         Ежедневный отчёт
@@ -1011,7 +1073,7 @@ export default function TelegramWebAppGlassPure() {
 
                 {/* TAB: ИСТОРИЯ */}
                 <TabsContent value="history" className="mt-0">
-                  <Card className="border-white/25 bg-gradient-to-br from-white/14 via-white/10 to-white/5 text-white shadow-[0_28px_80px_rgba(6,17,44,0.55)] backdrop-blur-[32px]">
+                  <Card className="glass-panel border-white/25 bg-gradient-to-br from-white/14 via-white/10 to-white/5 text-white shadow-[0_28px_80px_rgba(6,17,44,0.55)] backdrop-blur-[32px]">
                     <CardHeader className="pb-5 sm:pb-6">
                       <CardTitle className="flex items-center gap-2 text-[16px] font-semibold text-white sm:text-[18px]">
                         <History className="h-4 w-4" /> История отчётов
@@ -1098,7 +1160,7 @@ export default function TelegramWebAppGlassPure() {
 
                 {/* TAB: ДОСТУП */}
                 <TabsContent value="admin" className="mt-0">
-                  <Card className="border-white/25 bg-gradient-to-br from-white/14 via-white/10 to-white/5 text-white shadow-[0_28px_80px_rgba(6,17,44,0.55)] backdrop-blur-[32px]">
+                  <Card className="glass-panel border-white/25 bg-gradient-to-br from-white/14 via-white/10 to-white/5 text-white shadow-[0_28px_80px_rgba(6,17,44,0.55)] backdrop-blur-[32px]">
                     <CardHeader className="pb-5 sm:pb-6">
                       <CardTitle className="flex items-center gap-2 text-[16px] font-semibold text-white sm:text-[18px]">
                         <ShieldCheck className="h-4 w-4" /> Назначение доступа
