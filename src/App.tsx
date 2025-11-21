@@ -843,7 +843,7 @@ export default function TelegramWebAppGlassPure() {
                           <div className="relative">
                             <Building2 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/65" />
                             <Select value={project} onValueChange={setProject}>
-                          <SelectTrigger className="h-11 rounded-2xl border border-white/20 bg-white/10 pl-11 pr-12 text-[16px] font-medium text-white/90 shadow-[0_16px_38px_rgba(7,24,74,0.55)] backdrop-blur sm:h-12 sm:text-[16px]">
+                              <SelectTrigger className="h-11 rounded-2xl border border-white/20 bg-white/10 pl-11 pr-12 text-[13px] font-medium text-white/90 shadow-[0_16px_38px_rgba(7,24,74,0.55)] backdrop-blur sm:h-12 sm:text-[14px]">
                                 <SelectValue placeholder="Выберите объект" />
                               </SelectTrigger>
                               <SelectContent className="border border-white/15 bg-[#07132F]/95 text-white">
@@ -863,7 +863,7 @@ export default function TelegramWebAppGlassPure() {
                           <div className="relative">
                             <HardHat className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/65" />
                             <Select value={workType} onValueChange={setWorkType}>
-                          <SelectTrigger className="h-11 rounded-2xl border border-white/20 bg-white/10 pl-11 pr-12 text-[16px] font-medium text-white/90 shadow-[0_16px_38px_rgba(7,24,74,0.55)] backdrop-blur sm:h-12 sm:text-[16px]">
+                              <SelectTrigger className="h-11 rounded-2xl border border-white/20 bg-white/10 pl-11 pr-12 text-[13px] font-medium text-white/90 shadow-[0_16px_38px_rgba(7,24,74,0.55)] backdrop-blur sm:h-12 sm:text-[14px]">
                                 <SelectValue placeholder="Выберите вид работ" />
                               </SelectTrigger>
                               <SelectContent className="border border-white/15 bg-[#07132F]/95 text-white">
@@ -888,7 +888,7 @@ export default function TelegramWebAppGlassPure() {
                               type="date"
                               value={date}
                               onChange={(event) => setDate(event.target.value)}
-                              className="h-11 rounded-2xl border border-white/20 bg-white/10 pl-12 pr-12 text-[16px] font-medium text-white/90 placeholder:text-white/50 [appearance:none] sm:h-12 sm:text-[16px]"
+                              className="h-11 rounded-2xl border border-white/20 bg-white/10 pl-12 pr-12 text-[13px] font-medium text-white/90 placeholder:text-white/50 [appearance:none] sm:h-12 sm:text-[14px]"
                             />
                             <CalendarDays className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/65" />
                             <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/55" />
@@ -903,7 +903,7 @@ export default function TelegramWebAppGlassPure() {
                               placeholder="12,5"
                               value={volume}
                               onChange={(event) => setVolume(event.target.value)}
-                              className="h-11 flex-1 rounded-2xl border border-white/20 bg-white/10 text-[16px] font-medium text-white/90 placeholder:text-white/40 sm:h-12 sm:text-[16px]"
+                              className="h-11 flex-1 rounded-2xl border border-white/20 bg-white/10 text-[13px] font-medium text-white/90 placeholder:text-white/40 sm:h-12 sm:text-[14px]"
                             />
                             <div className="flex h-11 items-center justify-center rounded-2xl border border-white/15 bg-white/10 px-3 text-[11px] text-white/75 sm:h-12 sm:px-4 sm:text-[12px]">
                               м³
@@ -921,7 +921,7 @@ export default function TelegramWebAppGlassPure() {
                               onChange={(event) =>
                                 setMachines(event.target.value)
                               }
-                              className="h-11 flex-1 rounded-2xl border border-white/20 bg-white/10 text-[16px] font-medium text-white/90 placeholder:text-white/40 sm:h-12 sm:text-[16px]"
+                              className="h-11 flex-1 rounded-2xl border border-white/20 bg-white/10 text-[13px] font-medium text-white/90 placeholder:text-white/40 sm:h-12 sm:text-[14px]"
                             />
                             <div className="flex h-11 items-center justify-center rounded-2xl border border-white/15 bg-white/10 px-3 text-[11px] text-white/75 sm:h-12 sm:px-4 sm:text-[12px]">
                               шт.
@@ -941,7 +941,7 @@ export default function TelegramWebAppGlassPure() {
                             placeholder="кол-во человек"
                             value={people}
                             onChange={(event) => setPeople(event.target.value)}
-                            className="h-11 rounded-2xl border border-white/20 bg-white/10 pl-11 text-[16px] font-medium text-white/90 placeholder:text-white/40 sm:h-12 sm:text-[16px]"
+                            className="h-11 rounded-2xl border border-white/20 bg-white/10 pl-11 text-[13px] font-medium text-white/90 placeholder:text-white/40 sm:h-12 sm:text-[14px]"
                           />
                         </div>
                       </div>
@@ -954,7 +954,7 @@ export default function TelegramWebAppGlassPure() {
                           value={comment}
                           onChange={(event) => setComment(event.target.value)}
                           placeholder="Кратко опишите выполненные работы…"
-                          className="min-h-[80px] rounded-3xl border border-white/20 bg-white/10 text-[16px] text-white/90 placeholder:text-white/45 sm:min-h-[96px] sm:text-[16px]"
+                          className="min-h-[80px] rounded-3xl border border-white/20 bg-white/10 text-[12px] text-white/90 placeholder:text-white/45 sm:min-h-[96px] sm:text-[13px]"
                         />
                       </div>
 
