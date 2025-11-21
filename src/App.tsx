@@ -44,6 +44,7 @@ import type {
 } from "@/types/telegram";
 
 const API_URL = "https://ptobot-backend.onrender.com";
+const DEFAULT_LOGO_URL = "https://files.catbox.moe/kzhnal.svg";
 
 type WorkType = { id: string; name: string };
 
@@ -75,18 +76,18 @@ export default function TelegramWebAppGlassPure() {
     []
   );
 
-  const [logoUrl, setLogoUrl] = useState<string>("");
+  const [logoUrl, setLogoUrl] = useState<string>(DEFAULT_LOGO_URL);
   const [previewVariant, setPreviewVariant] = useState<string | null>(null);
 
   useEffect(() => {
     try {
       const qs = new URLSearchParams(window.location.search);
       const fromQuery = qs.get("logo");
-      setLogoUrl(fromQuery || "");
+      setLogoUrl(fromQuery || DEFAULT_LOGO_URL);
       setPreviewVariant(qs.get("preview"));
     } catch (error) {
       console.warn("Cannot parse query params", error);
-      setLogoUrl("");
+      setLogoUrl(DEFAULT_LOGO_URL);
       setPreviewVariant(null);
     }
   }, []);
