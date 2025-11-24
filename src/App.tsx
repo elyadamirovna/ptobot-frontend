@@ -44,8 +44,7 @@ import type {
 } from "@/types/telegram";
 
 const API_URL = "https://ptobot-backend.onrender.com";
-const DEFAULT_LOGO_URL =
-  "https://storage.yandexcloud.net/ptobot-assets/LOGO.svg";
+const DEFAULT_LOGO_URL = "https://storage.yandexcloud.net/ptobot-assets/LOGO.svg";
 
 type WorkType = { id: string; name: string };
 
@@ -95,7 +94,6 @@ export default function TelegramWebAppGlassPure() {
   }, []);
 
   useEffect(() => {
-    // при смене URL логотипа перезапускаем анимацию
     setLogoLoaded(false);
   }, [logoUrl]);
 
@@ -120,8 +118,9 @@ export default function TelegramWebAppGlassPure() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [files, setFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
-  const [fileValidationMessage, setFileValidationMessage] =
-    useState<string | null>(null);
+  const [fileValidationMessage, setFileValidationMessage] = useState<string | null>(
+    null
+  );
 
   const swipeAreaRef = useRef<HTMLDivElement | null>(null);
   const telegramRef = useRef<TelegramWebApp | null>(null);
@@ -145,6 +144,7 @@ export default function TelegramWebAppGlassPure() {
     };
 
     const syncInsets = (eventData?: TelegramViewportChangedData) => {
+      // 1) Safe area с учётом UI Telegram (верхняя панель, нижние кнопки)
       const contentSafeArea =
         eventData?.contentSafeAreaInsets ??
         eventData?.contentSafeAreaInset ??
@@ -152,6 +152,7 @@ export default function TelegramWebAppGlassPure() {
         tg.contentSafeAreaInsets ??
         tg.contentSafeAreaInset;
 
+      // 2) Системный safe area устройства
       const safeArea =
         eventData?.safeAreaInsets ??
         eventData?.safeAreaInset ??
@@ -167,9 +168,9 @@ export default function TelegramWebAppGlassPure() {
         return;
       }
 
+      // 3) Фолбэк через стабильную высоту
       const stableHeight = eventData?.stableHeight ?? tg.viewportStableHeight;
-      const viewportHeight =
-        eventData?.height ?? tg.viewportHeight ?? stableHeight;
+      const viewportHeight = eventData?.height ?? tg.viewportHeight ?? stableHeight;
 
       if (typeof window !== "undefined" && viewportHeight) {
         const bottomInset = Math.max(0, window.innerHeight - viewportHeight);
@@ -199,16 +200,19 @@ export default function TelegramWebAppGlassPure() {
     };
   }, []);
 
-  const changeTabBySwipe = useCallback((direction: 1 | -1) => {
-    setActiveTab((current) => {
-      const index = TAB_ORDER.indexOf(current);
-      const nextIndex = index + direction;
-      if (nextIndex < 0 || nextIndex >= TAB_ORDER.length) {
-        return current;
-      }
-      return TAB_ORDER[nextIndex];
-    });
-  }, []);
+  const changeTabBySwipe = useCallback(
+    (direction: 1 | -1) => {
+      setActiveTab((current) => {
+        const index = TAB_ORDER.indexOf(current);
+        const nextIndex = index + direction;
+        if (nextIndex < 0 || nextIndex >= TAB_ORDER.length) {
+          return current;
+        }
+        return TAB_ORDER[nextIndex];
+      });
+    },
+    []
+  );
 
   // ------------------------------------------------------------------
   // Telegram WebApp: ready/expand, BackButton, отключение вертикальных свайпов
@@ -330,6 +334,7 @@ export default function TelegramWebAppGlassPure() {
       if (isDestroyed || isSwipeApplied) return;
 
       try {
+        // Новый API: setSwipeBehavior (v7.7+)
         if (
           tg.isVersionAtLeast?.("7.7") &&
           typeof tg.setSwipeBehavior === "function"
@@ -347,6 +352,7 @@ export default function TelegramWebAppGlassPure() {
           }
         }
 
+        // setSettings fallback
         if (typeof tg.setSettings === "function") {
           const result = await tg.setSettings({ allow_vertical_swipe: false });
 
@@ -363,6 +369,7 @@ export default function TelegramWebAppGlassPure() {
           }
         }
 
+        // Старый API: disableVerticalSwipes
         if (typeof tg.disableVerticalSwipes === "function" && !isSwipeApplied) {
           tg.disableVerticalSwipes();
           isSwipeApplied = true;
@@ -398,6 +405,7 @@ export default function TelegramWebAppGlassPure() {
         tg.offEvent?.("web_app_setup_swipe_behavior", handleSetupSwipeBehavior)
       );
     } else {
+      // для старых клиентов пробуем сразу
       void applySwipeBehavior();
     }
 
@@ -473,6 +481,7 @@ export default function TelegramWebAppGlassPure() {
           if (Math.abs(deltaX) > Math.abs(deltaY)) {
             isHorizontal = true;
           } else {
+            // вертикальный жест — отдаём браузеру / Telegram для скролла
             resetTracking();
           }
         }
@@ -493,8 +502,10 @@ export default function TelegramWebAppGlassPure() {
 
       if (isHorizontal && horizontalEnough) {
         if (deltaX < 0) {
+          // свайп влево → следующая вкладка
           changeTabBySwipe(1);
         } else {
+          // свайп вправо → предыдущая вкладка
           changeTabBySwipe(-1);
         }
       }
@@ -619,12 +630,9 @@ export default function TelegramWebAppGlassPure() {
 
   const formCompletion = useMemo(() => {
     const total = 4;
-    const filled = [
-      project,
-      workType,
-      date,
-      files.length ? "files" : null,
-    ].filter(Boolean).length;
+    const filled = [project, workType, date, files.length ? "files" : null].filter(
+      Boolean
+    ).length;
     return Math.max(8, Math.round((filled / total) * 100));
   }, [date, files.length, project, workType]);
 
@@ -722,39 +730,32 @@ export default function TelegramWebAppGlassPure() {
         style={{ WebkitOverflowScrolling: "touch", overscrollBehaviorY: "auto" }}
       >
         <div className="mx-auto w-full max-w-full md:max-w-[620px] lg:max-w-[700px]">
-          <div className="relative rounded-[32px] px-4 pb-8 pt-3 sm:rounded-[44px] sm:px-6 sm:pb-9 sm:pt-4 lg:rounded-[52px] lg:px-8 lg:pb-10 lg:pt-4">
+          <div className="relative rounded-[32px] px-4 pb-8 pt-6 sm:rounded-[44px] sm:px-6 sm:pb-9 sm:pt-7 lg:rounded-[52px] lg:px-8 lg:pb-10 lg:pt-8">
             <div className="glass-grid-overlay" />
             <div className="relative" ref={swipeAreaRef}>
-              {/* ЛОГОТИП: без подложки, длинный, fade-in + slide-up */}
-              <header className="mb-3 flex items-center justify-center sm:mb-4">
-                {logoUrl ? (
-                  <img
-                    src={logoUrl}
-                    alt="Логотип компании"
-                    className={`h-8 w-auto sm:h-9 object-contain transition-all duration-700 ease-out ${
-                      logoLoaded
-                        ? "opacity-100 translate-y-0 scale-100"
-                        : "opacity-0 translate-y-2 scale-95"
-                    }`}
-                    onLoad={() => setLogoLoaded(true)}
-                  />
-                ) : (
-                  <span className="text-sm text-white/70">Лого</span>
-                )}
+              <header className="mb-4 flex items-center justify-center sm:mb-6">
+                <div className="flex h-12 w-40 items-center justify-center overflow-hidden rounded-2xl text-base font-semibold text-white sm:h-14 sm:w-48">
+                  {logoUrl ? (
+                    <img
+                      src={logoUrl}
+                      alt="Логотип компании"
+                      className={`h-full w-full object-contain transition duration-700 ease-out ${logoLoaded ? "scale-100 opacity-100" : "scale-95 opacity-0"}`}
+                      onLoad={() => setLogoLoaded(true)}
+                    />
+                  ) : (
+                    <span>Лого</span>
+                  )}
+                </div>
               </header>
 
               <div className="mb-5 grid gap-3 sm:grid-cols-3">
                 <div className="glass-chip border border-white/25 bg-white/10 px-3.5 py-3 text-white shadow-[0_16px_40px_rgba(6,17,44,0.45)] sm:px-4">
                   <div className="flex items-center justify-between text-[10px] font-semibold uppercase tracking-[0.14em] text-white/65">
                     <span>Готовность</span>
-                    <span className="rounded-full bg-white/10 px-2 py-0.5 text-[9px] text-white/70">
-                      glass
-                    </span>
+                    <span className="rounded-full bg-white/10 px-2 py-0.5 text-[9px] text-white/70">glass</span>
                   </div>
                   <div className="mt-1 flex items-end justify-between">
-                    <span className="text-[22px] font-semibold sm:text-[24px]">
-                      {formCompletion}%
-                    </span>
+                    <span className="text-[22px] font-semibold sm:text-[24px]">{formCompletion}%</span>
                     <span className="rounded-full bg-emerald-300/20 px-2 py-1 text-[10px] font-medium text-emerald-100">
                       {isFormReady ? "готово" : "заполните поля"}
                     </span>
@@ -770,42 +771,31 @@ export default function TelegramWebAppGlassPure() {
                 <div className="glass-chip border border-white/25 bg-white/10 px-3.5 py-3 text-white shadow-[0_16px_40px_rgba(6,17,44,0.45)] sm:px-4">
                   <div className="flex items-center justify-between text-[10px] font-semibold uppercase tracking-[0.14em] text-white/65">
                     <span>История</span>
-                    <span className="rounded-full bg-white/10 px-2 py-0.5 text-[9px] text-white/70">
-                      {history.length} отчёта
-                    </span>
+                    <span className="rounded-full bg-white/10 px-2 py-0.5 text-[9px] text-white/70">{history.length} отчёта</span>
                   </div>
                   <div className="mt-1 flex items-end justify-between">
                     <span className="text-[22px] font-semibold sm:text-[24px]">
                       {latestHistoryDate ? formatRu(latestHistoryDate) : "—"}
                     </span>
                     <span className="rounded-full bg-white/12 px-2 py-1 text-[10px] font-medium text-white/80">
-                      {workTypes.find((item) => item.id === workType)?.name ??
-                        "Виды работ"}
+                      {workTypes.find((item) => item.id === workType)?.name ?? "Виды работ"}
                     </span>
                   </div>
-                  <p className="mt-2 text-[11px] text-white/70">
-                    Последний отчёт открыт для просмотра.
-                  </p>
+                  <p className="mt-2 text-[11px] text-white/70">Последний отчёт открыт для просмотра.</p>
                 </div>
 
                 <div className="glass-chip border border-white/25 bg-white/10 px-3.5 py-3 text-white shadow-[0_16px_40px_rgba(6,17,44,0.45)] sm:px-4">
                   <div className="flex items-center justify-between text-[10px] font-semibold uppercase tracking-[0.14em] text-white/65">
                     <span>Доступы</span>
-                    <span className="rounded-full bg-white/10 px-2 py-0.5 text-[9px] text-white/70">
-                      {accessList.length} партнёра
-                    </span>
+                    <span className="rounded-full bg-white/10 px-2 py-0.5 text-[9px] text-white/70">{accessList.length} партнёра</span>
                   </div>
-                  <div className="mt-1 flex items=end justify-between">
-                    <span className="text-[22px] font-semibold sm:text-[24px]">
-                      {projects.length}
-                    </span>
+                  <div className="mt-1 flex items-end justify-between">
+                    <span className="text-[22px] font-semibold sm:text-[24px]">{projects.length}</span>
                     <span className="rounded-full bg-white/12 px-2 py-1 text-[10px] font-medium text-white/80">
                       объектов на контроле
                     </span>
                   </div>
-                  <p className="mt-2 text-[11px] text-white/70">
-                    Управляйте ролями прямо в мини-приложении.
-                  </p>
+                  <p className="mt-2 text-[11px] text-white/70">Управляйте ролями прямо в мини-приложении.</p>
                 </div>
               </div>
 
@@ -842,9 +832,7 @@ export default function TelegramWebAppGlassPure() {
                       <CardTitle className="text-[18px] font-semibold tracking-wide text-white sm:text-[20px]">
                         Ежедневный отчёт
                       </CardTitle>
-                      <p className="text-xs text-white/80">
-                        {formatRu(date)}
-                      </p>
+                      <p className="text-xs text-white/80">{formatRu(date)}</p>
                     </CardHeader>
                     <CardContent className="space-y-6 text-[12px] sm:p-7 sm:pt-1 sm:text-[13px]">
                       <div className="grid gap-3 rounded-3xl border border-white/20 bg-white/5 p-4 backdrop-blur-xl">
@@ -899,9 +887,7 @@ export default function TelegramWebAppGlassPure() {
                             <Input
                               type="date"
                               value={date}
-                              onChange={(event) =>
-                                setDate(event.target.value)
-                              }
+                              onChange={(event) => setDate(event.target.value)}
                               className="h-11 rounded-2xl border border-white/20 bg-white/10 pl-12 pr-12 text-[13px] font-medium text-white/90 placeholder:text-white/50 [appearance:none] sm:h-12 sm:text-[14px]"
                             />
                             <CalendarDays className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/65" />
@@ -916,9 +902,7 @@ export default function TelegramWebAppGlassPure() {
                             <Input
                               placeholder="12,5"
                               value={volume}
-                              onChange={(event) =>
-                                setVolume(event.target.value)
-                              }
+                              onChange={(event) => setVolume(event.target.value)}
                               className="h-11 flex-1 rounded-2xl border border-white/20 bg-white/10 text-[13px] font-medium text-white/90 placeholder:text-white/40 sm:h-12 sm:text-[14px]"
                             />
                             <div className="flex h-11 items-center justify-center rounded-2xl border border-white/15 bg-white/10 px-3 text-[11px] text-white/75 sm:h-12 sm:px-4 sm:text-[12px]">
@@ -956,9 +940,7 @@ export default function TelegramWebAppGlassPure() {
                             inputMode="numeric"
                             placeholder="кол-во человек"
                             value={people}
-                            onChange={(event) =>
-                              setPeople(event.target.value)
-                            }
+                            onChange={(event) => setPeople(event.target.value)}
                             className="h-11 rounded-2xl border border-white/20 bg-white/10 pl-11 text-[13px] font-medium text-white/90 placeholder:text-white/40 sm:h-12 sm:text-[14px]"
                           />
                         </div>
@@ -1032,11 +1014,11 @@ export default function TelegramWebAppGlassPure() {
                         )}
 
                         <div className="grid grid-cols-4 gap-2 sm:grid-cols-3 sm:gap-3">
-                          {(previews.length ? previews : [null, null, null])
-                            .slice(0, 3)
-                            .map((src, index) => (
-                              <div
-                                key={index}
+                            {(previews.length ? previews : [null, null, null])
+                              .slice(0, 3)
+                              .map((src, index) => (
+                                <div
+                                  key={index}
                                 className="flex aspect-square items-center justify-center rounded-xl border border-white/20 bg-white/5 sm:aspect-[4/3] sm:rounded-2xl"
                               >
                                 {src ? (
@@ -1076,8 +1058,7 @@ export default function TelegramWebAppGlassPure() {
                         </div>
                         {requiredHintVisible && !isFormReady && (
                           <p className="text-[10px] font-medium text-amber-100/90 sm:text-[11px]">
-                            Чтобы отправить отчёт, заполните:{" "}
-                            {missingFields.join(", ")}.
+                            Чтобы отправить отчёт, заполните: {missingFields.join(", ")}.
                           </p>
                         )}
                         {progress > 0 && (
@@ -1160,12 +1141,12 @@ export default function TelegramWebAppGlassPure() {
                               <p className="mt-1 text-[11px] text-white/85 sm:text-[12px]">
                                 {toOneLine(item.description)}
                               </p>
-                              <div className="mt-2 flex flex-wrap gap-2">
-                                {item.photos.map((src, index) => (
-                                  <img
-                                    key={index}
-                                    src={src}
-                                    alt="Фото отчёта"
+                                <div className="mt-2 flex flex-wrap gap-2">
+                                  {item.photos.map((src, index) => (
+                                    <img
+                                      key={index}
+                                      src={src}
+                                      alt="Фото отчёта"
                                     className="h-14 w-20 rounded-lg border border-white/35 object-cover sm:h-16 sm:w-24 sm:rounded-xl"
                                   />
                                 ))}
@@ -1242,12 +1223,12 @@ export default function TelegramWebAppGlassPure() {
                         <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/65 sm:text-[11px]">
                           Текущие назначения
                         </p>
-                        <div className="space-y-2">
-                          {accessList.map((row, index) => (
-                            <div
-                              key={index}
-                              className="flex flex-col gap-3 rounded-[18px] border border-white/12 bg-white/8 px-4 py-3 shadow-[0_12px_30px_rgba(6,17,44,0.35)] backdrop-blur sm:flex-row sm:items-center sm:justify-between"
-                            >
+                          <div className="space-y-2">
+                            {accessList.map((row, index) => (
+                              <div
+                                key={index}
+                                className="flex flex-col gap-3 rounded-[18px] border border-white/12 bg-white/8 px-4 py-3 shadow-[0_12px_30px_rgba(6,17,44,0.35)] backdrop-blur sm:flex-row sm:items-center sm:justify-between"
+                              >
                               <div>
                                 <div className="text-[12px] font-medium text-white/90 sm:text-[13px]">
                                   {row.user.name}
