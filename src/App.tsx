@@ -97,7 +97,7 @@ export default function TelegramWebAppGlassPure() {
 
   useEffect(() => {
     // запускаем появление логотипа после загрузки страницы
-    setTimeout(() => setLogoReveal(true), 50);
+    setTimeout(() => setLogoReveal(true), 180);
   }, []);
 
   useEffect(() => {
@@ -733,9 +733,9 @@ export default function TelegramWebAppGlassPure() {
               <header className="mb-4 flex items-center justify-center sm:mb-6">
                 <div
                   className={`
-                    flex h-12 w-40 items-center justify-center overflow-hidden
+                    flex h-14 w-44 items-center justify-center overflow-hidden
                     rounded-2xl
-                    transition-all duration-700 ease-out
+                    transition-all duration-1000 ease-out delay-100
                     ${logoReveal ? "opacity-100 translate-y-0" : "opacity-0 translate-y-3"}
                   `}
                 >
@@ -744,8 +744,8 @@ export default function TelegramWebAppGlassPure() {
                       src={logoUrl}
                       alt="Логотип компании"
                       className={`
-                        h-full w-full object-contain transform-gpu transition-all duration-700 ease-out
-                        ${logoLoaded ? "opacity-100 scale-100" : "opacity-0 scale-95"}
+                        h-full w-full object-contain transform-gpu transition-all duration-1000 ease-out
+                        ${logoLoaded ? "opacity-100 scale-100 blur-0" : "opacity-0 scale-105 blur-[6px]"}
                       `}
                       onLoad={() => setLogoLoaded(true)}
                     />
