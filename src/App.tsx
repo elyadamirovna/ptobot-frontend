@@ -729,7 +729,7 @@ export default function TelegramWebAppGlassPure() {
                     <img
                       src={logoUrl}
                       alt="Логотип компании"
-                      className={`h-full w-full transform-gpu object-contain transition duration-700 ease-out ${logoLoaded ? "translate-y-0 scale-100 opacity-100" : "translate-y-3 scale-95 opacity-0"}`}
+                      className={`h-full w-full transform-gpu object-contain ${logoLoaded ? "logo-animate-in" : "logo-hidden"}`}
                       onLoad={() => setLogoLoaded(true)}
                     />
                   ) : (
