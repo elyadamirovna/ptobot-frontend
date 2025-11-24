@@ -64,13 +64,6 @@ type AccessRow = {
   role: string;
 };
 
-const formAntiZoomInputClass =
-  "origin-top-left scale-[0.82] transform-gpu text-base sm:scale-100 sm:text-[14px]";
-const formAntiZoomTextareaClass =
-  "origin-top-left scale-[0.82] transform-gpu text-base sm:scale-100 sm:text-[13px]";
-const filterAntiZoomInputClass =
-  "origin-top-left scale-[0.8] transform-gpu text-base sm:scale-100 sm:text-[12px]";
-
 type TabKey = "report" | "history" | "admin";
 const TAB_ORDER: TabKey[] = ["report", "history", "admin"];
 
@@ -902,7 +895,7 @@ export default function TelegramWebAppGlassPure() {
                               type="date"
                               value={date}
                               onChange={(event) => setDate(event.target.value)}
-                              className={`h-11 rounded-2xl border border-white/20 bg-white/10 pl-12 pr-12 font-medium text-white/90 placeholder:text-white/50 [appearance:none] sm:h-12 ${formAntiZoomInputClass}`}
+                              className="h-11 rounded-2xl border border-white/20 bg-white/10 pl-12 pr-12 text-[13px] font-medium text-white/90 placeholder:text-white/50 [appearance:none] sm:h-12 sm:text-[14px]"
                             />
                             <CalendarDays className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/65" />
                             <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/55" />
@@ -917,7 +910,7 @@ export default function TelegramWebAppGlassPure() {
                               placeholder="12,5"
                               value={volume}
                               onChange={(event) => setVolume(event.target.value)}
-                              className={`h-11 flex-1 rounded-2xl border border-white/20 bg-white/10 font-medium text-white/90 placeholder:text-white/40 sm:h-12 ${formAntiZoomInputClass}`}
+                              className="h-11 flex-1 rounded-2xl border border-white/20 bg-white/10 text-[13px] font-medium text-white/90 placeholder:text-white/40 sm:h-12 sm:text-[14px]"
                             />
                             <div className="flex h-11 items-center justify-center rounded-2xl border border-white/15 bg-white/10 px-3 text-[11px] text-white/75 sm:h-12 sm:px-4 sm:text-[12px]">
                               м³
@@ -935,7 +928,7 @@ export default function TelegramWebAppGlassPure() {
                               onChange={(event) =>
                                 setMachines(event.target.value)
                               }
-                              className={`h-11 flex-1 rounded-2xl border border-white/20 bg-white/10 font-medium text-white/90 placeholder:text-white/40 sm:h-12 ${formAntiZoomInputClass}`}
+                              className="h-11 flex-1 rounded-2xl border border-white/20 bg-white/10 text-[13px] font-medium text-white/90 placeholder:text-white/40 sm:h-12 sm:text-[14px]"
                             />
                             <div className="flex h-11 items-center justify-center rounded-2xl border border-white/15 bg-white/10 px-3 text-[11px] text-white/75 sm:h-12 sm:px-4 sm:text-[12px]">
                               шт.
@@ -955,7 +948,7 @@ export default function TelegramWebAppGlassPure() {
                             placeholder="кол-во человек"
                             value={people}
                             onChange={(event) => setPeople(event.target.value)}
-                            className={`h-11 rounded-2xl border border-white/20 bg-white/10 pl-11 font-medium text-white/90 placeholder:text-white/40 sm:h-12 ${formAntiZoomInputClass}`}
+                            className="h-11 rounded-2xl border border-white/20 bg-white/10 pl-11 text-[13px] font-medium text-white/90 placeholder:text-white/40 sm:h-12 sm:text-[14px]"
                           />
                         </div>
                       </div>
@@ -968,7 +961,7 @@ export default function TelegramWebAppGlassPure() {
                           value={comment}
                           onChange={(event) => setComment(event.target.value)}
                           placeholder="Кратко опишите выполненные работы…"
-                          className={`min-h-[80px] rounded-3xl border border-white/20 bg-white/10 text-white/90 placeholder:text-white/45 sm:min-h-[96px] ${formAntiZoomTextareaClass}`}
+                          className="min-h-[80px] rounded-3xl border border-white/20 bg-white/10 text-[12px] text-white/90 placeholder:text-white/45 sm:min-h-[96px] sm:text-[13px]"
                         />
                       </div>
 
@@ -1119,7 +1112,7 @@ export default function TelegramWebAppGlassPure() {
                             </p>
                             <Input
                               type="date"
-                              className={`h-9 rounded-2xl border border-white/20 bg-white/10 text-white/90 ${filterAntiZoomInputClass}`}
+                              className="h-9 rounded-2xl border border-white/20 bg-white/10 text-[11px] text-white/90 sm:text-[12px]"
                             />
                           </div>
                           <div className="space-y-1.5">
@@ -1128,7 +1121,7 @@ export default function TelegramWebAppGlassPure() {
                             </p>
                             <Input
                               type="date"
-                              className={`h-9 rounded-2xl border border-white/20 bg-white/10 text-white/90 ${filterAntiZoomInputClass}`}
+                              className="h-9 rounded-2xl border border-white/20 bg-white/10 text-[11px] text-white/90 sm:text-[12px]"
                             />
                           </div>
                         </div>
@@ -1189,7 +1182,7 @@ export default function TelegramWebAppGlassPure() {
                             </p>
                             <Input
                               placeholder="Поиск по названию / Telegram"
-                              className={`h-9 rounded-2xl border border-white/20 bg-white/10 text-white/90 placeholder:text-white/50 ${filterAntiZoomInputClass}`}
+                              className="h-9 rounded-2xl border border-white/20 bg-white/10 text-[11px] text-white/90 placeholder:text-white/50 sm:text-[12px]"
                             />
                           </div>
                           <div className="space-y-1.5">
