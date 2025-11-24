@@ -79,6 +79,7 @@ export default function TelegramWebAppGlassPure() {
 
   const [logoUrl, setLogoUrl] = useState<string>(DEFAULT_LOGO_URL);
   const [logoLoaded, setLogoLoaded] = useState(false);
+  const [logoReveal, setLogoReveal] = useState(false);
   const [previewVariant, setPreviewVariant] = useState<string | null>(null);
 
   useEffect(() => {
@@ -92,6 +93,11 @@ export default function TelegramWebAppGlassPure() {
       setLogoUrl(DEFAULT_LOGO_URL);
       setPreviewVariant(null);
     }
+  }, []);
+
+  useEffect(() => {
+    // запускаем появление логотипа после загрузки страницы
+    setTimeout(() => setLogoReveal(true), 180);
   }, []);
 
   useEffect(() => {
@@ -725,12 +731,22 @@ export default function TelegramWebAppGlassPure() {
             <div className="glass-grid-overlay" />
             <div className="relative" ref={swipeAreaRef}>
               <header className="mb-4 flex items-center justify-center sm:mb-6">
-                <div className="flex h-12 w-40 items-center justify-center overflow-hidden rounded-2xl text-base font-semibold text-white sm:h-14 sm:w-48">
+                <div
+                  className={`
+                    flex h-14 w-44 items-center justify-center overflow-hidden
+                    rounded-2xl
+                    transition-all duration-1000 ease-out delay-100
+                    ${logoReveal ? "opacity-100 translate-y-0" : "opacity-0 translate-y-3"}
+                  `}
+                >
                   {logoUrl ? (
                     <img
                       src={logoUrl}
                       alt="Логотип компании"
-                      className={`h-full w-full transform-gpu object-contain ${logoLoaded ? "logo-animate-in" : "logo-hidden"}`}
+                      className={`
+                        h-full w-full object-contain transform-gpu transition-all duration-1000 ease-out
+                        ${logoLoaded ? "opacity-100 scale-100 blur-0" : "opacity-0 scale-105 blur-[6px]"}
+                      `}
                       onLoad={() => setLogoLoaded(true)}
                     />
                   ) : (
