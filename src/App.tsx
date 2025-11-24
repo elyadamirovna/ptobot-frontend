@@ -1,20 +1,24 @@
-import React, { useMemo, useState } from "react";
-import {
-  Building2,
-  Camera,
-  CheckCircle2,
-  ChevronLeft,
-  FileText,
-  History,
-  Image as ImageIcon,
-  Layers3,
-  Users,
-  X,
-} from "lucide-react";
+// src/App.tsx
+import React, {
+  useMemo,
+  useState,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useCallback,
+} from "react";
 
-import { Button } from "@/components/ui/button";
+import {
+  CorporateStrictLayout,
+  GlassmorphismLayout,
+  MinimalistLayout,
+} from "@/components/LayoutVariants";
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -22,509 +26,687 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
-import "./App.css";
 
-type ScreenKey =
-  | "dashboard"
-  | "create-1"
-  | "create-2"
-  | "create-3"
-  | "success"
-  | "history"
-  | "report";
+import {
+  CalendarDays,
+  Building2,
+  HardHat,
+  Users,
+  Image as ImageIcon,
+  Upload,
+  ChevronDown,
+  History,
+  ClipboardList,
+  ShieldCheck,
+} from "lucide-react";
+import type {
+  TelegramViewportChangedData,
+  TelegramWebApp,
+} from "@/types/telegram";
 
-type WorkType = { id: string; name: string; unit: "м³" | "м²" };
+const API_URL = "https://ptobot-backend.onrender.com";
+const DEFAULT_LOGO_URL = "https://storage.yandexcloud.net/ptobot-assets/LOGO.svg";
 
-type ReportRow = {
+type WorkType = { id: string; name: string };
+
+type HistoryRow = {
   id: number;
-  project: string;
+  project_id: string;
   date: string;
-  workType: string;
-  volume: number;
-  unit: "м³" | "м²";
-  machines: number;
-  people: number;
-  comment: string;
+  work_type_id: string;
+  description: string;
   photos: string[];
-  status: "На проверке" | "Принят" | "Отклонён";
 };
 
-const workTypes: WorkType[] = [
-  { id: "glass", name: "GLASS", unit: "м²" },
-  { id: "beton", name: "Бетон", unit: "м³" },
-  { id: "finish", name: "Отделка", unit: "м²" },
-];
+type AccessRow = {
+  user: { id: number; name: string };
+  projects: string[];
+  role: string;
+};
 
-const projects = [
-  { id: "alpha", name: "ЖК «Альфа»" },
-  { id: "beta", name: "БЦ «Бета»" },
-  { id: "gamma", name: "Промпарк «Гамма»" },
-];
+type TabKey = "report" | "history" | "admin";
+const TAB_ORDER: TabKey[] = ["report", "history", "admin"];
 
-const historyRows: ReportRow[] = [
-  {
-    id: 1,
-    project: "alpha",
-    date: "2024-12-01",
-    workType: "beton",
-    volume: 12,
-    unit: "м³",
-    machines: 2,
-    people: 8,
-    comment: "Заливка плиты перекрытия, без замечаний.",
-    photos: ["https://images.unsplash.com/photo-1503389152951-9f343605f61e?w=600"],
-    status: "Принят",
-  },
-  {
-    id: 2,
-    project: "beta",
-    date: "2024-11-28",
-    workType: "glass",
-    volume: 42,
-    unit: "м²",
-    machines: 0,
-    people: 6,
-    comment: "Монтаж фасадных кассет, часть зоны закрыта погодой.",
-    photos: [],
-    status: "На проверке",
-  },
-];
-
-const lastReport = historyRows[0];
-
-const companyName = "ООО «СтройГрупп»";
-
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat("ru-RU", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  }).format(new Date(value));
-}
-
-function ProgressBar({ value }: { value: number }) {
-  return (
-    <div className="h-2 overflow-hidden rounded-full bg-slate-800/50">
-      <div
-        className="h-full rounded-full bg-gradient-to-r from-sky-400 via-indigo-400 to-emerald-400"
-        style={{ width: `${value}%` }}
-      />
-    </div>
-  );
-}
-
-export default function App() {
-  const [screen, setScreen] = useState<ScreenKey>("dashboard");
-  const [photoPreviews, setPhotoPreviews] = useState<string[]>([]);
-  const initialDraft = useMemo(
+export default function TelegramWebAppGlassPure() {
+  const PREVIEW_COMPONENTS = useMemo(
     () => ({
-      project: projects[0].id,
-      workType: workTypes[0].id,
-      date: new Date().toISOString().slice(0, 10),
-      volume: "",
-      machines: "",
-      people: "",
-      extraResources: "",
-      comment: "",
+      minimalist: MinimalistLayout,
+      glass: GlassmorphismLayout,
+      corporate: CorporateStrictLayout,
     }),
     []
   );
-  const [reportDraft, setReportDraft] = useState(initialDraft);
 
-  const readiness = useMemo(() => {
-    const fields = [reportDraft.project, reportDraft.workType, reportDraft.date, reportDraft.volume];
-    const filled = fields.filter(Boolean).length;
-    return Math.round((filled / fields.length) * 100);
-  }, [reportDraft]);
+  const [logoUrl, setLogoUrl] = useState<string>(DEFAULT_LOGO_URL);
+  const [logoLoaded, setLogoLoaded] = useState(false);
+  const [logoReveal, setLogoReveal] = useState(false);
+  const [previewVariant, setPreviewVariant] = useState<string | null>(null);
 
-  const currentUnit =
-    workTypes.find((item) => item.id === reportDraft.workType)?.unit || "м³";
+  useEffect(() => {
+    try {
+      const qs = new URLSearchParams(window.location.search);
+      const fromQuery = qs.get("logo");
+      setLogoUrl(fromQuery || DEFAULT_LOGO_URL);
+      setPreviewVariant(qs.get("preview"));
+    } catch (error) {
+      console.warn("Cannot parse query params", error);
+      setLogoUrl(DEFAULT_LOGO_URL);
+      setPreviewVariant(null);
+    }
+  }, []);
 
-  const showExtraResources = [reportDraft.machines, reportDraft.people].some(
-    (value) => value && value !== "0"
+  useEffect(() => {
+    // запускаем появление логотипа после загрузки страницы
+    setTimeout(() => setLogoReveal(true), 180);
+  }, []);
+
+  useEffect(() => {
+    setLogoLoaded(false);
+  }, [logoUrl]);
+
+  const [activeTab, setActiveTab] = useState<TabKey>("report");
+  const [project, setProject] = useState<string | undefined>("1");
+  const [workType, setWorkType] = useState<string | undefined>("2");
+  const [date, setDate] = useState<string>(() =>
+    new Date().toISOString().slice(0, 10)
+  );
+  const [volume, setVolume] = useState("");
+  const [machines, setMachines] = useState("");
+  const [people, setPeople] = useState("");
+  const [comment, setComment] = useState("");
+  const [requiredHintVisible, setRequiredHintVisible] = useState(false);
+
+  const [workTypes, setWorkTypes] = useState<WorkType[]>([
+    { id: "1", name: "Земляные работы" },
+    { id: "2", name: "Бетонирование" },
+    { id: "3", name: "Монтаж конструкций" },
+  ]);
+
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
+  const [previews, setPreviews] = useState<string[]>([]);
+  const [fileValidationMessage, setFileValidationMessage] = useState<string | null>(
+    null
   );
 
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(event.target.files || []);
-    const previews = files.map((file) => URL.createObjectURL(file));
-    setPhotoPreviews(previews);
+  const swipeAreaRef = useRef<HTMLDivElement | null>(null);
+  const telegramRef = useRef<TelegramWebApp | null>(null);
+  const activeTabRef = useRef<TabKey>("report");
+
+  // ------------------------------------------------------------------
+  // Поддержка безопасной области (вырезы устройства + UI Telegram)
+  // ------------------------------------------------------------------
+  useEffect(() => {
+    const tg =
+      typeof window !== "undefined" ? window.Telegram?.WebApp : undefined;
+
+    if (!tg || typeof document === "undefined") return undefined;
+
+    const rootStyle = document.documentElement?.style;
+    if (!rootStyle) return undefined;
+
+    const applyInsets = (top = 0, bottom = 0) => {
+      rootStyle.setProperty("--tg-safe-area-inset-top", `${top}px`);
+      rootStyle.setProperty("--tg-safe-area-inset-bottom", `${bottom}px`);
+    };
+
+    const syncInsets = (eventData?: TelegramViewportChangedData) => {
+      // 1) Safe area с учётом UI Telegram (верхняя панель, нижние кнопки)
+      const contentSafeArea =
+        eventData?.contentSafeAreaInsets ??
+        eventData?.contentSafeAreaInset ??
+        tg.viewport?.contentSafeAreaInsets ??
+        tg.contentSafeAreaInsets ??
+        tg.contentSafeAreaInset;
+
+      // 2) Системный safe area устройства
+      const safeArea =
+        eventData?.safeAreaInsets ??
+        eventData?.safeAreaInset ??
+        tg.viewport?.safeAreaInsets ??
+        tg.safeAreaInsets ??
+        tg.safeAreaInset;
+
+      const top = contentSafeArea?.top ?? safeArea?.top ?? 0;
+      const bottom = contentSafeArea?.bottom ?? safeArea?.bottom ?? 0;
+
+      if (top !== 0 || bottom !== 0) {
+        applyInsets(top, bottom);
+        return;
+      }
+
+      // 3) Фолбэк через стабильную высоту
+      const stableHeight = eventData?.stableHeight ?? tg.viewportStableHeight;
+      const viewportHeight = eventData?.height ?? tg.viewportHeight ?? stableHeight;
+
+      if (typeof window !== "undefined" && viewportHeight) {
+        const bottomInset = Math.max(0, window.innerHeight - viewportHeight);
+        applyInsets(0, bottomInset);
+      }
+    };
+
+    // первичная синхронизация
+    syncInsets();
+
+    // Отключено: события вызывают дёргание интерфейса при скролле.
+    // Safe-area рассчитываем один раз при старте, этого достаточно.
+    // tg.onEvent?.("viewportChanged", handleViewportChange);
+    // tg.onEvent?.("safeAreaChanged", handleSafeAreaChange);
+    // tg.onEvent?.("contentSafeAreaChanged", handleSafeAreaChange);
+
+    return undefined;
+  }, []);
+
+  const changeTabBySwipe = useCallback(
+    (direction: 1 | -1) => {
+      setActiveTab((current) => {
+        const index = TAB_ORDER.indexOf(current);
+        const nextIndex = index + direction;
+        if (nextIndex < 0 || nextIndex >= TAB_ORDER.length) {
+          return current;
+        }
+        return TAB_ORDER[nextIndex];
+      });
+    },
+    []
+  );
+
+  // ------------------------------------------------------------------
+  // Telegram WebApp: ready/expand, BackButton, отключение вертикальных свайпов
+  // ------------------------------------------------------------------
+  useEffect(() => {
+    const tg =
+      typeof window !== "undefined" ? window.Telegram?.WebApp : undefined;
+
+    telegramRef.current = tg ?? null;
+
+    if (!tg) {
+      console.log(
+        "[WebApp] Telegram.WebApp не найден (скорее всего, обычный браузер)"
+      );
+      return undefined;
+    }
+
+    const cleanupFns: Array<() => void> = [];
+    const pushCleanup = (fn: () => void) => cleanupFns.push(fn);
+
+    // ready / expand
+    try {
+      tg.ready?.();
+      tg.expand?.();
+    } catch (error) {
+      console.warn("[WebApp] Ошибка при вызове ready/expand", error);
+    }
+
+    // --- BackButton видимость и поведение ---
+    const syncBackButtonVisibility = () => {
+      const backButton = tg.BackButton;
+      if (!backButton) return;
+
+      try {
+        if (activeTabRef.current !== "report") {
+          backButton.show();
+        } else {
+          backButton.hide();
+        }
+      } catch (error) {
+        console.warn("[WebApp] Ошибка при обновлении BackButton", error);
+      }
+    };
+
+    const handleBackButtonClick = () => {
+      if (activeTabRef.current !== "report") {
+        setActiveTab("report");
+        return;
+      }
+      try {
+        tg.close?.();
+      } catch (error) {
+        console.warn("[WebApp] Не удалось закрыть Mini App", error);
+      }
+    };
+
+    if (tg.BackButton) {
+      try {
+        tg.BackButton.onClick(handleBackButtonClick);
+        pushCleanup(() => tg.BackButton?.offClick(handleBackButtonClick));
+        syncBackButtonVisibility();
+      } catch (error) {
+        console.warn("[WebApp] Не удалось настроить BackButton", error);
+      }
+    }
+
+    const handleBackButtonSetupEvent = () => {
+      console.log("[WebApp] Событие web_app_setup_back_button");
+      syncBackButtonVisibility();
+    };
+
+    const handleExpandEvent = () => {
+      console.log("[WebApp] Событие web_app_expand");
+    };
+
+    const handleExitFullscreenEvent = () => {
+      console.log(
+        "[WebApp] Событие web_app_exit_fullscreen, пробуем expand ещё раз"
+      );
+      try {
+        tg.expand?.();
+      } catch (error) {
+        console.warn("[WebApp] Ошибка повторного expand", error);
+      }
+    };
+
+    if (typeof tg.onEvent === "function") {
+      tg.onEvent("web_app_expand", handleExpandEvent);
+      pushCleanup(() => tg.offEvent?.("web_app_expand", handleExpandEvent));
+
+      tg.onEvent("web_app_exit_fullscreen", handleExitFullscreenEvent);
+      pushCleanup(() =>
+        tg.offEvent?.("web_app_exit_fullscreen", handleExitFullscreenEvent)
+      );
+
+      tg.onEvent("web_app_setup_back_button", handleBackButtonSetupEvent);
+      pushCleanup(() =>
+        tg.offEvent?.("web_app_setup_back_button", handleBackButtonSetupEvent)
+      );
+    }
+
+    // --- Отключение системного vertical swipe (pull-to-close) ---
+    let isDestroyed = false;
+    let isSwipeApplied = false;
+    let restoreSwipeBehavior: (() => void | Promise<void>) | null = null;
+
+    const previousAllowSwipe = tg.settings?.allow_vertical_swipe;
+
+    const runRestore = () => {
+      if (!restoreSwipeBehavior) return;
+      const restore = restoreSwipeBehavior;
+      restoreSwipeBehavior = null;
+      Promise.resolve(restore()).catch((error) => {
+        console.warn("[WebApp] Ошибка при откате swipeBehavior", error);
+      });
+    };
+
+    const applySwipeBehavior = async () => {
+      if (isDestroyed || isSwipeApplied) return;
+
+      try {
+        // Новый API: setSwipeBehavior (v7.7+)
+        if (
+          tg.isVersionAtLeast?.("7.7") &&
+          typeof tg.setSwipeBehavior === "function"
+        ) {
+          const result = await tg.setSwipeBehavior({
+            allow_vertical_swipe: false,
+          });
+
+          if (result !== false) {
+            isSwipeApplied = true;
+            restoreSwipeBehavior = async () => {
+              await tg.setSwipeBehavior?.({ allow_vertical_swipe: true });
+            };
+            return;
+          }
+        }
+
+        // setSettings fallback
+        if (typeof tg.setSettings === "function") {
+          const result = await tg.setSettings({ allow_vertical_swipe: false });
+
+          if (result !== false) {
+            isSwipeApplied = true;
+            restoreSwipeBehavior = async () => {
+              const targetValue =
+                typeof previousAllowSwipe === "boolean"
+                  ? previousAllowSwipe
+                  : true;
+              await tg.setSettings?.({ allow_vertical_swipe: targetValue });
+            };
+            return;
+          }
+        }
+
+        // Старый API: disableVerticalSwipes
+        if (typeof tg.disableVerticalSwipes === "function" && !isSwipeApplied) {
+          tg.disableVerticalSwipes();
+          isSwipeApplied = true;
+          restoreSwipeBehavior = () => {
+            try {
+              tg.enableVerticalSwipes?.();
+            } catch (error) {
+              console.warn(
+                "[WebApp] Ошибка при enableVerticalSwipes в cleanup",
+                error
+              );
+            }
+          };
+        }
+      } catch (error) {
+        console.warn("[WebApp] Ошибка при настройке свайпов", error);
+      }
+    };
+
+    const handleSetupSwipeBehavior = () => {
+      if (isSwipeApplied || isDestroyed) return;
+      void applySwipeBehavior();
+    };
+
+    const supportsSwipeSetupEvent =
+      typeof tg.onEvent === "function" &&
+      (typeof tg.isVersionAtLeast !== "function" ||
+        tg.isVersionAtLeast("7.7"));
+
+    if (supportsSwipeSetupEvent) {
+      tg.onEvent("web_app_setup_swipe_behavior", handleSetupSwipeBehavior);
+      pushCleanup(() =>
+        tg.offEvent?.("web_app_setup_swipe_behavior", handleSetupSwipeBehavior)
+      );
+    } else {
+      // для старых клиентов пробуем сразу
+      void applySwipeBehavior();
+    }
+
+    return () => {
+      isDestroyed = true;
+      cleanupFns.forEach((fn) => {
+        try {
+          fn();
+        } catch (error) {
+          console.warn("[WebApp] Ошибка в cleanup", error);
+        }
+      });
+      runRestore();
+      telegramRef.current = null;
+    };
+  }, []);
+
+  // актуальный таб для BackButton
+  useEffect(() => {
+    activeTabRef.current = activeTab;
+
+    const backButton = telegramRef.current?.BackButton;
+    if (!backButton) return;
+
+    try {
+      if (activeTab !== "report") {
+        backButton.show();
+      } else {
+        backButton.hide();
+      }
+    } catch (error) {
+      console.warn(
+        "[WebApp] Ошибка при обновлении BackButton из эффекта",
+        error
+      );
+    }
+  }, [activeTab]);
+
+  // Горизонтальный свайп по контенту (между табами), вертикальный остаётся скроллом
+  useEffect(() => {
+    const container = swipeAreaRef.current;
+    if (!container) return;
+
+    let startX = 0;
+    let startY = 0;
+    let isTracking = false;
+    let isHorizontal = false;
+
+    const resetTracking = () => {
+      startX = 0;
+      startY = 0;
+      isTracking = false;
+      isHorizontal = false;
+    };
+
+    const handleTouchStart = (event: TouchEvent) => {
+      if (event.touches.length !== 1) return;
+      const touch = event.touches[0];
+      startX = touch.clientX;
+      startY = touch.clientY;
+      isTracking = true;
+      isHorizontal = false;
+    };
+
+    const handleTouchMove = (event: TouchEvent) => {
+      if (!isTracking || event.touches.length !== 1) return;
+      const touch = event.touches[0];
+      const deltaX = touch.clientX - startX;
+      const deltaY = touch.clientY - startY;
+
+      if (!isHorizontal) {
+        if (Math.abs(deltaX) > 12 || Math.abs(deltaY) > 12) {
+          if (Math.abs(deltaX) > Math.abs(deltaY)) {
+            isHorizontal = true;
+          } else {
+            // вертикальный жест — отдаём браузеру / Telegram для скролла
+            resetTracking();
+          }
+        }
+      }
+    };
+
+    const finishSwipe = (event: TouchEvent) => {
+      if (!isTracking) {
+        resetTracking();
+        return;
+      }
+
+      const touch = event.changedTouches[0];
+      const deltaX = touch.clientX - startX;
+      const deltaY = touch.clientY - startY;
+      const horizontalEnough =
+        Math.abs(deltaX) >= 60 && Math.abs(deltaX) > Math.abs(deltaY);
+
+      if (isHorizontal && horizontalEnough) {
+        if (deltaX < 0) {
+          // свайп влево → следующая вкладка
+          changeTabBySwipe(1);
+        } else {
+          // свайп вправо → предыдущая вкладка
+          changeTabBySwipe(-1);
+        }
+      }
+
+      resetTracking();
+    };
+
+    const handleTouchCancel = () => {
+      resetTracking();
+    };
+
+    container.addEventListener("touchstart", handleTouchStart, {
+      passive: true,
+    });
+    container.addEventListener("touchmove", handleTouchMove, { passive: true });
+    container.addEventListener("touchend", finishSwipe);
+    container.addEventListener("touchcancel", handleTouchCancel);
+
+    return () => {
+      container.removeEventListener("touchstart", handleTouchStart);
+      container.removeEventListener("touchmove", handleTouchMove);
+      container.removeEventListener("touchend", finishSwipe);
+      container.removeEventListener("touchcancel", handleTouchCancel);
+    };
+  }, [changeTabBySwipe]);
+
+  // --- загрузка видов работ ---
+  useEffect(() => {
+    fetch(`${API_URL}/work_types`)
+      .then((response) => (response.ok ? response.json() : Promise.reject()))
+      .then((rows: Array<{ id: string | number; name: string }>) => {
+        if (Array.isArray(rows) && rows.length) {
+          const mapped: WorkType[] = rows.map((item) => ({
+            id: String(item.id),
+            name: item.name,
+          }));
+          setWorkTypes(mapped);
+          if (!workType) {
+            setWorkType(mapped[0].id);
+          }
+        }
+      })
+      .catch(() => {
+        /* silent fallback to default workTypes */
+      });
+  }, [workType]);
+
+  const projects = [
+    { id: "1", name: "ЖК «Северный»", address: "ул. Парковая, 12" },
+    { id: "2", name: "ЖК «Академический»", address: "пр-т Науки, 5" },
+  ];
+
+  const history = useMemo<HistoryRow[]>(
+    () => [
+      {
+        id: 101,
+        project_id: "1",
+        date: "2025-11-11",
+        work_type_id: "2",
+        description:
+          "Бетонирование ростверка\nОбъём: 12,5 м³\nТехника: 2\nЛюди: 7",
+        photos: [
+          "https://picsum.photos/seed/a/300/200",
+          "https://picsum.photos/seed/b/300/200",
+        ],
+      },
+      {
+        id: 100,
+        project_id: "1",
+        date: "2025-11-10",
+        work_type_id: "1",
+        description:
+          "Разработка котлована\nОбъём: 80 м³\nТехника: 3\nЛюди: 5",
+        photos: ["https://picsum.photos/seed/c/300/200"],
+      },
+    ],
+    []
+  );
+
+  const accessList: AccessRow[] = [
+    {
+      user: { id: 8, name: "ИП «СтройСервис»" },
+      projects: ["1"],
+      role: "reporter",
+    },
+    {
+      user: { id: 9, name: "ООО «МонтажГрупп»" },
+      projects: ["1", "2"],
+      role: "reporter",
+    },
+  ];
+
+  const onPickFiles = () => fileInputRef.current?.click();
+
+  const onFilesSelected = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const selected = Array.from(event.target.files || []);
+
+    if (!selected.length) {
+      setFileValidationMessage("Добавьте хотя бы одно фото для отчёта");
+      setFiles([]);
+      setPreviews([]);
+      return;
+    }
+
+    setFileValidationMessage(null);
+    setFiles(selected);
+
+    Promise.all(
+      selected.map(
+        (file) =>
+          new Promise<string>((resolve) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(String(reader.result));
+            reader.readAsDataURL(file);
+          })
+      )
+    ).then(setPreviews);
   };
 
-  const handleStep1Next = () => setScreen("create-2");
-  const handleStep2Next = () => setScreen("create-3");
-  const handleSubmit = () => setScreen("success");
-  const handleReset = () => {
-    setReportDraft(initialDraft);
-    setPhotoPreviews([]);
-    setScreen("dashboard");
-  };
+  const [sending, setSending] = useState(false);
+  const [progress, setProgress] = useState(0);
 
-  const activeNav = screen === "history" ? "history" : "report";
+  const formCompletion = useMemo(() => {
+    const total = 4;
+    const filled = [project, workType, date, files.length ? "files" : null].filter(
+      Boolean
+    ).length;
+    return Math.max(8, Math.round((filled / total) * 100));
+  }, [date, files.length, project, workType]);
 
-  const Header = ({
-    title,
-    showBack,
-    onBack,
-  }: {
-    title: string;
-    showBack?: boolean;
-    onBack?: () => void;
-  }) => (
-    <header className="flex items-center justify-between gap-2 border-b border-white/10 pb-3">
-      <div className="flex items-center gap-3">
-        {showBack ? (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="rounded-full bg-white/10 text-white hover:bg-white/20"
-            onClick={onBack ?? (() => setScreen("dashboard"))}
-          >
-            <ChevronLeft className="h-5 w-5" />
-          </Button>
-        ) : (
-          <div className="flex items-center gap-2">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10 text-white">
-              <Layers3 className="h-5 w-5" />
-            </div>
-            <div>
-              <p className="text-xs text-slate-200">{companyName}</p>
-              <p className="text-sm font-semibold text-white">Dashboard</p>
-            </div>
-          </div>
-        )}
-        {showBack && <span className="text-sm font-semibold text-white">{title}</span>}
-      </div>
-      <Button
-        variant="ghost"
-        size="icon"
-        className="rounded-full bg-white/10 text-white hover:bg-white/20"
-        onClick={handleReset}
-      >
-        <X className="h-5 w-5" />
-      </Button>
-    </header>
+  const latestHistoryDate = history[0]?.date;
+
+  const isFormReady = useMemo(
+    () => Boolean(project && workType && date && files.length > 0),
+    [project, workType, date, files.length]
   );
 
-  const DashboardScreen = () => (
-    <div className="space-y-5">
-      <Header title="Обзор объекта" />
+  const missingFields = useMemo(() => {
+    const fields: string[] = [];
+    if (!project) fields.push("объект");
+    if (!workType) fields.push("вид работ");
+    if (!date) fields.push("дату");
+    if (!files.length) fields.push("фото");
+    return fields;
+  }, [project, workType, date, files.length]);
 
-      <Card className="glass-card">
-        <CardHeader>
-          <CardTitle className="flex items-center justify-between text-base text-white">
-            Готовность объекта
-            <span className="rounded-full bg-white/10 px-3 py-1 text-xs uppercase text-sky-100">
-              {workTypes.find((item) => item.id === reportDraft.workType)?.name}
-            </span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="flex items-center justify-between text-sm text-slate-200">
-            <span>Прогресс</span>
-            <span className="font-semibold text-white">{readiness}%</span>
-          </div>
-          <ProgressBar value={readiness} />
-          <p className="text-xs text-amber-100">
-            {readiness === 100 ? "Все основные поля заполнены" : "Заполните поля, чтобы отправить отчёт"}
-          </p>
-        </CardContent>
-      </Card>
+  async function sendReport() {
+    setRequiredHintVisible(true);
+    if (!project || !workType || !date || !files.length) {
+      alert("Заполните обязательные поля перед отправкой");
+      return;
+    }
 
-      <Card className="glass-card">
-        <CardHeader>
-          <CardTitle className="flex items-center justify-between text-base text-white">
-            История отчётов
-            <History className="h-5 w-5 text-slate-100" />
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2 text-sm text-slate-200">
-          <div className="flex items-center justify-between">
-            <span>{formatDate(lastReport.date)}</span>
-            <span className="rounded-full bg-white/10 px-3 py-1 text-xs text-white">
-              {workTypes.find((row) => row.id === lastReport.workType)?.name}
-            </span>
-          </div>
-          <p className="text-xs text-slate-300">Последний отчёт доступен для просмотра</p>
-          <Button
-            variant="secondary"
-            className="w-full bg-white/10 text-white hover:bg-white/20"
-            onClick={() => setScreen("history")}
-          >
-            Открыть историю
-          </Button>
-        </CardContent>
-      </Card>
+    const descParts = [comment];
+    if (volume) descParts.push(`Объём: ${volume}`);
+    if (machines) descParts.push(`Техника: ${machines}`);
+    if (people) descParts.push(`Люди: ${people}`);
+    const description = descParts.filter(Boolean).join("\n");
 
-      <Card className="glass-card">
-        <CardHeader>
-          <CardTitle className="flex items-center justify-between text-base text-white">
-            Доступы и партнёры
-            <Users className="h-5 w-5 text-slate-100" />
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="grid grid-cols-3 gap-3 text-sm text-slate-100">
-          <div>
-            <p className="text-xs text-slate-300">Люди</p>
-            <p className="text-lg font-semibold text-white">18</p>
-          </div>
-          <div>
-            <p className="text-xs text-slate-300">Партнёры</p>
-            <p className="text-lg font-semibold text-white">6</p>
-          </div>
-          <div>
-            <p className="text-xs text-slate-300">Объектов</p>
-            <p className="text-lg font-semibold text-white">3 на контроле</p>
-          </div>
-          <Button className="col-span-3" variant="secondary">
-            Управлять ролями
-          </Button>
-        </CardContent>
-      </Card>
+    const form = new FormData();
+    form.append("user_id", "1");
+    form.append("project_id", String(project ?? ""));
+    form.append("work_type_id", String(workType));
+    form.append("date", date);
+    form.append("description", description);
+    form.append("people", people);
+    form.append("volume", volume);
+    form.append("machines", machines);
+    files.forEach((file) => form.append("photos", file));
 
-      <Button className="w-full bg-sky-500 text-white hover:bg-sky-600" size="lg" onClick={() => setScreen("create-1")}>
-        Создать отчёт
-      </Button>
+    try {
+      setSending(true);
+      setProgress(25);
+      const res = await fetch(`${API_URL}/reports`, {
+        method: "POST",
+        body: form,
+      });
+      setProgress(80);
+      if (!res.ok) throw new Error("Ошибка при отправке отчёта");
+      const data = await res.json();
+      setProgress(100);
+      alert(`Отчёт успешно отправлен! ID: ${data.id}`);
+      setVolume("");
+      setMachines("");
+      setPeople("");
+      setComment("");
+      setFiles([]);
+      setPreviews([]);
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Ошибка при отправке отчёта";
+      alert(message);
+    } finally {
+      setSending(false);
+      setTimeout(() => setProgress(0), 600);
+    }
+  }
 
-      <nav className="glass-card flex items-center justify-between rounded-2xl px-4 py-3 text-sm text-white">
-        <button
-          className={`flex flex-1 flex-col items-center gap-1 ${activeNav === "report" ? "text-sky-100" : "text-slate-300"}`}
-          onClick={() => setScreen("dashboard")}
-        >
-          <FileText className="h-5 w-5" />
-          Отчёты
-        </button>
-        <button
-          className={`flex flex-1 flex-col items-center gap-1 ${activeNav === "history" ? "text-sky-100" : "text-slate-300"}`}
-          onClick={() => setScreen("history")}
-        >
-          <History className="h-5 w-5" />
-          История
-        </button>
-        <button
-          className={`flex flex-1 flex-col items-center gap-1 ${activeNav === "access" ? "text-sky-100" : "text-slate-300"}`}
-          onClick={() => setScreen("dashboard")}
-        >
-          <Users className="h-5 w-5" />
-          Доступ
-        </button>
-      </nav>
-    </div>
-  );
-
-  const CreateStep1 = () => (
-    <div className="space-y-5">
-      <Header title="Ежедневный отчёт" showBack onBack={() => setScreen("dashboard")} />
-      <div className="rounded-2xl bg-white/5 px-4 py-3 text-sm text-slate-200">
-        Шаг 1 / 3 — Основные данные
-      </div>
-
-      <Card className="glass-card">
-        <CardHeader>
-          <CardTitle className="text-white">Основные данные</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <p className="text-xs text-slate-200">Объект</p>
-            <Select
-              value={reportDraft.project}
-              onValueChange={(project) => setReportDraft((prev) => ({ ...prev, project }))}
-            >
-              <SelectTrigger className="w-full rounded-2xl bg-white/10 text-white">
-                <SelectValue placeholder="Выберите объект" />
-              </SelectTrigger>
-              <SelectContent>
-                {projects.map((item) => (
-                  <SelectItem key={item.id} value={item.id}>
-                    {item.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <p className="text-xs text-slate-200">Вид работ</p>
-            <Select
-              value={reportDraft.workType}
-              onValueChange={(workType) => setReportDraft((prev) => ({ ...prev, workType }))}
-            >
-              <SelectTrigger className="w-full rounded-2xl bg-white/10 text-white">
-                <SelectValue placeholder="Выберите вид работ" />
-              </SelectTrigger>
-              <SelectContent>
-                {workTypes.map((item) => (
-                  <SelectItem key={item.id} value={item.id}>
-                    {item.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="space-y-2">
-              <p className="text-xs text-slate-200">Дата</p>
-              <Input
-                type="date"
-                value={reportDraft.date}
-                onChange={(event) =>
-                  setReportDraft((prev) => ({ ...prev, date: event.target.value }))
-                }
-                className="rounded-2xl border-white/10 bg-white/10 text-white"
-              />
-            </div>
-            <div className="space-y-2">
-              <p className="text-xs text-slate-200">Объём</p>
-              <div className="flex items-center gap-2">
-                <Input
-                  type="number"
-                  value={reportDraft.volume}
-                  onChange={(event) =>
-                    setReportDraft((prev) => ({ ...prev, volume: event.target.value }))
-                  }
-                  className="rounded-2xl border-white/10 bg-white/10 text-white"
-                  placeholder="Введите объём"
-                />
-                <div className="rounded-2xl bg-white/10 px-3 py-2 text-sm text-white">{currentUnit}</div>
-              </div>
-            </div>
-          </div>
-
-          <Button
-            className="w-full bg-sky-500 hover:bg-sky-600"
-            onClick={handleStep1Next}
-            disabled={!readiness || Number(reportDraft.volume) <= 0}
-          >
-            Далее
-          </Button>
-        </CardContent>
-      </Card>
-    </div>
-  );
-
-  const CreateStep2 = () => (
-    <div className="space-y-5">
-      <Header title="Ресурсы" showBack onBack={() => setScreen("create-1")} />
-      <div className="rounded-2xl bg-white/5 px-4 py-3 text-sm text-slate-200">
-        Шаг 2 / 3 — Ресурсы
-      </div>
-      <Card className="glass-card">
-        <CardHeader>
-          <CardTitle className="text-white">Ресурсы</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="space-y-2">
-              <p className="text-xs text-slate-200">Техника (шт.)</p>
-              <Input
-                type="number"
-                value={reportDraft.machines}
-                onChange={(event) =>
-                  setReportDraft((prev) => ({ ...prev, machines: event.target.value }))
-                }
-                className="rounded-2xl border-white/10 bg-white/10 text-white"
-                placeholder="0"
-              />
-            </div>
-            <div className="space-y-2">
-              <p className="text-xs text-slate-200">Люди (чел.)</p>
-              <Input
-                type="number"
-                value={reportDraft.people}
-                onChange={(event) =>
-                  setReportDraft((prev) => ({ ...prev, people: event.target.value }))
-                }
-                className="rounded-2xl border-white/10 bg-white/10 text-white"
-                placeholder="0"
-              />
-            </div>
-          </div>
-
-          {showExtraResources && (
-            <div className="space-y-2">
-              <p className="text-xs text-slate-200">Дополнительные ресурсы (опционально)</p>
-              <Textarea
-                value={reportDraft.extraResources}
-                onChange={(event) =>
-                  setReportDraft((prev) => ({ ...prev, extraResources: event.target.value }))
-                }
-                className="rounded-2xl border-white/10 bg-white/10 text-white"
-                placeholder="Краны, вышки и т.п."
-              />
-            </div>
-          )}
-
-          <div className="flex gap-3">
-            <Button
-              variant="outline"
-              className="flex-1 border-white/20 bg-white/5 text-white hover:bg-white/10"
-              onClick={() => setScreen("create-1")}
-            >
-              Назад
-            </Button>
-            <Button className="flex-1 bg-sky-500 hover:bg-sky-600" onClick={handleStep2Next}>
-              Далее
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
-
-  const CreateStep3 = () => (
-    <div className="space-y-5 pb-24">
-      <Header title="Подтверждение" showBack onBack={() => setScreen("create-2")} />
-      <div className="rounded-2xl bg-white/5 px-4 py-3 text-sm text-slate-200">
-        Шаг 3 / 3 — Подтверждение + Фото
-      </div>
-      <Card className="glass-card">
-        <CardHeader>
-          <CardTitle className="text-white">Комментарий и фото</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <p className="text-xs text-slate-200">Комментарий</p>
-            <Textarea
-              value={reportDraft.comment}
-              onChange={(event) =>
-                setReportDraft((prev) => ({ ...prev, comment: event.target.value }))
-              }
-              className="rounded-2xl border-white/10 bg-white/10 text-white"
-              placeholder="Добавьте примечание"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <p className="text-xs text-slate-200">Фото</p>
-            <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-white/30 bg-white/5 px-4 py-6 text-white hover:bg-white/10">
-              <Camera className="h-6 w-6" />
-              <span className="text-sm">Выбрать фото</span>
-              <Input type="file" accept="image/*" multiple className="hidden" onChange={handleFileUpload} />
-            </label>
-            {photoPreviews.length > 0 && (
-              <div className="mt-2 flex flex-wrap gap-3">
-                {photoPreviews.map((src, index) => (
-                  <img
-                    key={index}
-                    src={src}
-                    alt="Превью"
-                    className="h-20 w-24 rounded-xl border border-white/20 object-cover"
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-
-      <div className="fixed inset-x-0 bottom-0 z-10 border-t border-white/10 bg-[#0b1226]/90 p-4 backdrop-blur">
-        <Button className="w-full bg-sky-500 text-white hover:bg-sky-600" size="lg" onClick={handleSubmit}>
-          Отправить отчёт
-        </Button>
-      </div>
-    </div>
-  );
+  const previewKey = previewVariant?.toLowerCase() as
+    | keyof typeof PREVIEW_COMPONENTS
+    | undefined;
+  const PreviewComponent = previewKey
+    ? PREVIEW_COMPONENTS[previewKey]
+    : undefined;
 
   return PreviewComponent ? (
     <PreviewComponent />
@@ -623,12 +805,6 @@ export default function App() {
                   <p className="mt-2 text-[11px] text-white/70">Управляйте ролями прямо в мини-приложении.</p>
                 </div>
               </div>
-            </div>
-          ))}
-        </CardContent>
-      </Card>
-    </div>
-  );
 
               <Tabs
                 value={activeTab}
@@ -1097,43 +1273,25 @@ export default function App() {
               </Tabs>
             </div>
           </div>
-          <div>
-            <p className="text-xs text-slate-400">Комментарий</p>
-            <p className="text-white">{lastReport.comment}</p>
-          </div>
-          <div>
-            <p className="text-xs text-slate-400">Фото</p>
-            <div className="mt-2 flex flex-wrap gap-3">
-              {lastReport.photos.map((src, index) => (
-                <img
-                  key={index}
-                  src={src}
-                  alt="Фото"
-                  className="h-24 w-28 rounded-xl border border-white/20 object-cover"
-                />
-              ))}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
-
-  const screenMap: Record<ScreenKey, JSX.Element> = {
-    dashboard: <DashboardScreen />,
-    "create-1": <CreateStep1 />,
-    "create-2": <CreateStep2 />,
-    "create-3": <CreateStep3 />,
-    success: <SuccessScreen />,
-    history: <HistoryScreen />,
-    report: <ReportDetail />,
-  };
-
-  return (
-    <div className="app-shell">
-      <main className="mx-auto w-full max-w-4xl p-4 sm:p-6 lg:p-8">
-        {screenMap[screen]}
+        </div>
       </main>
     </div>
   );
+}
+
+function formatRu(iso: string) {
+  const [year, month, day] = iso.split("-");
+  return `${day}.${month}.${year}`;
+}
+
+function toOneLine(desc: string) {
+  const source = String(desc || "");
+  const vol = source.match(/Объём:\s*([^\n]+)/i)?.[1]?.trim();
+  const mach = source.match(/Техника:\s*([^\n]+)/i)?.[1]?.trim();
+  const ppl = source.match(/Люди:\s*([^\n]+)/i)?.[1]?.trim();
+  const parts: string[] = [];
+  if (vol) parts.push(`Объём: ${vol}`);
+  if (mach) parts.push(`Техника: ${mach}`);
+  if (ppl) parts.push(`Люди: ${ppl}`);
+  return parts.length ? parts.join(" • ") : source.replace(/\s+/g, " ").trim();
 }
