@@ -181,23 +181,13 @@ export default function TelegramWebAppGlassPure() {
     // первичная синхронизация
     syncInsets();
 
-    const handleViewportChange = (data?: TelegramViewportChangedData) => {
-      syncInsets(data);
-    };
+    // Отключено: события вызывают дёргание интерфейса при скролле.
+    // Safe-area рассчитываем один раз при старте, этого достаточно.
+    // tg.onEvent?.("viewportChanged", handleViewportChange);
+    // tg.onEvent?.("safeAreaChanged", handleSafeAreaChange);
+    // tg.onEvent?.("contentSafeAreaChanged", handleSafeAreaChange);
 
-    const handleSafeAreaChange = (data?: TelegramViewportChangedData) => {
-      syncInsets(data);
-    };
-
-    tg.onEvent?.("viewportChanged", handleViewportChange);
-    tg.onEvent?.("safeAreaChanged", handleSafeAreaChange);
-    tg.onEvent?.("contentSafeAreaChanged", handleSafeAreaChange);
-
-    return () => {
-      tg.offEvent?.("viewportChanged", handleViewportChange);
-      tg.offEvent?.("safeAreaChanged", handleSafeAreaChange);
-      tg.offEvent?.("contentSafeAreaChanged", handleSafeAreaChange);
-    };
+    return undefined;
   }, []);
 
   const changeTabBySwipe = useCallback(
@@ -727,7 +717,7 @@ export default function TelegramWebAppGlassPure() {
 
       <main
         className="safe-area-page relative z-10 flex min-h-[100dvh] w-full flex-1 justify-center overflow-y-auto px-3 touch-pan-y md:px-4"
-        style={{ WebkitOverflowScrolling: "touch", overscrollBehaviorY: "auto" }}
+        style={{ WebkitOverflowScrolling: "touch", overscrollBehaviorY: "contain" }}
       >
         <div className="mx-auto w-full max-w-full md:max-w-[620px] lg:max-w-[700px]">
           <div className="relative rounded-[32px] px-4 pb-8 pt-6 sm:rounded-[44px] sm:px-6 sm:pb-9 sm:pt-7 lg:rounded-[52px] lg:px-8 lg:pb-10 lg:pt-8">
