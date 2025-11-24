@@ -734,12 +734,12 @@ export default function TelegramWebAppGlassPure() {
             <div className="glass-grid-overlay" />
             <div className="relative" ref={swipeAreaRef}>
               <header className="mb-4 flex items-center justify-center sm:mb-6">
-                <div className="logo-animated flex h-12 w-40 items-center justify-center overflow-hidden rounded-2xl text-base font-semibold text-white sm:h-14 sm:w-48">
+                <div className="flex h-12 w-40 items-center justify-center overflow-hidden rounded-2xl text-base font-semibold text-white sm:h-14 sm:w-48">
                   {logoUrl ? (
                     <img
                       src={logoUrl}
                       alt="Логотип компании"
-                      className={`logo-animated__image h-full w-full object-contain transition duration-700 ease-out ${logoLoaded ? "scale-100 opacity-100" : "scale-95 opacity-0"}`}
+                      className={`h-full w-full object-contain transition duration-700 ease-out ${logoLoaded ? "scale-100 opacity-100" : "scale-95 opacity-0"}`}
                       onLoad={() => setLogoLoaded(true)}
                     />
                   ) : (
