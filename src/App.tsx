@@ -44,7 +44,7 @@ import type {
 } from "@/types/telegram";
 
 const API_URL = "https://ptobot-backend.onrender.com";
-const DEFAULT_LOGO_URL = "https://files.catbox.moe/7kmupd.svg";
+const DEFAULT_LOGO_URL = "https://storage.yandexcloud.net/ptobot-assets/LOGO.svg";
 
 type WorkType = { id: string; name: string };
 
