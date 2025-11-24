@@ -78,6 +78,7 @@ export default function TelegramWebAppGlassPure() {
 
   const [logoUrl, setLogoUrl] = useState<string>(DEFAULT_LOGO_URL);
   const [logoLoaded, setLogoLoaded] = useState(false);
+  const [logoReveal, setLogoReveal] = useState(false);
   const [previewVariant, setPreviewVariant] = useState<string | null>(null);
 
   useEffect(() => {
@@ -96,6 +97,10 @@ export default function TelegramWebAppGlassPure() {
   useEffect(() => {
     setLogoLoaded(false);
   }, [logoUrl]);
+
+  useEffect(() => {
+    setLogoReveal(true);
+  }, []);
 
   const [activeTab, setActiveTab] = useState<TabKey>("report");
   const [project, setProject] = useState<string | undefined>("1");
@@ -714,7 +719,6 @@ export default function TelegramWebAppGlassPure() {
       <div className="pointer-events-none absolute -left-24 -top-32 h-72 w-72 rounded-full bg-indigo-500/40 blur-[140px]" />
       <div className="pointer-events-none absolute bottom-0 right-[-120px] h-[420px] w-[420px] rounded-full bg-sky-400/35 blur-[160px]" />
       <div className="pointer-events-none absolute inset-x-1/2 top-[40%] h-64 w-64 -translate-x-1/2 rounded-full bg-emerald-400/30 blur-[120px]" />
-
       <main
         className="safe-area-page relative z-10 flex min-h-[100dvh] w-full flex-1 justify-center overflow-y-auto px-3 touch-pan-y md:px-4"
         style={{ WebkitOverflowScrolling: "touch", overscrollBehaviorY: "contain" }}
@@ -723,13 +727,19 @@ export default function TelegramWebAppGlassPure() {
           <div className="relative rounded-[32px] px-4 pb-8 pt-6 sm:rounded-[44px] sm:px-6 sm:pb-9 sm:pt-7 lg:rounded-[52px] lg:px-8 lg:pb-10 lg:pt-8">
             <div className="glass-grid-overlay" />
             <div className="relative" ref={swipeAreaRef}>
-              <header className="mb-4 flex items-center justify-center sm:mb-6">
+              <header
+                className={`mb-4 flex items-center justify-center sm:mb-6 transition-all duration-700 ease-out ${
+                  logoReveal ? "translate-y-0 opacity-100" : "-translate-y-2 opacity-0"
+                }`}
+              >
                 <div className="flex h-12 w-40 items-center justify-center overflow-hidden rounded-2xl text-base font-semibold text-white sm:h-14 sm:w-48">
                   {logoUrl ? (
                     <img
                       src={logoUrl}
                       alt="Логотип компании"
-                      className={`h-full w-full transform-gpu object-contain ${logoLoaded ? "logo-animate-in" : "logo-hidden"}`}
+                      className={`h-full w-full transform-gpu object-contain transition duration-700 ease-out ${
+                        logoLoaded ? "scale-100 opacity-100" : "scale-95 opacity-0"
+                      }`}
                       onLoad={() => setLogoLoaded(true)}
                     />
                   ) : (
