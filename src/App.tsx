@@ -720,26 +720,24 @@ export default function TelegramWebAppGlassPure() {
         style={{ WebkitOverflowScrolling: "touch", overscrollBehaviorY: "contain" }}
       >
         <div className="mx-auto w-full max-w-full md:max-w-[620px] lg:max-w-[700px]">
-          <header className="relative z-20 mb-3 flex justify-center pt-[calc(var(--safe-area-top)+0.4rem)] sm:mb-4">
-            <div className="flex h-12 items-center justify-center sm:h-14">
-              {logoUrl ? (
-                <img
-                  src={logoUrl}
-                  alt="Логотип компании"
-                  className={`h-full w-auto origin-top transform-gpu object-contain transition-all duration-700 ease-out ${logoLoaded ? "translate-y-0 opacity-100" : "-translate-y-3 opacity-0"}`}
-                  onLoad={() => setLogoLoaded(true)}
-                />
-              ) : (
-                <span className="text-sm font-semibold uppercase tracking-[0.2em] text-white/80">
-                  Лого
-                </span>
-              )}
-            </div>
-          </header>
-
           <div className="relative rounded-[32px] px-4 pb-8 pt-6 sm:rounded-[44px] sm:px-6 sm:pb-9 sm:pt-7 lg:rounded-[52px] lg:px-8 lg:pb-10 lg:pt-8">
             <div className="glass-grid-overlay" />
             <div className="relative" ref={swipeAreaRef}>
+              <header className="mb-4 flex items-center justify-center sm:mb-6">
+                <div className="flex h-12 w-40 items-center justify-center overflow-hidden rounded-2xl text-base font-semibold text-white sm:h-14 sm:w-48">
+                  {logoUrl ? (
+                    <img
+                      src={logoUrl}
+                      alt="Логотип компании"
+                      className={`h-full w-full transform-gpu object-contain transition duration-700 ease-out ${logoLoaded ? "translate-y-0 scale-100 opacity-100" : "translate-y-3 scale-95 opacity-0"}`}
+                      onLoad={() => setLogoLoaded(true)}
+                    />
+                  ) : (
+                    <span>Лого</span>
+                  )}
+                </div>
+              </header>
+
               <div className="mb-5 grid gap-3 sm:grid-cols-3">
                 <div className="glass-chip border border-white/25 bg-white/10 px-3.5 py-3 text-white shadow-[0_16px_40px_rgba(6,17,44,0.45)] sm:px-4">
                   <div className="flex items-center justify-between text-[10px] font-semibold uppercase tracking-[0.14em] text-white/65">
