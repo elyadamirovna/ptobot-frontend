@@ -2,8 +2,7 @@
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"],
-      "react-router-dom": ["./src/react-router-dom-shim"]
+      "@/*": ["./src/*"]
     }
   },
   "files": [],

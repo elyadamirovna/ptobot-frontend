@@ -20,8 +20,7 @@
     /* 🔽 вот эти две строки мы добавили */
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"],
-      "react-router-dom": ["./src/react-router-dom-shim"]
+      "@/*": ["./src/*"]
     }
   },
   "include": ["src"]
