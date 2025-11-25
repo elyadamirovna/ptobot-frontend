@@ -264,6 +264,19 @@ export default function App() {
     }
   }, [role]);
 
+  useEffect(() => {
+    const isForemanScreen = screen.key.startsWith("foreman-");
+    const isManagerScreen = screen.key.startsWith("manager-");
+
+    if (role === "manager" && isForemanScreen) {
+      setScreen({ key: "manager-dashboard" });
+    }
+
+    if (role === "foreman" && isManagerScreen) {
+      setScreen({ key: "foreman-home" });
+    }
+  }, [role, screen.key]);
+
   const selectedProjectId = useMemo(() => {
     if (screen.key === "foreman-project" || screen.key === "foreman-success") {
       return screen.projectId;
@@ -290,6 +303,8 @@ export default function App() {
   const reportsForProject = (projectId: string) => reports[projectId] ?? [];
 
   const handleCreateReportFromProject = (projectId: string) => {
+    if (role !== "foreman") return;
+
     setNewReportDraft({
       ...newReportDraft,
       projectId,
@@ -924,6 +939,19 @@ export default function App() {
     const list = reportsForProject(projectId);
     const filtered = list.filter((report) => {
       if (managerReportFilter === "problems") return report.hasProblems;
+
+      if (managerReportFilter === "week") {
+        const diffDays =
+          (Date.now() - new Date(report.date).getTime()) / (1000 * 60 * 60 * 24);
+        return diffDays <= 7;
+      }
+
+      if (managerReportFilter === "month") {
+        const diffDays =
+          (Date.now() - new Date(report.date).getTime()) / (1000 * 60 * 60 * 24);
+        return diffDays <= 30;
+      }
+
       return true;
     });
     const project = projects.find((p) => p.id === projectId);
