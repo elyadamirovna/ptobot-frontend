@@ -37,13 +37,13 @@ export const MinimalistLayout: FC = () => (
         <div className="space-y-3 text-xs text-slate-200">
           <label className="flex flex-col gap-1">
             Проект
-            <select className="w-full rounded-lg border border-white/5 bg-slate-900 px-3 py-2 text-slate-50">
+            <select className="w-full rounded-lg border border-white/5 bg-slate-900 px-3 py-2 text-base text-slate-50">
               <option>Склад №3</option>
             </select>
           </label>
           <label className="flex flex-col gap-1">
             Вид работ
-            <select className="w-full rounded-lg border border-white/5 bg-slate-900 px-3 py-2 text-slate-50">
+            <select className="w-full rounded-lg border border-white/5 bg-slate-900 px-3 py-2 text-base text-slate-50">
               <option>Монтаж</option>
             </select>
           </label>
@@ -51,7 +51,7 @@ export const MinimalistLayout: FC = () => (
             Дата
             <input
               type="date"
-              className="rounded-lg border border-white/5 bg-slate-900 px-3 py-2 text-slate-50"
+              className="rounded-lg border border-white/5 bg-slate-900 px-3 py-2 text-base text-slate-50"
             />
           </label>
         </div>
@@ -59,7 +59,7 @@ export const MinimalistLayout: FC = () => (
 
       <Section title="Отчёт">
         <textarea
-          className="h-28 w-full resize-none rounded-xl border border-white/5 bg-slate-900 px-3 py-3 text-sm text-slate-50"
+          className="h-28 w-full resize-none rounded-xl border border-white/5 bg-slate-900 px-3 py-3 text-base text-slate-50"
           placeholder="Ключевые задачи, материалы, техника..."
         />
       </Section>
@@ -384,7 +384,7 @@ export const CorporateStrictLayout: FC = () => (
           <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
             Объект
           </h2>
-          <select className="mt-3 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm">
+          <select className="mt-3 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-base">
             <option>Складской комплекс №3</option>
           </select>
         </div>
@@ -393,7 +393,7 @@ export const CorporateStrictLayout: FC = () => (
           <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
             Вид работ
           </h2>
-          <select className="mt-3 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm">
+          <select className="mt-3 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-base">
             <option>Монтаж металлоконструкций</option>
           </select>
         </div>
@@ -404,7 +404,7 @@ export const CorporateStrictLayout: FC = () => (
           </h2>
           <input
             type="date"
-            className="mt-3 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm"
+            className="mt-3 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-base"
           />
         </div>
 
@@ -419,7 +419,7 @@ export const CorporateStrictLayout: FC = () => (
           </div>
 
           <textarea
-            className="min-h-[140px] resize-none rounded-lg border border-slate-200 bg-slate-50 px-3 py-3 text-sm"
+            className="min-h-[140px] resize-none rounded-lg border border-slate-200 bg-slate-50 px-3 py-3 text-base"
             placeholder="Кратко опишите выполненные операции, материалы и технику"
           />
 
