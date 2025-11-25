@@ -1,9 +1,24 @@
-import { useEffect, useState } from "react";
-import { ChevronLeft, CheckCircle2, Image as ImageIcon, Plus } from "lucide-react";
+// src/App.tsx
+import React, {
+  useMemo,
+  useState,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useCallback,
+} from "react";
 
-import { Button } from "@/components/ui/button";
+import {
+  CorporateStrictLayout,
+  GlassmorphismLayout,
+  MinimalistLayout,
+} from "@/components/LayoutVariants";
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -11,938 +26,1272 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Textarea } from "@/components/ui/textarea";
+
 import {
-  defaultPhotos,
-  projectsMock,
-  reportsMock,
-  unitOptions,
-  workTypeOptions,
-} from "@/lib/mockData";
-import type { Project, Report, Role, WorkItem } from "@/types/reports";
+  CalendarDays,
+  Building2,
+  HardHat,
+  Users,
+  Image as ImageIcon,
+  Upload,
+  ChevronDown,
+  History,
+  ClipboardList,
+  ShieldCheck,
+} from "lucide-react";
+import type {
+  TelegramViewportChangedData,
+  TelegramWebApp,
+} from "@/types/telegram";
 
-const todayISO = new Date().toISOString().slice(0, 10);
+const API_URL = "https://ptobot-backend.onrender.com";
+const DEFAULT_LOGO_URL = "https://storage.yandexcloud.net/ptobot-assets/LOGO.svg";
 
-type ForemanScreenKey =
-  | "F1"
-  | "F2"
-  | "F3"
-  | "F4"
-  | "F5"
-  | "F6"
-  | "F7";
+type WorkType = { id: string; name: string };
 
-type ManagerScreenKey = "D1" | "D2" | "D3" | "D4";
-
-type Screen =
-  | { key: ForemanScreenKey; projectId?: string; reportId?: string }
-  | { key: ManagerScreenKey; projectId?: string; reportId?: string };
-
-const shiftLabels: Record<NonNullable<Report["shift"]>, string> = {
-  day: "День",
-  night: "Ночь",
+type HistoryRow = {
+  id: number;
+  project_id: string;
+  date: string;
+  work_type_id: string;
+  description: string;
+  photos: string[];
 };
 
-const statusLabels: Record<NonNullable<Project["status"]>, string> = {
-  on_track: "в срок",
-  delayed: "отставание",
-  no_reports: "нет отчётов",
+type AccessRow = {
+  user: { id: number; name: string };
+  projects: string[];
+  role: string;
 };
 
-const formatDate = (date: string) =>
-  new Date(date).toLocaleDateString("ru-RU", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  });
+type TabKey = "report" | "history" | "admin";
+const TAB_ORDER: TabKey[] = ["report", "history", "admin"];
 
-const createEmptyWorkItem = (): WorkItem => ({
-  id: crypto.randomUUID(),
-  type: "",
-  unit: unitOptions[0],
-  readinessPercent: 50,
-});
-
-const createDraftReport = (): Report => ({
-  id: "draft",
-  projectId: "",
-  date: todayISO,
-  shift: "day",
-  works: [createEmptyWorkItem()],
-  resources: { workersCount: undefined, machinesCount: undefined },
-  comment: "",
-  photos: [],
-  foremanName: "Иван Петров",
-  objectReadinessPercent: undefined,
-  hasProblems: false,
-});
-
-function Badge({ children, tone = "neutral" }: { children: string; tone?: "neutral" | "success" | "danger" | "info" }) {
-  const toneClasses: Record<typeof tone, string> = {
-    neutral: "bg-white/10 text-white",
-    success: "bg-emerald-500/20 text-emerald-200 border border-emerald-400/40",
-    danger: "bg-rose-500/15 text-rose-200 border border-rose-400/40",
-    info: "bg-sky-500/15 text-sky-100 border border-sky-400/40",
-  } as const;
-
-  return (
-    <span className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold ${toneClasses[tone]}`}>
-      {children}
-    </span>
+export default function TelegramWebAppGlassPure() {
+  const PREVIEW_COMPONENTS = useMemo(
+    () => ({
+      minimalist: MinimalistLayout,
+      glass: GlassmorphismLayout,
+      corporate: CorporateStrictLayout,
+    }),
+    []
   );
-}
 
-const SafeCard = ({ title, children }: { title?: string; children: React.ReactNode }) => (
-  <Card className="glass-panel border-white/10 bg-white/5 text-white">
-    {title ? (
-      <CardHeader className="pb-2">
-        <CardTitle className="text-base font-semibold text-white/90">{title}</CardTitle>
-      </CardHeader>
-    ) : null}
-    <CardContent className="space-y-3 text-white/90">{children}</CardContent>
-  </Card>
-);
-
-export default function App() {
-  const [role, setRole] = useState<Role>("foreman");
-  const [screen, setScreen] = useState<Screen>({ key: "F1" });
-  const [projects, setProjects] = useState<Project[]>(projectsMock);
-  const [reports, setReports] = useState<Report[]>(reportsMock);
-  const [draft, setDraft] = useState<Report>(() => createDraftReport());
-  const [managerProjectFilter, setManagerProjectFilter] = useState<"all" | "on_track" | "delayed">("all");
-  const [managerReportsFilter, setManagerReportsFilter] = useState<
-    "week" | "month" | "all" | "problems"
-  >("all");
+  const [logoUrl, setLogoUrl] = useState<string>(DEFAULT_LOGO_URL);
+  const [logoLoaded, setLogoLoaded] = useState(false);
+  const [logoReveal, setLogoReveal] = useState(false);
+  const [previewVariant, setPreviewVariant] = useState<string | null>(null);
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const roleParam = params.get("role");
-    if (roleParam === "manager" || roleParam === "foreman") {
-      setRole(roleParam);
-      setScreen({ key: roleParam === "manager" ? "D1" : "F1" });
+    try {
+      const qs = new URLSearchParams(window.location.search);
+      const fromQuery = qs.get("logo");
+      setLogoUrl(fromQuery || DEFAULT_LOGO_URL);
+      setPreviewVariant(qs.get("preview"));
+    } catch (error) {
+      console.warn("Cannot parse query params", error);
+      setLogoUrl(DEFAULT_LOGO_URL);
+      setPreviewVariant(null);
     }
   }, []);
 
   useEffect(() => {
-    setScreen((prev) => ({ key: role === "manager" ? "D1" : "F1", projectId: prev.projectId }));
-  }, [role]);
+    // запускаем появление логотипа после загрузки страницы
+    setTimeout(() => setLogoReveal(true), 180);
+  }, []);
 
   useEffect(() => {
-    if (screen.key === "D1") setManagerProjectFilter("all");
-    if (screen.key === "D2") setManagerReportsFilter("all");
-  }, [screen.key]);
+    setLogoLoaded(false);
+  }, [logoUrl]);
 
-  const lastReportForProject = (projectId: string) =>
-    reports
-      .filter((r) => r.projectId === projectId)
-      .sort((a, b) => b.date.localeCompare(a.date))[0];
+  const [activeTab, setActiveTab] = useState<TabKey>("report");
+  const [project, setProject] = useState<string | undefined>("1");
+  const [workType, setWorkType] = useState<string | undefined>("2");
+  const [date, setDate] = useState<string>(() =>
+    new Date().toISOString().slice(0, 10)
+  );
+  const [volume, setVolume] = useState("");
+  const [machines, setMachines] = useState("");
+  const [people, setPeople] = useState("");
+  const [comment, setComment] = useState("");
+  const [requiredHintVisible, setRequiredHintVisible] = useState(false);
 
-  const handleStartReport = (projectId?: string) => {
-    if (role === "manager") return;
-    setDraft((prev) => ({
-      ...createDraftReport(),
-      projectId: projectId ?? prev.projectId ?? projects[0]?.id ?? "",
-    }));
-    setScreen({ key: "F3", projectId: projectId ?? draft.projectId ?? projects[0]?.id });
-  };
+  const [workTypes, setWorkTypes] = useState<WorkType[]>([
+    { id: "1", name: "Земляные работы" },
+    { id: "2", name: "Бетонирование" },
+    { id: "3", name: "Монтаж конструкций" },
+  ]);
 
-  const handleAddWorkItem = () => {
-    setDraft((prev) => ({ ...prev, works: [...prev.works, createEmptyWorkItem()] }));
-  };
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
+  const [previews, setPreviews] = useState<string[]>([]);
+  const [fileValidationMessage, setFileValidationMessage] = useState<string | null>(
+    null
+  );
 
-  const handleWorkChange = (id: string, field: keyof WorkItem, value: string | number) => {
-    setDraft((prev) => ({
-      ...prev,
-      works: prev.works.map((item) => (item.id === id ? { ...item, [field]: value } : item)),
-    }));
-  };
+  const swipeAreaRef = useRef<HTMLDivElement | null>(null);
+  const telegramRef = useRef<TelegramWebApp | null>(null);
+  const activeTabRef = useRef<TabKey>("report");
 
-  const step1Valid = draft.projectId && draft.date;
-  const step2Valid = draft.works.some((w) => w.type && w.volume);
+  // ------------------------------------------------------------------
+  // Поддержка безопасной области (вырезы устройства + UI Telegram)
+  // ------------------------------------------------------------------
+  useEffect(() => {
+    const tg =
+      typeof window !== "undefined" ? window.Telegram?.WebApp : undefined;
 
-  const goToPreview = () => {
-    if (!step1Valid || !step2Valid) return;
-    setScreen({ key: "F6", projectId: draft.projectId });
-  };
+    if (!tg || typeof document === "undefined") return undefined;
 
-  const handleSubmitReport = () => {
-    const enrichedReport: Report = {
-      ...draft,
-      id: `new-${Date.now()}`,
-      hasProblems: Boolean(draft.comment?.match(/проблем|задерж|риск/iu)),
-      photos: draft.photos.length ? draft.photos : defaultPhotos.slice(0, 1),
+    const rootStyle = document.documentElement?.style;
+    if (!rootStyle) return undefined;
+
+    const applyInsets = (top = 0, bottom = 0) => {
+      rootStyle.setProperty("--tg-safe-area-inset-top", `${top}px`);
+      rootStyle.setProperty("--tg-safe-area-inset-bottom", `${bottom}px`);
     };
-    setReports((prev) => [enrichedReport, ...prev]);
-    setProjects((prev) =>
-      prev.map((p) =>
-        p.id === enrichedReport.projectId
-          ? { ...p, lastReportDate: enrichedReport.date, status: p.status ?? "on_track" }
-          : p
-      )
-    );
-    setScreen({ key: "F7", projectId: enrichedReport.projectId });
-  };
 
-  const filteredReportsByProject = (projectId?: string) =>
-    projectId ? reports.filter((r) => r.projectId === projectId) : reports;
+    const syncInsets = (eventData?: TelegramViewportChangedData) => {
+      // 1) Safe area с учётом UI Telegram (верхняя панель, нижние кнопки)
+      const contentSafeArea =
+        eventData?.contentSafeAreaInsets ??
+        eventData?.contentSafeAreaInset ??
+        tg.viewport?.contentSafeAreaInsets ??
+        tg.contentSafeAreaInsets ??
+        tg.contentSafeAreaInset;
 
-  const managerReportFilters = (projectId: string, scope: "week" | "month" | "all" | "problems") => {
-    const items = filteredReportsByProject(projectId);
-    if (scope === "problems") return items.filter((r) => r.hasProblems);
-    if (scope === "week" || scope === "month") {
-      const limitDays = scope === "week" ? 7 : 30;
-      const limitDate = new Date();
-      limitDate.setDate(limitDate.getDate() - limitDays);
-      return items.filter((r) => new Date(r.date) >= limitDate);
-    }
-    return items;
-  };
+      // 2) Системный safe area устройства
+      const safeArea =
+        eventData?.safeAreaInsets ??
+        eventData?.safeAreaInset ??
+        tg.viewport?.safeAreaInsets ??
+        tg.safeAreaInsets ??
+        tg.safeAreaInset;
 
-  const addPhotoPreview = () => {
-    const nextPhoto = defaultPhotos[draft.photos.length % defaultPhotos.length];
-    setDraft((prev) => ({
-      ...prev,
-      photos: [...prev.photos, { ...nextPhoto, id: `${nextPhoto.id}-${prev.photos.length}` }],
-    }));
-  };
+      const top = contentSafeArea?.top ?? safeArea?.top ?? 0;
+      const bottom = contentSafeArea?.bottom ?? safeArea?.bottom ?? 0;
 
-  const resetToProjectList = () => {
-    setScreen({ key: role === "manager" ? "D1" : "F1" });
-  };
-
-  const renderHeader = () => (
-    <header className="flex items-center justify-between pb-4 text-white/90">
-      <div>
-        <p className="text-xs uppercase tracking-[0.3em] text-white/60">PTObot · mini app</p>
-        <h1 className="text-2xl font-semibold">
-          {role === "foreman" ? "Ежедневные отчёты" : "Дэшборд объектов"}
-        </h1>
-      </div>
-      <div className="flex items-center gap-3 rounded-full border border-white/10 bg-white/10 px-3 py-2 text-xs">
-        <span className="text-white/70">Роль</span>
-        <Select value={role} onValueChange={(value: Role) => setRole(value)}>
-          <SelectTrigger className="w-[120px] border-white/20 bg-white/10 text-white">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent className="bg-slate-900 text-white">
-            <SelectItem value="foreman">Прораб</SelectItem>
-            <SelectItem value="manager">Руководитель</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-    </header>
-  );
-
-  const renderForemanHome = () => (
-    <div className="space-y-4">
-      <div className="flex flex-col gap-1 text-white/80">
-        <h2 className="text-xl font-semibold">Добрый день, Иван</h2>
-        <p className="text-sm text-white/60">Объекты под вашим контролем</p>
-      </div>
-      <div className="space-y-3">
-        {projects.map((project) => {
-          const lastReport = lastReportForProject(project.id);
-          const isToday = lastReport?.date === todayISO;
-          return (
-            <Card
-              key={project.id}
-              className="glass-panel border-white/10 bg-white/5 text-white hover:border-white/20"
-              onClick={() => setScreen({ key: "F2", projectId: project.id })}
-            >
-              <CardContent className="flex items-center justify-between p-4">
-                <div className="space-y-1">
-                  <p className="text-lg font-semibold">{project.name}</p>
-                  <p className="text-sm text-white/70">
-                    Последний отчёт: {lastReport ? formatDate(lastReport.date) : "Нет отчётов"}
-                  </p>
-                </div>
-                <Badge tone={isToday ? "success" : "danger"}>
-                  {isToday ? "отчёт отправлен" : "нет отчёта"}
-                </Badge>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
-      {role === "foreman" ? (
-        <div className="sticky bottom-4">
-          <Button className="w-full bg-emerald-500 text-slate-950" onClick={() => handleStartReport()}>
-            Создать отчёт
-          </Button>
-        </div>
-      ) : null}
-    </div>
-  );
-
-  const renderForemanReportsByProject = (project: Project) => {
-    const reportsByProject = filteredReportsByProject(project.id);
-    return (
-      <div className="space-y-4">
-        <div className="flex items-center gap-2 text-white/70">
-          <Button variant="ghost" className="text-white/70" onClick={resetToProjectList}>
-            <ChevronLeft className="mr-1 h-4 w-4" /> Назад
-          </Button>
-        </div>
-        <div className="space-y-1">
-          <h2 className="text-xl font-semibold">Объект: {project.name}</h2>
-          <p className="text-sm text-white/60">Ваши отчёты по объекту</p>
-        </div>
-        <div className="space-y-3">
-          {reportsByProject.map((report) => (
-            <Card
-              key={report.id}
-              className="glass-panel border-white/10 bg-white/5 text-white hover:border-white/20"
-              onClick={() => setScreen({ key: "F6", projectId: project.id, reportId: report.id })}
-            >
-              <CardContent className="flex items-center justify-between p-4">
-                <div className="space-y-1">
-                  <p className="text-lg font-semibold">{formatDate(report.date)}</p>
-                  <p className="text-sm text-white/70">Смена: {report.shift ? shiftLabels[report.shift] : "-"}</p>
-                  <div className="flex items-center gap-3 text-xs text-white/60">
-                    <span>Видов работ: {report.works.length}</span>
-                    {report.photos.length > 0 ? (
-                      <span className="inline-flex items-center gap-1">
-                        <ImageIcon className="h-4 w-4" /> {report.photos.length}
-                      </span>
-                    ) : null}
-                  </div>
-                </div>
-                <Badge tone="info">отправлен</Badge>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-        <div className="sticky bottom-4">
-          <Button className="w-full bg-emerald-500 text-slate-950" onClick={() => handleStartReport(project.id)}>
-            Создать отчёт
-          </Button>
-        </div>
-      </div>
-    );
-  };
-
-  const renderStep1 = () => (
-    <div className="space-y-4">
-      <div className="space-y-1">
-        <h2 className="text-xl font-semibold">Новый отчёт</h2>
-        <p className="text-sm text-white/60">Шаг 1 из 3</p>
-      </div>
-      <SafeCard title="Объект">
-        <Select
-          value={draft.projectId}
-          onValueChange={(value) => setDraft((prev) => ({ ...prev, projectId: value }))}
-        >
-          <SelectTrigger className="w-full border-white/20 bg-white/10 text-white">
-            <SelectValue placeholder="Выберите объект" />
-          </SelectTrigger>
-          <SelectContent className="bg-slate-900 text-white">
-            {projects.map((project) => (
-              <SelectItem key={project.id} value={project.id}>
-                {project.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        {!draft.projectId && <p className="text-sm text-rose-200">Объект обязателен</p>}
-      </SafeCard>
-
-      <SafeCard title="Дата">
-        <Input
-          type="date"
-          value={draft.date}
-          onChange={(e) => setDraft((prev) => ({ ...prev, date: e.target.value }))}
-          className="border-white/20 bg-white/10 text-white"
-        />
-        {!draft.date && <p className="text-sm text-rose-200">Укажите дату</p>}
-      </SafeCard>
-
-      <SafeCard title="Смена">
-        <div className="grid grid-cols-2 gap-2">
-          {["day", "night"].map((shift) => (
-            <Button
-              key={shift}
-              variant={draft.shift === shift ? "default" : "outline"}
-              className={`w-full ${draft.shift === shift ? "bg-emerald-500 text-slate-950" : "border-white/20 text-white"}`}
-              onClick={() => setDraft((prev) => ({ ...prev, shift: shift as Report["shift"] }))}
-            >
-              {shift === "day" ? "День" : "Ночь"}
-            </Button>
-          ))}
-        </div>
-      </SafeCard>
-
-      <Button
-        disabled={!step1Valid}
-        className="w-full bg-emerald-500 text-slate-950 disabled:bg-white/20 disabled:text-white/60"
-        onClick={() => setScreen({ key: "F4", projectId: draft.projectId })}
-      >
-        Далее
-      </Button>
-    </div>
-  );
-
-  const renderWorkItemCard = (item: WorkItem) => (
-    <Card key={item.id} className="glass-panel border-white/10 bg-white/5 text-white">
-      <CardContent className="space-y-3 p-4">
-        <div className="space-y-1 text-sm font-semibold text-white/80">Вид работ</div>
-        <Select value={item.type} onValueChange={(value) => handleWorkChange(item.id, "type", value)}>
-          <SelectTrigger className="border-white/20 bg-white/10 text-white">
-            <SelectValue placeholder="Выберите вид работ" />
-          </SelectTrigger>
-          <SelectContent className="bg-slate-900 text-white">
-            {workTypeOptions.map((option) => (
-              <SelectItem key={option} value={option}>
-                {option}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <div className="space-y-2">
-          <p className="text-sm font-semibold text-white/80">Объём за смену</p>
-          <div className="flex items-center gap-2">
-            <Input
-              type="number"
-              placeholder="Введите значение"
-              value={item.volume ?? ""}
-              onChange={(e) => handleWorkChange(item.id, "volume", Number(e.target.value))}
-              className="flex-1 border-white/20 bg-white/10 text-white"
-            />
-            <Select value={item.unit} onValueChange={(value) => handleWorkChange(item.id, "unit", value)}>
-              <SelectTrigger className="w-24 border-white/20 bg-white/10 text-white">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="bg-slate-900 text-white">
-                {unitOptions.map((option) => (
-                  <SelectItem key={option} value={option}>
-                    {option}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
-        <div className="space-y-2">
-          <p className="text-sm font-semibold text-white/80">% готовности по виду работ</p>
-          <Input
-            type="number"
-            min={0}
-            max={100}
-            value={item.readinessPercent ?? 0}
-            onChange={(e) => handleWorkChange(item.id, "readinessPercent", Number(e.target.value))}
-            className="border-white/20 bg-white/10 text-white"
-          />
-        </div>
-
-        <div className="space-y-2">
-          <p className="text-sm font-semibold text-white/80">Комментарий</p>
-          <Textarea
-            placeholder="Особенности, замечания…"
-            value={item.comment ?? ""}
-            onChange={(e) => handleWorkChange(item.id, "comment", e.target.value)}
-            className="min-h-[80px] border-white/20 bg-white/10 text-white"
-          />
-        </div>
-      </CardContent>
-    </Card>
-  );
-
-  const renderStep2 = () => (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div className="space-y-1">
-          <h2 className="text-xl font-semibold">Работы</h2>
-          <p className="text-sm text-white/60">Шаг 2 из 3</p>
-        </div>
-        <Badge tone="info">{draft.works.length} позиций</Badge>
-      </div>
-
-      <div className="space-y-3">
-        {draft.works.map((item) => renderWorkItemCard(item))}
-      </div>
-
-      <Button variant="ghost" className="text-white/80" onClick={handleAddWorkItem}>
-        <Plus className="mr-2 h-4 w-4" /> Добавить ещё вид работ
-      </Button>
-
-      <div className="flex items-center gap-3">
-        <Button
-          variant="outline"
-          className="flex-1 border-white/30 text-white"
-          onClick={() => setScreen({ key: "F3", projectId: draft.projectId })}
-        >
-          Назад
-        </Button>
-        <Button
-          className="flex-1 bg-emerald-500 text-slate-950 disabled:bg-white/20 disabled:text-white/60"
-          disabled={!step2Valid}
-          onClick={() => setScreen({ key: "F5", projectId: draft.projectId })}
-        >
-          Далее
-        </Button>
-      </div>
-    </div>
-  );
-
-  const renderStep3 = () => (
-    <div className="space-y-4">
-      <div className="space-y-1">
-        <h2 className="text-xl font-semibold">Ресурсы и фото</h2>
-        <p className="text-sm text-white/60">Шаг 3 из 3</p>
-      </div>
-
-      <SafeCard title="Люди">
-        <div className="flex items-center gap-3">
-          <span className="text-sm text-white/70">Всего рабочих</span>
-          <Input
-            type="number"
-            placeholder="0"
-            value={draft.resources?.workersCount ?? ""}
-            onChange={(e) =>
-              setDraft((prev) => ({
-                ...prev,
-                resources: { ...prev.resources, workersCount: Number(e.target.value) },
-              }))
-            }
-            className="w-24 border-white/20 bg-white/10 text-white"
-          />
-          <span className="text-sm text-white/60">чел.</span>
-        </div>
-      </SafeCard>
-
-      <SafeCard title="Техника">
-        <div className="flex items-center gap-3">
-          <span className="text-sm text-white/70">Единиц техники</span>
-          <Input
-            type="number"
-            placeholder="0"
-            value={draft.resources?.machinesCount ?? ""}
-            onChange={(e) =>
-              setDraft((prev) => ({
-                ...prev,
-                resources: { ...prev.resources, machinesCount: Number(e.target.value) },
-              }))
-            }
-            className="w-24 border-white/20 bg-white/10 text-white"
-          />
-          <span className="text-sm text-white/60">ед.</span>
-        </div>
-      </SafeCard>
-
-      <SafeCard title="Комментарий к смене">
-        <Textarea
-          placeholder="Кратко опишите выполненные работы, сложности, простои…"
-          value={draft.comment ?? ""}
-          onChange={(e) => setDraft((prev) => ({ ...prev, comment: e.target.value }))}
-          className="min-h-[100px] border-white/20 bg-white/10 text-white"
-        />
-      </SafeCard>
-
-      <SafeCard title="Фото">
-        <div className="space-y-3">
-          <p className="text-sm text-white/70">Перетащите фото или нажмите «Добавить»</p>
-          <div className="grid grid-cols-3 gap-3">
-            {draft.photos.map((photo) => (
-              <div key={photo.id} className="overflow-hidden rounded-xl border border-white/15 bg-white/5">
-                <img src={photo.url} alt={photo.comment} className="h-24 w-full object-cover" />
-              </div>
-            ))}
-            {Array.from({ length: Math.max(0, 3 - draft.photos.length) }).map((_, idx) => (
-              <div
-                key={idx}
-                className="flex h-24 items-center justify-center rounded-xl border border-dashed border-white/20 bg-white/5 text-sm text-white/60"
-              >
-                Фото
-              </div>
-            ))}
-          </div>
-          <Button variant="outline" className="border-white/30 text-white" onClick={addPhotoPreview}>
-            <ImageIcon className="mr-2 h-4 w-4" /> Добавить фото
-          </Button>
-        </div>
-      </SafeCard>
-
-      <div className="flex items-center gap-3">
-        <Button
-          variant="outline"
-          className="flex-1 border-white/30 text-white"
-          onClick={() => setScreen({ key: "F4", projectId: draft.projectId })}
-        >
-          Назад
-        </Button>
-        <Button className="flex-1 bg-emerald-500 text-slate-950" onClick={goToPreview}>
-          Просмотреть отчёт
-        </Button>
-      </div>
-    </div>
-  );
-
-  const renderPreviewCard = (report: Report) => (
-    <div className="space-y-4">
-      <SafeCard title="Основное">
-        <p>Объект: {projects.find((p) => p.id === report.projectId)?.name ?? "—"}</p>
-        <p>Дата: {formatDate(report.date)}</p>
-        <p>Смена: {report.shift ? shiftLabels[report.shift] : "—"}</p>
-      </SafeCard>
-
-      <SafeCard title="Работы">
-        <div className="space-y-2 text-sm">
-          {report.works.map((work) => (
-            <div key={work.id} className="flex flex-wrap items-center gap-2">
-              <span className="font-semibold">{work.type || "Без названия"}</span>
-              {work.volume ? (
-                <span className="text-white/70">
-                  — {work.volume} {work.unit}
-                </span>
-              ) : null}
-              {typeof work.readinessPercent === "number" ? (
-                <Badge tone="info">{work.readinessPercent} %</Badge>
-              ) : null}
-            </div>
-          ))}
-        </div>
-      </SafeCard>
-
-      <SafeCard title="Ресурсы">
-        <p>Люди: {report.resources?.workersCount ?? 0} чел.</p>
-        <p>Техника: {report.resources?.machinesCount ?? 0} ед.</p>
-      </SafeCard>
-
-      <SafeCard title="Комментарий">
-        <p className="text-white/80">{report.comment || "Без комментария"}</p>
-      </SafeCard>
-
-      <SafeCard title="Фото">
-        <div className="flex gap-3 overflow-x-auto">
-          {report.photos.map((photo) => (
-            <img
-              key={photo.id}
-              src={photo.url}
-              alt={photo.comment}
-              className="h-24 w-32 rounded-xl object-cover"
-            />
-          ))}
-        </div>
-      </SafeCard>
-    </div>
-  );
-
-  const renderForemanPreview = (report: Report) => (
-    <div className="space-y-4">
-      <div className="space-y-1">
-        <h2 className="text-xl font-semibold">Предпросмотр</h2>
-      </div>
-      {renderPreviewCard(report)}
-      <div className="flex items-center gap-3">
-        <Button
-          variant="outline"
-          className="flex-1 border-white/30 text-white"
-          onClick={() => setScreen({ key: "F5", projectId: report.projectId })}
-        >
-          Назад, исправить
-        </Button>
-        {role === "foreman" ? (
-          <Button className="flex-1 bg-emerald-500 text-slate-950" onClick={handleSubmitReport}>
-            Отправить отчёт
-          </Button>
-        ) : null}
-      </div>
-    </div>
-  );
-
-  const renderSuccess = () => (
-    <div className="flex flex-col items-center gap-4 text-center text-white/90">
-      <div className="grid h-20 w-20 place-items-center rounded-full bg-emerald-500/20 text-emerald-300">
-        <CheckCircle2 className="h-10 w-10" />
-      </div>
-      <div className="space-y-2">
-        <h2 className="text-2xl font-semibold">Отчёт отправлен</h2>
-        <p className="text-sm text-white/70">Можно посмотреть его в списке отчётов.</p>
-      </div>
-      <Button className="w-full max-w-sm bg-emerald-500 text-slate-950" onClick={resetToProjectList}>
-        К списку отчётов
-      </Button>
-    </div>
-  );
-
-  const renderManagerDashboard = () => {
-    const filteredProjects = projects.filter((project) => {
-      if (managerProjectFilter === "all") return true;
-      return project.status === managerProjectFilter;
-    });
-
-    return (
-      <div className="space-y-4">
-        <h2 className="text-xl font-semibold">Объекты</h2>
-        <div className="flex gap-2 overflow-x-auto">
-          {[{ key: "all", label: "Все" }, { key: "on_track", label: "В срок" }, { key: "delayed", label: "Отстают" }].map(
-            (chip) => (
-              <Button
-                key={chip.key}
-                variant={managerProjectFilter === chip.key ? "default" : "outline"}
-                className={`rounded-full border-white/20 ${
-                  managerProjectFilter === chip.key ? "bg-emerald-500 text-slate-950" : "text-white"
-                }`}
-                onClick={() => setManagerProjectFilter(chip.key as typeof managerProjectFilter)}
-              >
-                {chip.label}
-              </Button>
-            )
-          )}
-        </div>
-
-        <div className="space-y-3">
-          {filteredProjects.map((project) => {
-            const lastReport = lastReportForProject(project.id);
-            return (
-              <Card
-                key={project.id}
-                className="glass-panel border-white/10 bg-white/5 text-white hover:border-white/20"
-                onClick={() => setScreen({ key: "D2", projectId: project.id })}
-              >
-                <CardContent className="space-y-2 p-4">
-                  <div className="flex items-center justify-between">
-                    <p className="text-lg font-semibold">{project.name}</p>
-                    {project.status ? (
-                      <Badge tone={project.status === "delayed" ? "danger" : "info"}>
-                        {statusLabels[project.status]}
-                      </Badge>
-                    ) : null}
-                  </div>
-                  <p className="text-sm text-white/70">Готовность: {project.readinessPercent ?? 0} %</p>
-                  <p className="text-sm text-white/70">
-                    Последний отчёт: {lastReport ? formatDate(lastReport.date) : "Нет отчётов"}
-                  </p>
-                  <p className="text-xs text-white/50">Прораб: {project.foremanName ?? "—"}</p>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-      </div>
-    );
-  };
-
-  const renderManagerReports = (project: Project) => {
-    const reportsForProject = managerReportFilters(project.id, managerReportsFilter);
-
-    return (
-      <div className="space-y-4">
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" className="text-white/70" onClick={resetToProjectList}>
-            <ChevronLeft className="mr-1 h-4 w-4" /> Назад
-          </Button>
-        </div>
-        <div className="space-y-1">
-          <h2 className="text-xl font-semibold">{project.name}</h2>
-          <p className="text-sm text-white/60">История отчётов</p>
-        </div>
-
-        <div className="flex gap-2 overflow-x-auto">
-          {["week", "month", "all", "problems"].map((key) => (
-            <Button
-              key={key}
-              variant={managerReportsFilter === key ? "default" : "outline"}
-              className={`rounded-full border-white/20 ${
-                managerReportsFilter === key ? "bg-emerald-500 text-slate-950" : "text-white"
-              }`}
-              onClick={() => setManagerReportsFilter(key as typeof managerReportsFilter)}
-            >
-              {key === "week" ? "Неделя" : key === "month" ? "Месяц" : key === "all" ? "Все" : "Только с проблемами"}
-            </Button>
-          ))}
-        </div>
-
-        <div className="space-y-3">
-          {reportsForProject.map((report) => (
-            <Card
-              key={report.id}
-              className="glass-panel border-white/10 bg-white/5 text-white hover:border-white/20"
-              onClick={() => setScreen({ key: "D3", projectId: project.id, reportId: report.id })}
-            >
-              <CardContent className="flex items-center justify-between p-4">
-                <div className="space-y-1">
-                  <p className="text-lg font-semibold">{formatDate(report.date)}</p>
-                  <p className="text-sm text-white/70">Смена: {report.shift ? shiftLabels[report.shift] : "—"}</p>
-                  <p className="text-xs text-white/60">
-                    Видов работ: {report.works.length}, фото: {report.photos.length}
-                  </p>
-                </div>
-                <Badge tone={report.hasProblems ? "danger" : "success"}>
-                  {report.hasProblems ? "есть проблемы" : "без проблем"}
-                </Badge>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </div>
-    );
-  };
-
-  const renderManagerReportCard = (report: Report, project: Project) => (
-    <div className="space-y-4">
-      <div className="flex items-center gap-2">
-        <Button
-          variant="ghost"
-          className="text-white/70"
-          onClick={() => setScreen({ key: "D2", projectId: project.id })}
-        >
-          <ChevronLeft className="mr-1 h-4 w-4" /> Назад к отчётам
-        </Button>
-      </div>
-      <div className="space-y-1">
-        <h2 className="text-xl font-semibold">Отчёт от {formatDate(report.date)}</h2>
-        <p className="text-sm text-white/60">{project.name}</p>
-      </div>
-
-      <SafeCard title="Сводка">
-        <p>Прораб: {report.foremanName ?? project.foremanName ?? "—"}</p>
-        <p>Смена: {report.shift ? shiftLabels[report.shift] : "—"}</p>
-        <p>Люди: {report.resources?.workersCount ?? 0} чел.</p>
-        <p>Техника: {report.resources?.machinesCount ?? 0} ед.</p>
-        <p>Оценка готовности по объекту: {report.objectReadinessPercent ?? project.readinessPercent ?? 0} %</p>
-      </SafeCard>
-
-      <SafeCard title="Выполненные работы">
-        <div className="space-y-2">
-          {report.works.map((work) => (
-            <div key={work.id} className="flex flex-wrap items-center gap-2 text-sm">
-              <span className="font-semibold">{work.type}</span>
-              <span className="text-white/70">— {work.volume ?? 0} {work.unit}</span>
-              {typeof work.readinessPercent === "number" ? (
-                <Badge tone="info">{work.readinessPercent} %</Badge>
-              ) : null}
-            </div>
-          ))}
-        </div>
-      </SafeCard>
-
-      <SafeCard title="Комментарий прораба">
-        <div className="space-y-2">
-          {report.hasProblems ? <Badge tone="danger">Есть проблемы</Badge> : null}
-          <p className="text-white/80">{report.comment || "Комментариев нет"}</p>
-        </div>
-      </SafeCard>
-
-      <SafeCard title="Фото с объекта">
-        <div className="flex gap-3 overflow-x-auto">
-          {report.photos.map((photo) => (
-            <img
-              key={photo.id}
-              src={photo.url}
-              alt={photo.comment}
-              className="h-24 w-32 rounded-xl object-cover"
-            />
-          ))}
-        </div>
-      </SafeCard>
-    </div>
-  );
-
-  const renderAnalytics = (project: Project) => {
-    const reportsForProject = filteredReportsByProject(project.id);
-    const problemReports = reportsForProject.filter((r) => r.hasProblems);
-
-    return (
-      <div className="space-y-4">
-        <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            className="text-white/70"
-            onClick={() => setScreen({ key: "D2", projectId: project.id })}
-          >
-            <ChevronLeft className="mr-1 h-4 w-4" /> К объекту
-          </Button>
-        </div>
-        <div className="space-y-1">
-          <h2 className="text-xl font-semibold">Аналитика</h2>
-          <p className="text-sm text-white/60">{project.name}</p>
-        </div>
-
-        <SafeCard title="Готовность объекта">
-          <div className="flex items-center gap-4">
-            <div className="h-20 w-20 rounded-full border-4 border-emerald-400/60 grid place-items-center text-lg font-semibold">
-              {project.readinessPercent ?? 0}%
-            </div>
-            <div className="text-sm text-white/80">
-              <p>Текущая готовность: {project.readinessPercent ?? 0} %</p>
-              <p className="text-emerald-200">Изменение за 30 дней: +12 %</p>
-            </div>
-          </div>
-        </SafeCard>
-
-        <SafeCard title="Отчёты за период">
-          <p>Отчётов за 30 дней: {reportsForProject.length}</p>
-          <p>Дней без отчёта: 2</p>
-        </SafeCard>
-
-        <SafeCard title="Проблемы">
-          <p>Отчётов с проблемами: {problemReports.length}</p>
-          <p>
-            Последний проблемный отчёт: {problemReports[0]?.date ? formatDate(problemReports[0].date) : "—"}
-          </p>
-        </SafeCard>
-      </div>
-    );
-  };
-
-  const renderContent = () => {
-    if (role === "foreman") {
-      if (screen.key === "F1") return renderForemanHome();
-      if (screen.key === "F2" && screen.projectId) {
-        const project = projects.find((p) => p.id === screen.projectId);
-        return project ? renderForemanReportsByProject(project) : null;
+      if (top !== 0 || bottom !== 0) {
+        applyInsets(top, bottom);
+        return;
       }
-      if (screen.key === "F3") return renderStep1();
-      if (screen.key === "F4") return renderStep2();
-      if (screen.key === "F5") return renderStep3();
-      if (screen.key === "F6") {
-        if (screen.reportId) {
-          const report = reports.find((r) => r.id === screen.reportId);
-          return report ? renderForemanPreview(report) : null;
+
+      // 3) Фолбэк через стабильную высоту
+      const stableHeight = eventData?.stableHeight ?? tg.viewportStableHeight;
+      const viewportHeight = eventData?.height ?? tg.viewportHeight ?? stableHeight;
+
+      if (typeof window !== "undefined" && viewportHeight) {
+        const bottomInset = Math.max(0, window.innerHeight - viewportHeight);
+        applyInsets(0, bottomInset);
+      }
+    };
+
+    // первичная синхронизация
+    syncInsets();
+
+    // Отключено: события вызывают дёргание интерфейса при скролле.
+    // Safe-area рассчитываем один раз при старте, этого достаточно.
+    // tg.onEvent?.("viewportChanged", handleViewportChange);
+    // tg.onEvent?.("safeAreaChanged", handleSafeAreaChange);
+    // tg.onEvent?.("contentSafeAreaChanged", handleSafeAreaChange);
+
+    return undefined;
+  }, []);
+
+  const changeTabBySwipe = useCallback(
+    (direction: 1 | -1) => {
+      setActiveTab((current) => {
+        const index = TAB_ORDER.indexOf(current);
+        const nextIndex = index + direction;
+        if (nextIndex < 0 || nextIndex >= TAB_ORDER.length) {
+          return current;
         }
-        return renderForemanPreview(draft);
-      }
-      if (screen.key === "F7") return renderSuccess();
+        return TAB_ORDER[nextIndex];
+      });
+    },
+    []
+  );
+
+  // ------------------------------------------------------------------
+  // Telegram WebApp: ready/expand, BackButton, отключение вертикальных свайпов
+  // ------------------------------------------------------------------
+  useEffect(() => {
+    const tg =
+      typeof window !== "undefined" ? window.Telegram?.WebApp : undefined;
+
+    telegramRef.current = tg ?? null;
+
+    if (!tg) {
+      console.log(
+        "[WebApp] Telegram.WebApp не найден (скорее всего, обычный браузер)"
+      );
+      return undefined;
     }
 
-    if (role === "manager") {
-      if (screen.key === "D1") return renderManagerDashboard();
-      if (screen.key === "D2" && screen.projectId) {
-        const project = projects.find((p) => p.id === screen.projectId);
-        return project ? (
-          <Tabs defaultValue="reports" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 border-white/20 bg-white/5 text-white">
-              <TabsTrigger value="reports">Отчёты</TabsTrigger>
-              <TabsTrigger value="analytics">Аналитика</TabsTrigger>
-            </TabsList>
-            <TabsContent value="reports">{renderManagerReports(project)}</TabsContent>
-            <TabsContent value="analytics">{renderAnalytics(project)}</TabsContent>
-          </Tabs>
-        ) : null;
+    const cleanupFns: Array<() => void> = [];
+    const pushCleanup = (fn: () => void) => cleanupFns.push(fn);
+
+    // ready / expand
+    try {
+      tg.ready?.();
+      tg.expand?.();
+    } catch (error) {
+      console.warn("[WebApp] Ошибка при вызове ready/expand", error);
+    }
+
+    // --- BackButton видимость и поведение ---
+    const syncBackButtonVisibility = () => {
+      const backButton = tg.BackButton;
+      if (!backButton) return;
+
+      try {
+        if (activeTabRef.current !== "report") {
+          backButton.show();
+        } else {
+          backButton.hide();
+        }
+      } catch (error) {
+        console.warn("[WebApp] Ошибка при обновлении BackButton", error);
       }
-      if (screen.key === "D3" && screen.projectId && screen.reportId) {
-        const project = projects.find((p) => p.id === screen.projectId);
-        const report = reports.find((r) => r.id === screen.reportId);
-        return project && report ? renderManagerReportCard(report, project) : null;
+    };
+
+    const handleBackButtonClick = () => {
+      if (activeTabRef.current !== "report") {
+        setActiveTab("report");
+        return;
       }
-      if (screen.key === "D4" && screen.projectId) {
-        const project = projects.find((p) => p.id === screen.projectId);
-        return project ? renderAnalytics(project) : null;
+      try {
+        tg.close?.();
+      } catch (error) {
+        console.warn("[WebApp] Не удалось закрыть Mini App", error);
+      }
+    };
+
+    if (tg.BackButton) {
+      try {
+        tg.BackButton.onClick(handleBackButtonClick);
+        pushCleanup(() => tg.BackButton?.offClick(handleBackButtonClick));
+        syncBackButtonVisibility();
+      } catch (error) {
+        console.warn("[WebApp] Не удалось настроить BackButton", error);
       }
     }
 
-    return null;
+    const handleBackButtonSetupEvent = () => {
+      console.log("[WebApp] Событие web_app_setup_back_button");
+      syncBackButtonVisibility();
+    };
+
+    const handleExpandEvent = () => {
+      console.log("[WebApp] Событие web_app_expand");
+    };
+
+    const handleExitFullscreenEvent = () => {
+      console.log(
+        "[WebApp] Событие web_app_exit_fullscreen, пробуем expand ещё раз"
+      );
+      try {
+        tg.expand?.();
+      } catch (error) {
+        console.warn("[WebApp] Ошибка повторного expand", error);
+      }
+    };
+
+    if (typeof tg.onEvent === "function") {
+      tg.onEvent("web_app_expand", handleExpandEvent);
+      pushCleanup(() => tg.offEvent?.("web_app_expand", handleExpandEvent));
+
+      tg.onEvent("web_app_exit_fullscreen", handleExitFullscreenEvent);
+      pushCleanup(() =>
+        tg.offEvent?.("web_app_exit_fullscreen", handleExitFullscreenEvent)
+      );
+
+      tg.onEvent("web_app_setup_back_button", handleBackButtonSetupEvent);
+      pushCleanup(() =>
+        tg.offEvent?.("web_app_setup_back_button", handleBackButtonSetupEvent)
+      );
+    }
+
+    // --- Отключение системного vertical swipe (pull-to-close) ---
+    let isDestroyed = false;
+    let isSwipeApplied = false;
+    let restoreSwipeBehavior: (() => void | Promise<void>) | null = null;
+
+    const previousAllowSwipe = tg.settings?.allow_vertical_swipe;
+
+    const runRestore = () => {
+      if (!restoreSwipeBehavior) return;
+      const restore = restoreSwipeBehavior;
+      restoreSwipeBehavior = null;
+      Promise.resolve(restore()).catch((error) => {
+        console.warn("[WebApp] Ошибка при откате swipeBehavior", error);
+      });
+    };
+
+    const applySwipeBehavior = async () => {
+      if (isDestroyed || isSwipeApplied) return;
+
+      try {
+        // Новый API: setSwipeBehavior (v7.7+)
+        if (
+          tg.isVersionAtLeast?.("7.7") &&
+          typeof tg.setSwipeBehavior === "function"
+        ) {
+          const result = await tg.setSwipeBehavior({
+            allow_vertical_swipe: false,
+          });
+
+          if (result !== false) {
+            isSwipeApplied = true;
+            restoreSwipeBehavior = async () => {
+              await tg.setSwipeBehavior?.({ allow_vertical_swipe: true });
+            };
+            return;
+          }
+        }
+
+        // setSettings fallback
+        if (typeof tg.setSettings === "function") {
+          const result = await tg.setSettings({ allow_vertical_swipe: false });
+
+          if (result !== false) {
+            isSwipeApplied = true;
+            restoreSwipeBehavior = async () => {
+              const targetValue =
+                typeof previousAllowSwipe === "boolean"
+                  ? previousAllowSwipe
+                  : true;
+              await tg.setSettings?.({ allow_vertical_swipe: targetValue });
+            };
+            return;
+          }
+        }
+
+        // Старый API: disableVerticalSwipes
+        if (typeof tg.disableVerticalSwipes === "function" && !isSwipeApplied) {
+          tg.disableVerticalSwipes();
+          isSwipeApplied = true;
+          restoreSwipeBehavior = () => {
+            try {
+              tg.enableVerticalSwipes?.();
+            } catch (error) {
+              console.warn(
+                "[WebApp] Ошибка при enableVerticalSwipes в cleanup",
+                error
+              );
+            }
+          };
+        }
+      } catch (error) {
+        console.warn("[WebApp] Ошибка при настройке свайпов", error);
+      }
+    };
+
+    const handleSetupSwipeBehavior = () => {
+      if (isSwipeApplied || isDestroyed) return;
+      void applySwipeBehavior();
+    };
+
+    const supportsSwipeSetupEvent =
+      typeof tg.onEvent === "function" &&
+      (typeof tg.isVersionAtLeast !== "function" ||
+        tg.isVersionAtLeast("7.7"));
+
+    if (supportsSwipeSetupEvent) {
+      tg.onEvent("web_app_setup_swipe_behavior", handleSetupSwipeBehavior);
+      pushCleanup(() =>
+        tg.offEvent?.("web_app_setup_swipe_behavior", handleSetupSwipeBehavior)
+      );
+    } else {
+      // для старых клиентов пробуем сразу
+      void applySwipeBehavior();
+    }
+
+    return () => {
+      isDestroyed = true;
+      cleanupFns.forEach((fn) => {
+        try {
+          fn();
+        } catch (error) {
+          console.warn("[WebApp] Ошибка в cleanup", error);
+        }
+      });
+      runRestore();
+      telegramRef.current = null;
+    };
+  }, []);
+
+  // актуальный таб для BackButton
+  useEffect(() => {
+    activeTabRef.current = activeTab;
+
+    const backButton = telegramRef.current?.BackButton;
+    if (!backButton) return;
+
+    try {
+      if (activeTab !== "report") {
+        backButton.show();
+      } else {
+        backButton.hide();
+      }
+    } catch (error) {
+      console.warn(
+        "[WebApp] Ошибка при обновлении BackButton из эффекта",
+        error
+      );
+    }
+  }, [activeTab]);
+
+  // Горизонтальный свайп по контенту (между табами), вертикальный остаётся скроллом
+  useEffect(() => {
+    const container = swipeAreaRef.current;
+    if (!container) return;
+
+    let startX = 0;
+    let startY = 0;
+    let isTracking = false;
+    let isHorizontal = false;
+
+    const resetTracking = () => {
+      startX = 0;
+      startY = 0;
+      isTracking = false;
+      isHorizontal = false;
+    };
+
+    const handleTouchStart = (event: TouchEvent) => {
+      if (event.touches.length !== 1) return;
+      const touch = event.touches[0];
+      startX = touch.clientX;
+      startY = touch.clientY;
+      isTracking = true;
+      isHorizontal = false;
+    };
+
+    const handleTouchMove = (event: TouchEvent) => {
+      if (!isTracking || event.touches.length !== 1) return;
+      const touch = event.touches[0];
+      const deltaX = touch.clientX - startX;
+      const deltaY = touch.clientY - startY;
+
+      if (!isHorizontal) {
+        if (Math.abs(deltaX) > 12 || Math.abs(deltaY) > 12) {
+          if (Math.abs(deltaX) > Math.abs(deltaY)) {
+            isHorizontal = true;
+          } else {
+            // вертикальный жест — отдаём браузеру / Telegram для скролла
+            resetTracking();
+          }
+        }
+      }
+    };
+
+    const finishSwipe = (event: TouchEvent) => {
+      if (!isTracking) {
+        resetTracking();
+        return;
+      }
+
+      const touch = event.changedTouches[0];
+      const deltaX = touch.clientX - startX;
+      const deltaY = touch.clientY - startY;
+      const horizontalEnough =
+        Math.abs(deltaX) >= 60 && Math.abs(deltaX) > Math.abs(deltaY);
+
+      if (isHorizontal && horizontalEnough) {
+        if (deltaX < 0) {
+          // свайп влево → следующая вкладка
+          changeTabBySwipe(1);
+        } else {
+          // свайп вправо → предыдущая вкладка
+          changeTabBySwipe(-1);
+        }
+      }
+
+      resetTracking();
+    };
+
+    const handleTouchCancel = () => {
+      resetTracking();
+    };
+
+    container.addEventListener("touchstart", handleTouchStart, {
+      passive: true,
+    });
+    container.addEventListener("touchmove", handleTouchMove, { passive: true });
+    container.addEventListener("touchend", finishSwipe);
+    container.addEventListener("touchcancel", handleTouchCancel);
+
+    return () => {
+      container.removeEventListener("touchstart", handleTouchStart);
+      container.removeEventListener("touchmove", handleTouchMove);
+      container.removeEventListener("touchend", finishSwipe);
+      container.removeEventListener("touchcancel", handleTouchCancel);
+    };
+  }, [changeTabBySwipe]);
+
+  // --- загрузка видов работ ---
+  useEffect(() => {
+    fetch(`${API_URL}/work_types`)
+      .then((response) => (response.ok ? response.json() : Promise.reject()))
+      .then((rows: Array<{ id: string | number; name: string }>) => {
+        if (Array.isArray(rows) && rows.length) {
+          const mapped: WorkType[] = rows.map((item) => ({
+            id: String(item.id),
+            name: item.name,
+          }));
+          setWorkTypes(mapped);
+          if (!workType) {
+            setWorkType(mapped[0].id);
+          }
+        }
+      })
+      .catch(() => {
+        /* silent fallback to default workTypes */
+      });
+  }, [workType]);
+
+  const projects = [
+    { id: "1", name: "ЖК «Северный»", address: "ул. Парковая, 12" },
+    { id: "2", name: "ЖК «Академический»", address: "пр-т Науки, 5" },
+  ];
+
+  const history = useMemo<HistoryRow[]>(
+    () => [
+      {
+        id: 101,
+        project_id: "1",
+        date: "2025-11-11",
+        work_type_id: "2",
+        description:
+          "Бетонирование ростверка\nОбъём: 12,5 м³\nТехника: 2\nЛюди: 7",
+        photos: [
+          "https://picsum.photos/seed/a/300/200",
+          "https://picsum.photos/seed/b/300/200",
+        ],
+      },
+      {
+        id: 100,
+        project_id: "1",
+        date: "2025-11-10",
+        work_type_id: "1",
+        description:
+          "Разработка котлована\nОбъём: 80 м³\nТехника: 3\nЛюди: 5",
+        photos: ["https://picsum.photos/seed/c/300/200"],
+      },
+    ],
+    []
+  );
+
+  const accessList: AccessRow[] = [
+    {
+      user: { id: 8, name: "ИП «СтройСервис»" },
+      projects: ["1"],
+      role: "reporter",
+    },
+    {
+      user: { id: 9, name: "ООО «МонтажГрупп»" },
+      projects: ["1", "2"],
+      role: "reporter",
+    },
+  ];
+
+  const onPickFiles = () => fileInputRef.current?.click();
+
+  const onFilesSelected = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const selected = Array.from(event.target.files || []);
+
+    if (!selected.length) {
+      setFileValidationMessage("Добавьте хотя бы одно фото для отчёта");
+      setFiles([]);
+      setPreviews([]);
+      return;
+    }
+
+    setFileValidationMessage(null);
+    setFiles(selected);
+
+    Promise.all(
+      selected.map(
+        (file) =>
+          new Promise<string>((resolve) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(String(reader.result));
+            reader.readAsDataURL(file);
+          })
+      )
+    ).then(setPreviews);
   };
 
-  return (
-    <div className="safe-area-page mx-auto flex min-h-screen max-w-5xl flex-col gap-6 px-4 py-6">
-      <div className="glass-panel border-white/10 bg-white/5 p-4 shadow-xl">
-        {renderHeader()}
-        {renderContent()}
-      </div>
+  const [sending, setSending] = useState(false);
+  const [progress, setProgress] = useState(0);
+
+  const formCompletion = useMemo(() => {
+    const total = 4;
+    const filled = [project, workType, date, files.length ? "files" : null].filter(
+      Boolean
+    ).length;
+    return Math.max(8, Math.round((filled / total) * 100));
+  }, [date, files.length, project, workType]);
+
+  const latestHistoryDate = history[0]?.date;
+
+  const isFormReady = useMemo(
+    () => Boolean(project && workType && date && files.length > 0),
+    [project, workType, date, files.length]
+  );
+
+  const missingFields = useMemo(() => {
+    const fields: string[] = [];
+    if (!project) fields.push("объект");
+    if (!workType) fields.push("вид работ");
+    if (!date) fields.push("дату");
+    if (!files.length) fields.push("фото");
+    return fields;
+  }, [project, workType, date, files.length]);
+
+  async function sendReport() {
+    setRequiredHintVisible(true);
+    if (!project || !workType || !date || !files.length) {
+      alert("Заполните обязательные поля перед отправкой");
+      return;
+    }
+
+    const descParts = [comment];
+    if (volume) descParts.push(`Объём: ${volume}`);
+    if (machines) descParts.push(`Техника: ${machines}`);
+    if (people) descParts.push(`Люди: ${people}`);
+    const description = descParts.filter(Boolean).join("\n");
+
+    const form = new FormData();
+    form.append("user_id", "1");
+    form.append("project_id", String(project ?? ""));
+    form.append("work_type_id", String(workType));
+    form.append("date", date);
+    form.append("description", description);
+    form.append("people", people);
+    form.append("volume", volume);
+    form.append("machines", machines);
+    files.forEach((file) => form.append("photos", file));
+
+    try {
+      setSending(true);
+      setProgress(25);
+      const res = await fetch(`${API_URL}/reports`, {
+        method: "POST",
+        body: form,
+      });
+      setProgress(80);
+      if (!res.ok) throw new Error("Ошибка при отправке отчёта");
+      const data = await res.json();
+      setProgress(100);
+      alert(`Отчёт успешно отправлен! ID: ${data.id}`);
+      setVolume("");
+      setMachines("");
+      setPeople("");
+      setComment("");
+      setFiles([]);
+      setPreviews([]);
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Ошибка при отправке отчёта";
+      alert(message);
+    } finally {
+      setSending(false);
+      setTimeout(() => setProgress(0), 600);
+    }
+  }
+
+  const previewKey = previewVariant?.toLowerCase() as
+    | keyof typeof PREVIEW_COMPONENTS
+    | undefined;
+  const PreviewComponent = previewKey
+    ? PREVIEW_COMPONENTS[previewKey]
+    : undefined;
+
+  return PreviewComponent ? (
+    <PreviewComponent />
+  ) : (
+    <div
+      className="relative flex min-h-[100dvh] w-full flex-col overflow-hidden text-white"
+      style={{
+        backgroundColor: "var(--app-surface)",
+        backgroundImage: "var(--app-surface-gradient)",
+      }}
+    >
+      <div className="pointer-events-none absolute -left-24 -top-32 h-72 w-72 rounded-full bg-indigo-500/40 blur-[140px]" />
+      <div className="pointer-events-none absolute bottom-0 right-[-120px] h-[420px] w-[420px] rounded-full bg-sky-400/35 blur-[160px]" />
+      <div className="pointer-events-none absolute inset-x-1/2 top-[40%] h-64 w-64 -translate-x-1/2 rounded-full bg-emerald-400/30 blur-[120px]" />
+
+      <main
+        className="safe-area-page relative z-10 flex min-h-[100dvh] w-full flex-1 justify-center overflow-y-auto px-3 touch-pan-y md:px-4"
+        style={{ WebkitOverflowScrolling: "touch", overscrollBehaviorY: "contain" }}
+      >
+        <div className="mx-auto w-full max-w-full md:max-w-[620px] lg:max-w-[700px]">
+          <div className="relative rounded-[32px] px-4 pb-8 pt-6 sm:rounded-[44px] sm:px-6 sm:pb-9 sm:pt-7 lg:rounded-[52px] lg:px-8 lg:pb-10 lg:pt-8">
+            <div className="glass-grid-overlay" />
+            <div className="relative" ref={swipeAreaRef}>
+              <header className="mb-4 flex items-center justify-center sm:mb-6">
+                <div
+                  className={`
+                    flex h-12 w-36 items-center justify-center overflow-hidden
+                    rounded-2xl
+                    transition-all duration-1000 ease-out delay-100
+                    ${logoReveal ? "opacity-100 translate-y-0" : "opacity-0 translate-y-3"}
+                  `}
+                >
+                  {logoUrl ? (
+                    <img
+                      src={logoUrl}
+                      alt="Логотип компании"
+                      className={`
+                        h-full w-full object-contain transform-gpu transition-all duration-1000 ease-out
+                        ${logoLoaded ? "opacity-100 scale-100 blur-0" : "opacity-0 scale-105 blur-[6px]"}
+                      `}
+                      onLoad={() => setLogoLoaded(true)}
+                    />
+                  ) : (
+                    <span>Лого</span>
+                  )}
+                </div>
+              </header>
+
+              <div className="mb-5 grid gap-3 sm:grid-cols-3">
+                <div className="glass-chip border border-white/25 bg-white/10 px-3.5 py-3 text-white shadow-[0_16px_40px_rgba(6,17,44,0.45)] sm:px-4">
+                  <div className="flex items-center justify-between text-[10px] font-semibold uppercase tracking-[0.14em] text-white/65">
+                    <span>Готовность</span>
+                    <span className="rounded-full bg-white/10 px-2 py-0.5 text-[9px] text-white/70">glass</span>
+                  </div>
+                  <div className="mt-1 flex items-end justify-between">
+                    <span className="text-[22px] font-semibold sm:text-[24px]">{formCompletion}%</span>
+                    <span className="rounded-full bg-emerald-300/20 px-2 py-1 text-[10px] font-medium text-emerald-100">
+                      {isFormReady ? "готово" : "заполните поля"}
+                    </span>
+                  </div>
+                  <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/10">
+                    <div
+                      className="h-full rounded-full bg-gradient-to-r from-cyan-300/90 via-indigo-300/80 to-emerald-300/90"
+                      style={{ width: `${formCompletion}%` }}
+                    />
+                  </div>
+                </div>
+
+                <div className="glass-chip border border-white/25 bg-white/10 px-3.5 py-3 text-white shadow-[0_16px_40px_rgba(6,17,44,0.45)] sm:px-4">
+                  <div className="flex items-center justify-between text-[10px] font-semibold uppercase tracking-[0.14em] text-white/65">
+                    <span>История</span>
+                    <span className="rounded-full bg-white/10 px-2 py-0.5 text-[9px] text-white/70">{history.length} отчёта</span>
+                  </div>
+                  <div className="mt-1 flex items-end justify-between">
+                    <span className="text-[22px] font-semibold sm:text-[24px]">
+                      {latestHistoryDate ? formatRu(latestHistoryDate) : "—"}
+                    </span>
+                    <span className="rounded-full bg-white/12 px-2 py-1 text-[10px] font-medium text-white/80">
+                      {workTypes.find((item) => item.id === workType)?.name ?? "Виды работ"}
+                    </span>
+                  </div>
+                  <p className="mt-2 text-[11px] text-white/70">Последний отчёт открыт для просмотра.</p>
+                </div>
+
+                <div className="glass-chip border border-white/25 bg-white/10 px-3.5 py-3 text-white shadow-[0_16px_40px_rgba(6,17,44,0.45)] sm:px-4">
+                  <div className="flex items-center justify-between text-[10px] font-semibold uppercase tracking-[0.14em] text-white/65">
+                    <span>Доступы</span>
+                    <span className="rounded-full bg-white/10 px-2 py-0.5 text-[9px] text-white/70">{accessList.length} партнёра</span>
+                  </div>
+                  <div className="mt-1 flex items-end justify-between">
+                    <span className="text-[22px] font-semibold sm:text-[24px]">{projects.length}</span>
+                    <span className="rounded-full bg-white/12 px-2 py-1 text-[10px] font-medium text-white/80">
+                      объектов на контроле
+                    </span>
+                  </div>
+                  <p className="mt-2 text-[11px] text-white/70">Управляйте ролями прямо в мини-приложении.</p>
+                </div>
+              </div>
+
+              <Tabs
+                value={activeTab}
+                onValueChange={(v) => setActiveTab(v as TabKey)}
+                className="w-full"
+              >
+                <TabsList className="glass-chip mb-4 grid grid-cols-3 gap-1 rounded-full bg-white/12 p-1 text-[11px] text-white/80 shadow-[0_14px_40px_rgba(6,17,44,0.45)] sm:mb-5 sm:text-[12px]">
+                  <TabsTrigger
+                    value="report"
+                    className="flex items-center justify-center gap-1 rounded-full px-2 py-1.5 text-[10px] transition data-[state=active]:bg-white data-[state=active]:text-sky-900 data-[state=active]:shadow-[0_12px_30px_rgba(255,255,255,0.45)] sm:px-3 sm:py-2 sm:text-[12px]"
+                  >
+                    <ClipboardList className="h-3.5 w-3.5" /> Отчёт
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="history"
+                    className="flex items-center justify-center gap-1 rounded-full px-2 py-1.5 text-[10px] transition data-[state=active]:bg-white data-[state=active]:text-sky-900 data-[state=active]:shadow-[0_12px_30px_rgba(255,255,255,0.45)] sm:px-3 sm:py-2 sm:text-[12px]"
+                  >
+                    <History className="h-3.5 w-3.5" /> История
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="admin"
+                    className="flex items-center justify-center gap-1 rounded-full px-2 py-1.5 text-[10px] transition data-[state=active]:bg-white data-[state=active]:text-sky-900 data-[state=active]:shadow-[0_12px_30px_rgba(255,255,255,0.45)] sm:px-3 sm:py-2 sm:text-[12px]"
+                  >
+                    <ShieldCheck className="h-3.5 w-3.5" /> Доступ
+                  </TabsTrigger>
+                </TabsList>
+
+                {/* TAB: ОТЧЁТ */}
+                <TabsContent value="report" className="mt-0">
+                  <Card className="glass-panel border-white/25 bg-gradient-to-br from-white/14 via-white/10 to-white/5 text-white shadow-[0_28px_80px_rgba(6,17,44,0.55)] backdrop-blur-[32px]">
+                    <CardHeader className="pb-5 sm:pb-6">
+                      <CardTitle className="text-[18px] font-semibold tracking-wide text-white sm:text-[20px]">
+                        Ежедневный отчёт
+                      </CardTitle>
+                      <p className="text-xs text-white/80">{formatRu(date)}</p>
+                    </CardHeader>
+                    <CardContent className="space-y-6 text-[12px] sm:p-7 sm:pt-1 sm:text-[13px]">
+                      <div className="grid gap-3 rounded-3xl border border-white/20 bg-white/5 p-4 backdrop-blur-xl">
+                        <div className="space-y-1.5">
+                          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/60 sm:text-[11px]">
+                            Объект
+                          </p>
+                          <div className="relative">
+                            <Building2 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/65" />
+                            <Select value={project} onValueChange={setProject}>
+                              <SelectTrigger className="h-11 rounded-2xl border border-white/20 bg-white/10 pl-11 pr-12 text-[13px] font-medium text-white/90 shadow-[0_16px_38px_rgba(7,24,74,0.55)] backdrop-blur sm:h-12 sm:text-[14px]">
+                                <SelectValue placeholder="Выберите объект" />
+                              </SelectTrigger>
+                              <SelectContent className="border border-white/15 bg-[#07132F]/95 text-white">
+                                {projects.map((item) => (
+                                  <SelectItem key={item.id} value={item.id}>
+                                    {item.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                        <div className="space-y-1.5">
+                          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/60 sm:text-[11px]">
+                            Вид работ
+                          </p>
+                          <div className="relative">
+                            <HardHat className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/65" />
+                            <Select value={workType} onValueChange={setWorkType}>
+                              <SelectTrigger className="h-11 rounded-2xl border border-white/20 bg-white/10 pl-11 pr-12 text-[13px] font-medium text-white/90 shadow-[0_16px_38px_rgba(7,24,74,0.55)] backdrop-blur sm:h-12 sm:text-[14px]">
+                                <SelectValue placeholder="Выберите вид работ" />
+                              </SelectTrigger>
+                              <SelectContent className="border border-white/15 bg-[#07132F]/95 text-white">
+                                {workTypes.map((item) => (
+                                  <SelectItem key={item.id} value={item.id}>
+                                    {item.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="grid gap-3 sm:grid-cols-3">
+                        <div className="space-y-1.5">
+                          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/60 sm:text-[11px]">
+                            Дата
+                          </p>
+                          <div className="relative">
+                            <Input
+                              type="date"
+                              value={date}
+                              onChange={(event) => setDate(event.target.value)}
+                              className="h-11 rounded-2xl border border-white/20 bg-white/10 pl-12 pr-12 text-[13px] font-medium text-white/90 placeholder:text-white/50 [appearance:none] sm:h-12 sm:text-[14px]"
+                            />
+                            <CalendarDays className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/65" />
+                            <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/55" />
+                          </div>
+                        </div>
+                        <div className="space-y-1.5">
+                          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/60 sm:text-[11px]">
+                            Объём
+                          </p>
+                          <div className="flex items-center gap-2">
+                            <Input
+                              placeholder="12,5"
+                              value={volume}
+                              onChange={(event) => setVolume(event.target.value)}
+                              className="h-11 flex-1 rounded-2xl border border-white/20 bg-white/10 text-[13px] font-medium text-white/90 placeholder:text-white/40 sm:h-12 sm:text-[14px]"
+                            />
+                            <div className="flex h-11 items-center justify-center rounded-2xl border border-white/15 bg-white/10 px-3 text-[11px] text-white/75 sm:h-12 sm:px-4 sm:text-[12px]">
+                              м³
+                            </div>
+                          </div>
+                        </div>
+                        <div className="space-y-1.5">
+                          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/60 sm:text-[11px]">
+                            Техника
+                          </p>
+                          <div className="flex items-center gap-2">
+                            <Input
+                              placeholder="3"
+                              value={machines}
+                              onChange={(event) =>
+                                setMachines(event.target.value)
+                              }
+                              className="h-11 flex-1 rounded-2xl border border-white/20 bg-white/10 text-[13px] font-medium text-white/90 placeholder:text-white/40 sm:h-12 sm:text-[14px]"
+                            />
+                            <div className="flex h-11 items-center justify-center rounded-2xl border border-white/15 bg-white/10 px-3 text-[11px] text-white/75 sm:h-12 sm:px-4 sm:text-[12px]">
+                              шт.
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/60 sm:text-[11px]">
+                          Люди
+                        </p>
+                        <div className="relative">
+                          <Users className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/65" />
+                          <Input
+                            inputMode="numeric"
+                            placeholder="кол-во человек"
+                            value={people}
+                            onChange={(event) => setPeople(event.target.value)}
+                            className="h-11 rounded-2xl border border-white/20 bg-white/10 pl-11 text-[13px] font-medium text-white/90 placeholder:text-white/40 sm:h-12 sm:text-[14px]"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/60 sm:text-[11px]">
+                          Комментарий
+                        </p>
+                        <Textarea
+                          value={comment}
+                          onChange={(event) => setComment(event.target.value)}
+                          placeholder="Кратко опишите выполненные работы…"
+                          className="min-h-[80px] rounded-3xl border border-white/20 bg-white/10 text-[12px] text-white/90 placeholder:text-white/45 sm:min-h-[96px] sm:text-[13px]"
+                        />
+                      </div>
+
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between text-[10px] font-semibold uppercase tracking-[0.16em] text-white/65 sm:text-[11px]">
+                          <span className="flex items-center gap-1.5">
+                            <ImageIcon className="h-3.5 w-3.5" /> Выберите фото
+                          </span>
+                          <span className="text-white/55">
+                            JPG/PNG/HEIC, до 10 МБ
+                          </span>
+                        </div>
+
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          accept="image/*"
+                          multiple
+                          className="hidden"
+                          onChange={onFilesSelected}
+                        />
+
+                        <div className="flex flex-col gap-3 rounded-3xl border border-dashed border-white/30 bg-white/5 px-4 py-3 text-sm text-white/75 sm:flex-row sm:items-center">
+                          <div className="flex-1 text-[11px] leading-tight sm:text-[12px]">
+                            Перетащите фото или нажмите «Выбрать»
+                          </div>
+                          <Button
+                            type="button"
+                            className="flex items-center gap-2 rounded-full bg-gradient-to-r from-[#5FE0FF] via-[#7DF0FF] to-[#B5F5FF] px-4 py-1.5 text-[12px] font-semibold text-sky-900 shadow-[0_18px_50px_rgba(3,144,255,0.9)] hover:brightness-110"
+                            onClick={onPickFiles}
+                          >
+                            <Upload className="h-3.5 w-3.5" /> Выбрать
+                          </Button>
+                          {Boolean(files.length) && (
+                            <Button
+                              type="button"
+                              variant="secondary"
+                              size="sm"
+                              className="h-8 rounded-full border-white/30 bg-white/15 px-3 text-[11px] text-white/80 backdrop-blur hover:bg-white/25"
+                              onClick={() => {
+                                setFiles([]);
+                                setPreviews([]);
+                                setFileValidationMessage(
+                                  "Добавьте хотя бы одно фото для отчёта"
+                                );
+                              }}
+                            >
+                              Очистить
+                            </Button>
+                          )}
+                        </div>
+
+                        {fileValidationMessage && (
+                          <p className="text-[10px] font-medium text-amber-200/90 sm:text-[11px]">
+                            {fileValidationMessage}
+                          </p>
+                        )}
+
+                        <div className="grid grid-cols-4 gap-2 sm:grid-cols-3 sm:gap-3">
+                            {(previews.length ? previews : [null, null, null])
+                              .slice(0, 3)
+                              .map((src, index) => (
+                                <div
+                                  key={index}
+                                className="flex aspect-square items-center justify-center rounded-xl border border-white/20 bg-white/5 sm:aspect-[4/3] sm:rounded-2xl"
+                              >
+                                {src ? (
+                                  <img
+                                    src={src}
+                                    alt="Предпросмотр"
+                                    className="h-full w-full rounded-xl object-cover sm:rounded-2xl"
+                                  />
+                                ) : (
+                                  <span className="text-[10px] text-white/45 sm:text-[11px]">
+                                    Фото
+                                  </span>
+                                )}
+                              </div>
+                            ))}
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                          <Button
+                            type="button"
+                            className="h-11 rounded-full bg-gradient-to-r from-[#5FE0FF] via-[#7DF0FF] to-[#B5F5FF] px-6 text-[12px] font-semibold text-sky-900 shadow-[0_24px_60px_rgba(3,144,255,0.85)] hover:brightness-110 disabled:opacity-70 sm:text-[13px]"
+                            onClick={sendReport}
+                            disabled={sending || !isFormReady}
+                          >
+                            {sending ? "Отправка…" : "Отправить отчёт"}
+                          </Button>
+                          <div className="flex-1">
+                            <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/15">
+                              <div
+                                className="h-full rounded-full bg-gradient-to-r from-[#5FE0FF] via-[#7DF0FF] to-[#B5F5FF] transition-all"
+                                style={{ width: `${progress}%` }}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                        {requiredHintVisible && !isFormReady && (
+                          <p className="text-[10px] font-medium text-amber-100/90 sm:text-[11px]">
+                            Чтобы отправить отчёт, заполните: {missingFields.join(", ")}.
+                          </p>
+                        )}
+                        {progress > 0 && (
+                          <p className="text-[10px] text-white/70 sm:text-[11px]">
+                            Загрузка: {progress}%
+                          </p>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+
+                {/* TAB: ИСТОРИЯ */}
+                <TabsContent value="history" className="mt-0">
+                  <Card className="glass-panel border-white/25 bg-gradient-to-br from-white/14 via-white/10 to-white/5 text-white shadow-[0_28px_80px_rgba(6,17,44,0.55)] backdrop-blur-[32px]">
+                    <CardHeader className="pb-5 sm:pb-6">
+                      <CardTitle className="flex items-center gap-2 text-[16px] font-semibold text-white sm:text-[18px]">
+                        <History className="h-4 w-4" /> История отчётов
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-6 text-[11px] sm:p-7 sm:pt-1 sm:text-[12px]">
+                      <div className="grid gap-3 rounded-3xl border border-white/15 bg-white/5 p-4 backdrop-blur">
+                        <div className="grid gap-3 sm:grid-cols-4">
+                          <div className="space-y-1.5 sm:col-span-2">
+                            <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-white/60 sm:text-[10px]">
+                              Объект
+                            </p>
+                            <Select value={project} onValueChange={setProject}>
+                              <SelectTrigger className="h-9 rounded-2xl border border-white/20 bg-white/10 text-[11px] text-white/90 sm:text-[12px]">
+                                <SelectValue placeholder="Объект" />
+                              </SelectTrigger>
+                              <SelectContent className="border border-white/15 bg-[#07132F]/95 text-white">
+                                {projects.map((item) => (
+                                  <SelectItem key={item.id} value={item.id}>
+                                    {item.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-1.5">
+                            <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-white/60 sm:text-[10px]">
+                              С даты
+                            </p>
+                            <Input
+                              type="date"
+                              className="h-9 rounded-2xl border border-white/20 bg-white/10 text-[11px] text-white/90 sm:text-[12px]"
+                            />
+                          </div>
+                          <div className="space-y-1.5">
+                            <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-white/60 sm:text-[10px]">
+                              По дату
+                            </p>
+                            <Input
+                              type="date"
+                              className="h-9 rounded-2xl border border-white/20 bg-white/10 text-[11px] text-white/90 sm:text-[12px]"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="space-y-3">
+                        {history
+                          .filter((item) => item.project_id === project)
+                          .map((item) => (
+                            <div
+                              key={item.id}
+                              className="rounded-[22px] border border-white/12 bg-white/8 p-4 text-white/85 shadow-[0_14px_36px_rgba(6,17,44,0.35)] backdrop-blur"
+                            >
+                              <div className="flex flex-col gap-1 text-[11px] sm:flex-row sm:items-center sm:justify-between sm:text-[12px]">
+                                <span>{formatRu(item.date)}</span>
+                                <span className="text-white/75">
+                                  {
+                                    workTypes.find(
+                                      (row) => row.id === item.work_type_id
+                                    )?.name
+                                  }
+                                </span>
+                              </div>
+                              <p className="mt-1 text-[11px] text-white/85 sm:text-[12px]">
+                                {toOneLine(item.description)}
+                              </p>
+                                <div className="mt-2 flex flex-wrap gap-2">
+                                  {item.photos.map((src, index) => (
+                                    <img
+                                      key={index}
+                                      src={src}
+                                      alt="Фото отчёта"
+                                    className="h-14 w-20 rounded-lg border border-white/35 object-cover sm:h-16 sm:w-24 sm:rounded-xl"
+                                  />
+                                ))}
+                              </div>
+                            </div>
+                          ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+
+                {/* TAB: ДОСТУП */}
+                <TabsContent value="admin" className="mt-0">
+                  <Card className="glass-panel border-white/25 bg-gradient-to-br from-white/14 via-white/10 to-white/5 text-white shadow-[0_28px_80px_rgba(6,17,44,0.55)] backdrop-blur-[32px]">
+                    <CardHeader className="pb-5 sm:pb-6">
+                      <CardTitle className="flex items-center gap-2 text-[16px] font-semibold text-white sm:text-[18px]">
+                        <ShieldCheck className="h-4 w-4" /> Назначение доступа
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-6 text-[11px] sm:p-7 sm:pt-1 sm:text-[12px]">
+                      <div className="grid gap-3 rounded-3xl border border-white/15 bg-white/5 p-4 backdrop-blur">
+                        <div className="grid gap-3 sm:grid-cols-3">
+                          <div className="space-y-1.5 sm:col-span-1">
+                            <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-white/60 sm:text-[10px]">
+                              Найти подрядчика
+                            </p>
+                            <Input
+                              placeholder="Поиск по названию / Telegram"
+                              className="h-9 rounded-2xl border border-white/20 bg-white/10 text-[11px] text-white/90 placeholder:text-white/50 sm:text-[12px]"
+                            />
+                          </div>
+                          <div className="space-y-1.5">
+                            <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-white/60 sm:text-[10px]">
+                              Объект
+                            </p>
+                            <Select value={project} onValueChange={setProject}>
+                              <SelectTrigger className="h-9 rounded-2xl border border-white/20 bg-white/10 text-[11px] text-white/90 sm:text-[12px]">
+                                <SelectValue placeholder="Выберите объект" />
+                              </SelectTrigger>
+                              <SelectContent className="border border-white/15 bg-[#07132F]/95 text-white">
+                                {projects.map((item) => (
+                                  <SelectItem key={item.id} value={item.id}>
+                                    {item.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-1.5">
+                            <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-white/60 sm:text-[10px]">
+                              Роль
+                            </p>
+                            <Select defaultValue="reporter">
+                              <SelectTrigger className="h-9 rounded-2xl border border-white/20 bg-white/10 text-[11px] text-white/90 sm:text-[12px]">
+                                <SelectValue placeholder="Роль" />
+                              </SelectTrigger>
+                              <SelectContent className="border border-white/15 bg-[#07132F]/95 text-white">
+                                <SelectItem value="reporter">
+                                  Может отправлять отчёты
+                                </SelectItem>
+                                <SelectItem value="viewer">
+                                  Только просмотр
+                                </SelectItem>
+                                <SelectItem value="manager">
+                                  Менеджер
+                                </SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/65 sm:text-[11px]">
+                          Текущие назначения
+                        </p>
+                          <div className="space-y-2">
+                            {accessList.map((row, index) => (
+                              <div
+                                key={index}
+                                className="flex flex-col gap-3 rounded-[18px] border border-white/12 bg-white/8 px-4 py-3 shadow-[0_12px_30px_rgba(6,17,44,0.35)] backdrop-blur sm:flex-row sm:items-center sm:justify-between"
+                              >
+                              <div>
+                                <div className="text-[12px] font-medium text-white/90 sm:text-[13px]">
+                                  {row.user.name}
+                                </div>
+                                <div className="text-[10px] text-white/65 sm:text-[11px]">
+                                  Проекты:{" "}
+                                  {row.projects
+                                    .map(
+                                      (pid) =>
+                                        projects.find((p) => p.id === pid)
+                                          ?.name
+                                    )
+                                    .join(", ")}
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className="text-[10px] text-white/70 sm:text-[11px]">
+                                  Роль: {row.role}
+                                </span>
+                                <Button
+                                  variant="secondary"
+                                  size="sm"
+                                  className="h-8 rounded-full border-none bg-white/85 px-3 text-[10px] font-semibold text-sky-800 shadow-[0_12px_32px_rgba(3,144,255,0.55)] hover:brightness-110 sm:text-[11px]"
+                                >
+                                  Изменить
+                                </Button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+              </Tabs>
+            </div>
+          </div>
+        </div>
+      </main>
     </div>
   );
+}
+
+function formatRu(iso: string) {
+  const [year, month, day] = iso.split("-");
+  return `${day}.${month}.${year}`;
+}
+
+function toOneLine(desc: string) {
+  const source = String(desc || "");
+  const vol = source.match(/Объём:\s*([^\n]+)/i)?.[1]?.trim();
+  const mach = source.match(/Техника:\s*([^\n]+)/i)?.[1]?.trim();
+  const ppl = source.match(/Люди:\s*([^\n]+)/i)?.[1]?.trim();
+  const parts: string[] = [];
+  if (vol) parts.push(`Объём: ${vol}`);
+  if (mach) parts.push(`Техника: ${mach}`);
+  if (ppl) parts.push(`Люди: ${ppl}`);
+  return parts.length ? parts.join(" • ") : source.replace(/\s+/g, " ").trim();
 }
