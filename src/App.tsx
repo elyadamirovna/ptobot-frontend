@@ -795,10 +795,6 @@ export default function TelegramWebAppGlassPure() {
                   <div className="font-semibold">Нет связи с backend ({API_URL})</div>
                   <div>{backendError || "Проверьте HTTPS и CORS для Telegram WebView."}</div>
                 </div>
-              ) : backendReachable === "ok" ? (
-                <div className="mb-3 rounded-2xl border border-emerald-300/50 bg-emerald-500/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-emerald-50">
-                  Соединение с backend установлено
-                </div>
               ) : null}
 
               <div className="mb-5 grid gap-3 sm:grid-cols-3">
