@@ -3,7 +3,6 @@ import React, {
   useMemo,
   useState,
   useEffect,
-  useLayoutEffect,
   useRef,
   useCallback,
 } from "react";
@@ -44,7 +43,8 @@ import type {
   TelegramWebApp,
 } from "@/types/telegram";
 
-const API_URL = "https://ptobot-backend.onrender.com";
+const API_URL = (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, "")
+  ?? "https://ptobot-backend.onrender.com";
 const DEFAULT_LOGO_URL = "https://storage.yandexcloud.net/ptobot-assets/LOGO.svg";
 
 type WorkType = { id: string; name: string };
@@ -115,6 +115,11 @@ export default function TelegramWebAppGlassPure() {
   const [people, setPeople] = useState("");
   const [comment, setComment] = useState("");
   const [requiredHintVisible, setRequiredHintVisible] = useState(false);
+
+  const [backendReachable, setBackendReachable] = useState<
+    "unknown" | "ok" | "error"
+  >("unknown");
+  const [backendError, setBackendError] = useState<string>("");
 
   const [workTypes, setWorkTypes] = useState<WorkType[]>([
     { id: "1", name: "Земляные работы" },
@@ -529,10 +534,22 @@ export default function TelegramWebAppGlassPure() {
     };
   }, [changeTabBySwipe]);
 
-  // --- загрузка видов работ ---
+  // --- проверка соединения с backend + загрузка видов работ ---
   useEffect(() => {
-    fetch(`${API_URL}/work_types`)
-      .then((response) => (response.ok ? response.json() : Promise.reject()))
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), 8000);
+
+    fetch(`${API_URL}/work_types`, { signal: controller.signal, mode: "cors" })
+      .then((response) => {
+        if (!response.ok) {
+          setBackendReachable("error");
+          setBackendError(`Backend вернул код ${response.status}`);
+          return Promise.reject();
+        }
+
+        setBackendReachable("ok");
+        return response.json();
+      })
       .then((rows: Array<{ id: string | number; name: string }>) => {
         if (Array.isArray(rows) && rows.length) {
           const mapped: WorkType[] = rows.map((item) => ({
@@ -545,9 +562,25 @@ export default function TelegramWebAppGlassPure() {
           }
         }
       })
-      .catch(() => {
+      .catch((error) => {
+        if (error instanceof DOMException && error.name === "AbortError") {
+          setBackendReachable("error");
+          setBackendError("Тайм-аут запроса к backend");
+        } else if (error instanceof TypeError) {
+          setBackendReachable("error");
+          setBackendError("Не удалось подключиться (CORS/HTTPS)");
+        }
+
         /* silent fallback to default workTypes */
+      })
+      .finally(() => {
+        window.clearTimeout(timeoutId);
       });
+
+    return () => {
+      controller.abort();
+      window.clearTimeout(timeoutId);
+    };
   }, [workType]);
 
   const projects = [
@@ -679,6 +712,8 @@ export default function TelegramWebAppGlassPure() {
       const res = await fetch(`${API_URL}/reports`, {
         method: "POST",
         body: form,
+        mode: "cors",
+        credentials: "omit",
       });
       setProgress(80);
       if (!res.ok) throw new Error("Ошибка при отправке отчёта");
@@ -754,6 +789,17 @@ export default function TelegramWebAppGlassPure() {
                   )}
                 </div>
               </header>
+
+              {backendReachable === "error" ? (
+                <div className="mb-3 rounded-2xl border border-red-300/60 bg-red-500/20 px-4 py-3 text-sm leading-tight text-red-50 shadow-[0_10px_30px_rgba(239,68,68,0.25)]">
+                  <div className="font-semibold">Нет связи с backend ({API_URL})</div>
+                  <div>{backendError || "Проверьте HTTPS и CORS для Telegram WebView."}</div>
+                </div>
+              ) : backendReachable === "ok" ? (
+                <div className="mb-3 rounded-2xl border border-emerald-300/50 bg-emerald-500/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-emerald-50">
+                  Соединение с backend установлено
+                </div>
+              ) : null}
 
               <div className="mb-5 grid gap-3 sm:grid-cols-3">
                 <div className="glass-chip border border-white/25 bg-white/10 px-3.5 py-3 text-white shadow-[0_16px_40px_rgba(6,17,44,0.45)] sm:px-4">
