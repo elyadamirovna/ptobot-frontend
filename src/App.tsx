@@ -64,6 +64,7 @@ type AccessRow = {
   role: string;
 };
 
+type BackendReachability = "unknown" | "ok" | "error";
 type TabKey = "report" | "history" | "admin";
 const TAB_ORDER: TabKey[] = ["report", "history", "admin"];
 
@@ -116,9 +117,8 @@ export default function TelegramWebAppGlassPure() {
   const [comment, setComment] = useState("");
   const [requiredHintVisible, setRequiredHintVisible] = useState(false);
 
-  const [backendReachable, setBackendReachable] = useState<
-    "unknown" | "ok" | "error"
-  >("unknown");
+  const [backendReachable, setBackendReachable] =
+    useState<BackendReachability>("unknown");
   const [backendError, setBackendError] = useState<string>("");
 
   const [workTypes, setWorkTypes] = useState<WorkType[]>([
