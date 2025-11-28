@@ -1,61 +1,27 @@
-// src/App.tsx
-import React, {
-  useMemo,
-  useState,
-  useEffect,
-  useRef,
-  useCallback,
-} from "react";
+import { FC, useState } from "react";
 
-import {
-  CorporateStrictLayout,
-  GlassmorphismLayout,
-  MinimalistLayout,
-} from "@/components/LayoutVariants";
-
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ContractorHomeScreen } from "@/components/screens/ContractorHomeScreen";
+import { ManagerDashboardScreen } from "@/components/screens/ManagerDashboardScreen";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-
-import {
-  CalendarDays,
-  Building2,
-  HardHat,
-  Users,
-  Image as ImageIcon,
-  Upload,
-  ChevronDown,
-  History,
-  ClipboardList,
-  ShieldCheck,
-} from "lucide-react";
 import type {
-  TelegramViewportChangedData,
-  TelegramWebApp,
-} from "@/types/telegram";
+  ContractorObject,
+  ManagerFilter,
+  ManagerObject,
+  Role,
+} from "@/types/objects";
 
-const API_URL = (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, "")
-  ?? "https://ptobot-backend.onrender.com";
-const DEFAULT_LOGO_URL = "https://storage.yandexcloud.net/ptobot-assets/LOGO.svg";
-
-type WorkType = { id: string; name: string };
-
-type HistoryRow = {
-  id: number;
-  project_id: string;
-  date: string;
-  work_type_id: string;
-  description: string;
-  photos: string[];
+type AppRootProps = {
+  role: Role;
+  userName: string;
+  contractorObjects: ContractorObject[];
+  managerObjects: ManagerObject[];
+  contractorLoading?: boolean;
+  managerLoading?: boolean;
+  managerFilter: ManagerFilter;
+  onManagerFilterChange: (filter: ManagerFilter) => void;
+  onCreateReport: () => void;
+  onOpenObject: (objectId: string) => void;
+  onOpenFilters: () => void;
 };
 
 type AccessRow = {
@@ -117,101 +83,48 @@ export default function TelegramWebAppGlassPure() {
   const [comment, setComment] = useState("");
   const [requiredHintVisible, setRequiredHintVisible] = useState(false);
 
-  const [backendReachable, setBackendReachable] =
-    useState<BackendReachability>("unknown");
-  const [backendError, setBackendError] = useState<string>("");
-
   const [workTypes, setWorkTypes] = useState<WorkType[]>([
     { id: "1", name: "Земляные работы" },
     { id: "2", name: "Бетонирование" },
     { id: "3", name: "Монтаж конструкций" },
   ]);
 
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const [files, setFiles] = useState<File[]>([]);
-  const [previews, setPreviews] = useState<string[]>([]);
-  const [fileValidationMessage, setFileValidationMessage] = useState<string | null>(
-    null
+  return (
+    <ManagerDashboardScreen
+      objects={managerObjects}
+      isLoading={managerLoading}
+      activeFilter={managerFilter}
+      onFilterChange={onManagerFilterChange}
+      onOpenFilters={onOpenFilters}
+      onOpenObject={onOpenObject}
+    />
   );
+};
 
-  const swipeAreaRef = useRef<HTMLDivElement | null>(null);
-  const telegramRef = useRef<TelegramWebApp | null>(null);
-  const activeTabRef = useRef<TabKey>("report");
+export default function App() {
+  const [role, setRole] = useState<Role>("contractor");
+  const [managerFilter, setManagerFilter] = useState<ManagerFilter>("all");
 
-  // ------------------------------------------------------------------
-  // Поддержка безопасной области (вырезы устройства + UI Telegram)
-  // ------------------------------------------------------------------
-  useEffect(() => {
-    const tg =
-      typeof window !== "undefined" ? window.Telegram?.WebApp : undefined;
-
-    if (!tg || typeof document === "undefined") return undefined;
-
-    const rootStyle = document.documentElement?.style;
-    if (!rootStyle) return undefined;
-
-    const applyInsets = (top = 0, bottom = 0) => {
-      rootStyle.setProperty("--tg-safe-area-inset-top", `${top}px`);
-      rootStyle.setProperty("--tg-safe-area-inset-bottom", `${bottom}px`);
-    };
-
-    const syncInsets = (eventData?: TelegramViewportChangedData) => {
-      // 1) Safe area с учётом UI Telegram (верхняя панель, нижние кнопки)
-      const contentSafeArea =
-        eventData?.contentSafeAreaInsets ??
-        eventData?.contentSafeAreaInset ??
-        tg.viewport?.contentSafeAreaInsets ??
-        tg.contentSafeAreaInsets ??
-        tg.contentSafeAreaInset;
-
-      // 2) Системный safe area устройства
-      const safeArea =
-        eventData?.safeAreaInsets ??
-        eventData?.safeAreaInset ??
-        tg.viewport?.safeAreaInsets ??
-        tg.safeAreaInsets ??
-        tg.safeAreaInset;
-
-      const top = contentSafeArea?.top ?? safeArea?.top ?? 0;
-      const bottom = contentSafeArea?.bottom ?? safeArea?.bottom ?? 0;
-
-      if (top !== 0 || bottom !== 0) {
-        applyInsets(top, bottom);
-        return;
-      }
-
-      // 3) Фолбэк через стабильную высоту
-      const stableHeight = eventData?.stableHeight ?? tg.viewportStableHeight;
-      const viewportHeight = eventData?.height ?? tg.viewportHeight ?? stableHeight;
-
-      if (typeof window !== "undefined" && viewportHeight) {
-        const bottomInset = Math.max(0, window.innerHeight - viewportHeight);
-        applyInsets(0, bottomInset);
-      }
-    };
-
-    // первичная синхронизация
-    syncInsets();
-
-    // Отключено: события вызывают дёргание интерфейса при скролле.
-    // Safe-area рассчитываем один раз при старте, этого достаточно.
-    // tg.onEvent?.("viewportChanged", handleViewportChange);
-    // tg.onEvent?.("safeAreaChanged", handleSafeAreaChange);
-    // tg.onEvent?.("contentSafeAreaChanged", handleSafeAreaChange);
-
-    return undefined;
-  }, []);
-
-  const changeTabBySwipe = useCallback(
-    (direction: 1 | -1) => {
-      setActiveTab((current) => {
-        const index = TAB_ORDER.indexOf(current);
-        const nextIndex = index + direction;
-        if (nextIndex < 0 || nextIndex >= TAB_ORDER.length) {
-          return current;
-        }
-        return TAB_ORDER[nextIndex];
-      });
+  const contractorObjects: ContractorObject[] = [
+    {
+      id: "1",
+      name: "ЖК «Северный», корпус 3",
+      address: "Москва, ул. Летняя, 12",
+      lastReportDate: new Date().toISOString(),
+      hasTodayReport: true,
+    },
+    {
+      id: "2",
+      name: "Деловой центр «Невский»",
+      address: "Санкт-Петербург, Невский пр., 128",
+      lastReportDate: "2025-11-24",
+      hasTodayReport: false,
+    },
+    {
+      id: "3",
+      name: "Складской комплекс «Вектор»",
+      lastReportDate: undefined,
+      hasTodayReport: false,
     },
     []
   );
@@ -542,12 +455,9 @@ export default function TelegramWebAppGlassPure() {
     fetch(`${API_URL}/work_types`, { signal: controller.signal, mode: "cors" })
       .then((response) => {
         if (!response.ok) {
-          setBackendReachable("error");
-          setBackendError(`Backend вернул код ${response.status}`);
           return Promise.reject();
         }
 
-        setBackendReachable("ok");
         return response.json();
       })
       .then((rows: Array<{ id: string | number; name: string }>) => {
@@ -564,11 +474,7 @@ export default function TelegramWebAppGlassPure() {
       })
       .catch((error) => {
         if (error instanceof DOMException && error.name === "AbortError") {
-          setBackendReachable("error");
-          setBackendError("Тайм-аут запроса к backend");
         } else if (error instanceof TypeError) {
-          setBackendReachable("error");
-          setBackendError("Не удалось подключиться (CORS/HTTPS)");
         }
 
         /* silent fallback to default workTypes */
@@ -588,71 +494,47 @@ export default function TelegramWebAppGlassPure() {
     { id: "2", name: "ЖК «Академический»", address: "пр-т Науки, 5" },
   ];
 
-  const history = useMemo<HistoryRow[]>(
-    () => [
-      {
-        id: 101,
-        project_id: "1",
-        date: "2025-11-11",
-        work_type_id: "2",
-        description:
-          "Бетонирование ростверка\nОбъём: 12,5 м³\nТехника: 2\nЛюди: 7",
-        photos: [
-          "https://picsum.photos/seed/a/300/200",
-          "https://picsum.photos/seed/b/300/200",
-        ],
-      },
-      {
-        id: 100,
-        project_id: "1",
-        date: "2025-11-10",
-        work_type_id: "1",
-        description:
-          "Разработка котлована\nОбъём: 80 м³\nТехника: 3\nЛюди: 5",
-        photos: ["https://picsum.photos/seed/c/300/200"],
-      },
-    ],
-    []
-  );
-
-  const accessList: AccessRow[] = [
+  const managerObjects: ManagerObject[] = [
     {
-      user: { id: 8, name: "ИП «СтройСервис»" },
-      projects: ["1"],
-      role: "reporter",
+      id: "1",
+      name: "ЖК «Северный»",
+      status: "onTrack",
+      readinessPercent: 75,
+      readinessDelta: 12,
+      lastReportDate: "2025-11-24",
+      foremanName: "Иванов И.",
     },
     {
-      user: { id: 9, name: "ООО «МонтажГрупп»" },
-      projects: ["1", "2"],
-      role: "reporter",
+      id: "2",
+      name: "Бизнес-квартал «Высота»",
+      status: "delayed",
+      readinessPercent: 58,
+      readinessDelta: -4,
+      lastReportDate: "2025-11-20",
+      foremanName: "Петров А.",
+    },
+    {
+      id: "3",
+      name: "Логистический парк «Юг»",
+      status: "onTrack",
+      readinessPercent: 82,
+      readinessDelta: 6,
+      lastReportDate: "2025-11-18",
+      foremanName: "Сидоров Н.",
+    },
+    {
+      id: "4",
+      name: "ТЦ «Горизонт»",
+      status: "delayed",
+      readinessPercent: 44,
+      readinessDelta: -8,
+      lastReportDate: "2025-11-19",
+      foremanName: "Кузнецов Р.",
     },
   ];
 
-  const onPickFiles = () => fileInputRef.current?.click();
-
-  const onFilesSelected = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const selected = Array.from(event.target.files || []);
-
-    if (!selected.length) {
-      setFileValidationMessage("Добавьте хотя бы одно фото для отчёта");
-      setFiles([]);
-      setPreviews([]);
-      return;
-    }
-
-    setFileValidationMessage(null);
-    setFiles(selected);
-
-    Promise.all(
-      selected.map(
-        (file) =>
-          new Promise<string>((resolve) => {
-            const reader = new FileReader();
-            reader.onload = () => resolve(String(reader.result));
-            reader.readAsDataURL(file);
-          })
-      )
-    ).then(setPreviews);
+  const handleCreateReport = () => {
+    console.log("Создать отчёт");
   };
 
   const [sending, setSending] = useState(false);
@@ -789,13 +671,6 @@ export default function TelegramWebAppGlassPure() {
                   )}
                 </div>
               </header>
-
-              {backendReachable === "error" ? (
-                <div className="mb-3 rounded-2xl border border-red-300/60 bg-red-500/20 px-4 py-3 text-sm leading-tight text-red-50 shadow-[0_10px_30px_rgba(239,68,68,0.25)]">
-                  <div className="font-semibold">Нет связи с backend ({API_URL})</div>
-                  <div>{backendError || "Проверьте HTTPS и CORS для Telegram WebView."}</div>
-                </div>
-              ) : null}
 
               <div className="mb-5 grid gap-3 sm:grid-cols-3">
                 <div className="glass-chip border border-white/25 bg-white/10 px-3.5 py-3 text-white shadow-[0_16px_40px_rgba(6,17,44,0.45)] sm:px-4">
@@ -1207,133 +1082,48 @@ export default function TelegramWebAppGlassPure() {
                   </Card>
                 </TabsContent>
 
-                {/* TAB: ДОСТУП */}
-                <TabsContent value="admin" className="mt-0">
-                  <Card className="glass-panel border-white/25 bg-gradient-to-br from-white/14 via-white/10 to-white/5 text-white shadow-[0_28px_80px_rgba(6,17,44,0.55)] backdrop-blur-[32px]">
-                    <CardHeader className="pb-5 sm:pb-6">
-                      <CardTitle className="flex items-center gap-2 text-[16px] font-semibold text-white sm:text-[18px]">
-                        <ShieldCheck className="h-4 w-4" /> Назначение доступа
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-6 text-[11px] sm:p-7 sm:pt-1 sm:text-[12px]">
-                      <div className="grid gap-3 rounded-3xl border border-white/15 bg-white/5 p-4 backdrop-blur">
-                        <div className="grid gap-3 sm:grid-cols-3">
-                          <div className="space-y-1.5 sm:col-span-1">
-                            <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-white/60 sm:text-[10px]">
-                              Найти подрядчика
-                            </p>
-                            <Input
-                              placeholder="Поиск по названию / Telegram"
-                              className="h-9 rounded-2xl border border-white/20 bg-white/10 text-[11px] text-white/90 placeholder:text-white/50 sm:text-[12px]"
-                            />
-                          </div>
-                          <div className="space-y-1.5">
-                            <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-white/60 sm:text-[10px]">
-                              Объект
-                            </p>
-                            <Select value={project} onValueChange={setProject}>
-                              <SelectTrigger className="h-9 rounded-2xl border border-white/20 bg-white/10 text-[11px] text-white/90 sm:text-[12px]">
-                                <SelectValue placeholder="Выберите объект" />
-                              </SelectTrigger>
-                              <SelectContent className="border border-white/15 bg-[#07132F]/95 text-white">
-                                {projects.map((item) => (
-                                  <SelectItem key={item.id} value={item.id}>
-                                    {item.name}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div className="space-y-1.5">
-                            <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-white/60 sm:text-[10px]">
-                              Роль
-                            </p>
-                            <Select defaultValue="reporter">
-                              <SelectTrigger className="h-9 rounded-2xl border border-white/20 bg-white/10 text-[11px] text-white/90 sm:text-[12px]">
-                                <SelectValue placeholder="Роль" />
-                              </SelectTrigger>
-                              <SelectContent className="border border-white/15 bg-[#07132F]/95 text-white">
-                                <SelectItem value="reporter">
-                                  Может отправлять отчёты
-                                </SelectItem>
-                                <SelectItem value="viewer">
-                                  Только просмотр
-                                </SelectItem>
-                                <SelectItem value="manager">
-                                  Менеджер
-                                </SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        </div>
-                      </div>
+  const handleOpenFilters = () => {
+    console.log("Открыть фильтры");
+  };
 
-                      <div className="space-y-2">
-                        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/65 sm:text-[11px]">
-                          Текущие назначения
-                        </p>
-                          <div className="space-y-2">
-                            {accessList.map((row, index) => (
-                              <div
-                                key={index}
-                                className="flex flex-col gap-3 rounded-[18px] border border-white/12 bg-white/8 px-4 py-3 shadow-[0_12px_30px_rgba(6,17,44,0.35)] backdrop-blur sm:flex-row sm:items-center sm:justify-between"
-                              >
-                              <div>
-                                <div className="text-[12px] font-medium text-white/90 sm:text-[13px]">
-                                  {row.user.name}
-                                </div>
-                                <div className="text-[10px] text-white/65 sm:text-[11px]">
-                                  Проекты:{" "}
-                                  {row.projects
-                                    .map(
-                                      (pid) =>
-                                        projects.find((p) => p.id === pid)
-                                          ?.name
-                                    )
-                                    .join(", ")}
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <span className="text-[10px] text-white/70 sm:text-[11px]">
-                                  Роль: {row.role}
-                                </span>
-                                <Button
-                                  variant="secondary"
-                                  size="sm"
-                                  className="h-8 rounded-full border-none bg-white/85 px-3 text-[10px] font-semibold text-sky-800 shadow-[0_12px_32px_rgba(3,144,255,0.55)] hover:brightness-110 sm:text-[11px]"
-                                >
-                                  Изменить
-                                </Button>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-              </Tabs>
-            </div>
-          </div>
-        </div>
-      </main>
+  const userName = role === "contractor" ? "Алексей" : "Мария";
+
+  return (
+    <div className="relative min-h-screen">
+      <div className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-b from-[#0a1430] via-[#0d1838] to-[#0f2149]" />
+
+      <div className="fixed right-4 top-4 z-30 flex gap-2 text-xs font-semibold text-white/80">
+        <Button
+          variant={role === "contractor" ? "default" : "secondary"}
+          size="sm"
+          onClick={() => setRole("contractor")}
+          className="shadow-md shadow-cyan-500/30"
+        >
+          Подрядчик
+        </Button>
+        <Button
+          variant={role === "manager" ? "default" : "secondary"}
+          size="sm"
+          onClick={() => setRole("manager")}
+          className="shadow-md shadow-cyan-500/30"
+        >
+          Руководитель
+        </Button>
+      </div>
+
+      <AppRoot
+        role={role}
+        userName={userName}
+        contractorObjects={contractorObjects}
+        managerObjects={managerObjects}
+        contractorLoading={false}
+        managerLoading={false}
+        managerFilter={managerFilter}
+        onManagerFilterChange={setManagerFilter}
+        onCreateReport={handleCreateReport}
+        onOpenObject={handleOpenObject}
+        onOpenFilters={handleOpenFilters}
+      />
     </div>
   );
-}
-
-function formatRu(iso: string) {
-  const [year, month, day] = iso.split("-");
-  return `${day}.${month}.${year}`;
-}
-
-function toOneLine(desc: string) {
-  const source = String(desc || "");
-  const vol = source.match(/Объём:\s*([^\n]+)/i)?.[1]?.trim();
-  const mach = source.match(/Техника:\s*([^\n]+)/i)?.[1]?.trim();
-  const ppl = source.match(/Люди:\s*([^\n]+)/i)?.[1]?.trim();
-  const parts: string[] = [];
-  if (vol) parts.push(`Объём: ${vol}`);
-  if (mach) parts.push(`Техника: ${mach}`);
-  if (ppl) parts.push(`Люди: ${ppl}`);
-  return parts.length ? parts.join(" • ") : source.replace(/\s+/g, " ").trim();
 }
