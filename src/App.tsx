@@ -30,6 +30,7 @@ type AccessRow = {
   role: string;
 };
 
+type BackendReachability = "unknown" | "ok" | "error";
 type TabKey = "report" | "history" | "admin";
 const TAB_ORDER: TabKey[] = ["report", "history", "admin"];
 
