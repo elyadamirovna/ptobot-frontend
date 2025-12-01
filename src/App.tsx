@@ -7,9 +7,6 @@ import React, {
   useCallback,
 } from "react";
 
-import ContractorReportCreate from "./pages/ContractorReportCreate";
-import DirectorReportView from "./pages/DirectorReportView";
-
 import {
   CorporateStrictLayout,
   GlassmorphismLayout,
@@ -70,7 +67,7 @@ type AccessRow = {
 type TabKey = "report" | "history" | "admin";
 const TAB_ORDER: TabKey[] = ["report", "history", "admin"];
 
-export function TelegramWebAppGlassPure() {
+export default function TelegramWebAppGlassPure() {
   const PREVIEW_COMPONENTS = useMemo(
     () => ({
       minimalist: MinimalistLayout,
@@ -1321,47 +1318,3 @@ function toOneLine(desc: string) {
   if (ppl) parts.push(`Люди: ${ppl}`);
   return parts.length ? parts.join(" • ") : source.replace(/\s+/g, " ").trim();
 }
-
-export function getCurrentPathname() {
-  if (typeof window === "undefined") return "/";
-  return window.location?.pathname || "/";
-}
-
-export function AppRouter() {
-  const [route, setRoute] = useState<string>(getCurrentPathname());
-
-  useEffect(() => {
-    const handlePopState = () => setRoute(getCurrentPathname());
-
-    window.addEventListener("popstate", handlePopState);
-
-    return () => {
-      window.removeEventListener("popstate", handlePopState);
-    };
-  }, []);
-
-  const navigate = useCallback((path: string) => {
-    if (typeof window === "undefined") return;
-    window.history.pushState({}, "", path);
-    setRoute(path);
-  }, []);
-
-  const goBack = useCallback(() => {
-    if (typeof window === "undefined") return;
-    window.history.back();
-  }, []);
-
-  if (route === "/contractor/report-create") {
-    return (
-      <ContractorReportCreate onNavigate={navigate} onBack={goBack} />
-    );
-  }
-
-  if (route === "/director/report-view") {
-    return <DirectorReportView onNavigate={navigate} onBack={goBack} />;
-  }
-
-  return <TelegramWebAppGlassPure />;
-}
-
-export default AppRouter;
