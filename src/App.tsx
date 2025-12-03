@@ -735,10 +735,12 @@ export default function TelegramWebAppGlassPure() {
     <PreviewComponent />
   ) : (
     <div
-      className="relative flex min-h-[100dvh] w-full flex-col overflow-hidden text-white"
+      className="relative flex h-[100dvh] w-full flex-col text-white"
       style={{
         backgroundColor: "var(--app-surface)",
         backgroundImage: "var(--app-surface-gradient)",
+        overscrollBehaviorY: "none",
+        WebkitOverflowScrolling: "touch",
       }}
     >
       <div className="pointer-events-none absolute -left-24 -top-32 h-72 w-72 rounded-full bg-indigo-500/40 blur-[140px]" />
@@ -746,8 +748,8 @@ export default function TelegramWebAppGlassPure() {
       <div className="pointer-events-none absolute inset-x-1/2 top-[40%] h-64 w-64 -translate-x-1/2 rounded-full bg-emerald-400/30 blur-[120px]" />
 
       <main
-        className="safe-area-page relative z-10 flex min-h-[100dvh] w-full flex-1 justify-center overflow-y-auto px-3 touch-pan-y md:px-4"
-        style={{ WebkitOverflowScrolling: "touch", overscrollBehaviorY: "contain" }}
+        className="safe-area-page relative z-10 flex h-[100dvh] w-full flex-1 justify-center overflow-y-scroll overscroll-none px-3 touch-pan-y md:px-4"
+        style={{ WebkitOverflowScrolling: "touch" }}
       >
         <div className="mx-auto w-full max-w-full md:max-w-[620px] lg:max-w-[700px]">
           <div className="relative rounded-[32px] px-4 pb-8 pt-6 sm:rounded-[44px] sm:px-6 sm:pb-9 sm:pt-7 lg:rounded-[52px] lg:px-8 lg:pb-10 lg:pt-8">

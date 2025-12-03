@@ -19,7 +19,7 @@ const Section: FC<SectionProps> = ({ title, children }) => (
    ============================================================ */
 
 export const MinimalistLayout: FC = () => (
-  <div className="flex min-h-[100dvh] flex-col gap-6 bg-slate-950 px-4 py-6 text-slate-50 overflow-x-hidden overflow-y-auto">
+  <div className="flex h-[100dvh] flex-col gap-6 bg-slate-950 px-4 py-6 text-slate-50 overflow-x-hidden overflow-y-auto">
     <header className="flex items-center justify-between">
       <div className="flex flex-col">
         <span className="text-xs uppercase tracking-wide text-slate-400">
@@ -95,7 +95,7 @@ export const MinimalistLayout: FC = () => (
    ============================================================ */
 
 export const GlassmorphismLayout: FC = () => (
-  <div className="relative flex min-h-[100dvh] justify-center overflow-x-hidden overflow-y-auto bg-gradient-to-br from-[#161323] via-[#1b1a2e] to-[#0f0d1d] px-6 py-8 text-slate-100">
+  <div className="relative flex h-[100dvh] justify-center overflow-x-hidden overflow-y-auto bg-gradient-to-br from-[#161323] via-[#1b1a2e] to-[#0f0d1d] px-6 py-8 text-slate-100">
 
     {/* decorative blur layers — pointer-events-none обязательно! */}
     <div className="pointer-events-none absolute -top-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-purple-500/20 blur-3xl" />
@@ -347,7 +347,7 @@ export const GlassmorphismLayout: FC = () => (
    ============================================================ */
 
 export const CorporateStrictLayout: FC = () => (
-  <div className="flex min-h-[100dvh] flex-col bg-slate-100 text-slate-900 overflow-y-auto overflow-x-hidden">
+  <div className="flex h-[100dvh] flex-col bg-slate-100 text-slate-900 overflow-y-auto overflow-x-hidden">
 
     <header className="border-b border-slate-200 bg-white/90 px-5 py-4">
       <div className="mx-auto flex w-full max-w-3xl items-center justify-between">
