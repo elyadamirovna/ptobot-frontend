@@ -12,61 +12,23 @@ import {
   GlassmorphismLayout,
   MinimalistLayout,
 } from "@/components/LayoutVariants";
-
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-
-import {
-  CalendarDays,
-  Building2,
-  HardHat,
-  Users,
-  Image as ImageIcon,
-  Upload,
-  ChevronDown,
-  History,
-  ClipboardList,
-  ShieldCheck,
-} from "lucide-react";
 import type {
   TelegramViewportChangedData,
   TelegramWebApp,
 } from "@/types/telegram";
+import {
+  ContractorObjectCard,
+  ContractorObjectsScreen,
+} from "@/components/ContractorObjectsScreen";
+import { DashboardScreen } from "@/components/DashboardScreen";
+import { AccessRow, HistoryRow, ScreenKey, TabKey, WorkType } from "@/types/app";
 
 const API_URL = (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, "")
   ?? "https://ptobot-backend.onrender.com";
 const DEFAULT_LOGO_URL = "https://storage.yandexcloud.net/ptobot-assets/LOGO.svg";
 
-type WorkType = { id: string; name: string };
-
-type HistoryRow = {
-  id: number;
-  project_id: string;
-  date: string;
-  work_type_id: string;
-  description: string;
-  photos: string[];
-};
-
-type AccessRow = {
-  user: { id: number; name: string };
-  projects: string[];
-  role: string;
-};
-
-type TabKey = "report" | "history" | "admin";
-type ScreenKey = "dashboard" | "objects";
 const TAB_ORDER: TabKey[] = ["report", "history", "admin"];
+type UserRole = "contractor" | "manager";
 
 export default function TelegramWebAppGlassPure() {
   const PREVIEW_COMPONENTS = useMemo(
@@ -97,7 +59,6 @@ export default function TelegramWebAppGlassPure() {
   }, []);
 
   useEffect(() => {
-    // запускаем появление логотипа после загрузки страницы
     setTimeout(() => setLogoReveal(true), 180);
   }, []);
 
@@ -135,9 +96,6 @@ export default function TelegramWebAppGlassPure() {
   const telegramRef = useRef<TelegramWebApp | null>(null);
   const activeTabRef = useRef<TabKey>("report");
 
-  // ------------------------------------------------------------------
-  // Поддержка безопасной области (вырезы устройства + UI Telegram)
-  // ------------------------------------------------------------------
   useEffect(() => {
     const tg =
       typeof window !== "undefined" ? window.Telegram?.WebApp : undefined;
@@ -153,7 +111,6 @@ export default function TelegramWebAppGlassPure() {
     };
 
     const syncInsets = (eventData?: TelegramViewportChangedData) => {
-      // 1) Safe area с учётом UI Telegram (верхняя панель, нижние кнопки)
       const contentSafeArea =
         eventData?.contentSafeAreaInsets ??
         eventData?.contentSafeAreaInset ??
@@ -161,7 +118,6 @@ export default function TelegramWebAppGlassPure() {
         tg.contentSafeAreaInsets ??
         tg.contentSafeAreaInset;
 
-      // 2) Системный safe area устройства
       const safeArea =
         eventData?.safeAreaInsets ??
         eventData?.safeAreaInset ??
@@ -177,7 +133,6 @@ export default function TelegramWebAppGlassPure() {
         return;
       }
 
-      // 3) Фолбэк через стабильную высоту
       const stableHeight = eventData?.stableHeight ?? tg.viewportStableHeight;
       const viewportHeight = eventData?.height ?? tg.viewportHeight ?? stableHeight;
 
@@ -187,14 +142,7 @@ export default function TelegramWebAppGlassPure() {
       }
     };
 
-    // первичная синхронизация
     syncInsets();
-
-    // Отключено: события вызывают дёргание интерфейса при скролле.
-    // Safe-area рассчитываем один раз при старте, этого достаточно.
-    // tg.onEvent?.("viewportChanged", handleViewportChange);
-    // tg.onEvent?.("safeAreaChanged", handleSafeAreaChange);
-    // tg.onEvent?.("contentSafeAreaChanged", handleSafeAreaChange);
 
     return undefined;
   }, []);
@@ -213,9 +161,6 @@ export default function TelegramWebAppGlassPure() {
     []
   );
 
-  // ------------------------------------------------------------------
-  // Telegram WebApp: ready/expand, BackButton, отключение вертикальных свайпов
-  // ------------------------------------------------------------------
   useEffect(() => {
     const tg =
       typeof window !== "undefined" ? window.Telegram?.WebApp : undefined;
@@ -232,7 +177,6 @@ export default function TelegramWebAppGlassPure() {
     const cleanupFns: Array<() => void> = [];
     const pushCleanup = (fn: () => void) => cleanupFns.push(fn);
 
-    // ready / expand
     try {
       tg.ready?.();
       tg.expand?.();
@@ -240,7 +184,6 @@ export default function TelegramWebAppGlassPure() {
       console.warn("[WebApp] Ошибка при вызове ready/expand", error);
     }
 
-    // --- BackButton видимость и поведение ---
     const syncBackButtonVisibility = () => {
       const backButton = tg.BackButton;
       if (!backButton) return;
@@ -313,7 +256,6 @@ export default function TelegramWebAppGlassPure() {
       );
     }
 
-    // --- Отключение системного vertical swipe (pull-to-close) ---
     let isDestroyed = false;
     let isSwipeApplied = false;
     let restoreSwipeBehavior: (() => void | Promise<void>) | null = null;
@@ -333,7 +275,6 @@ export default function TelegramWebAppGlassPure() {
       if (isDestroyed || isSwipeApplied) return;
 
       try {
-        // Новый API: setSwipeBehavior (v7.7+)
         if (
           tg.isVersionAtLeast?.("7.7") &&
           typeof tg.setSwipeBehavior === "function"
@@ -351,7 +292,6 @@ export default function TelegramWebAppGlassPure() {
           }
         }
 
-        // setSettings fallback
         if (typeof tg.setSettings === "function") {
           const result = await tg.setSettings({ allow_vertical_swipe: false });
 
@@ -368,7 +308,6 @@ export default function TelegramWebAppGlassPure() {
           }
         }
 
-        // Старый API: disableVerticalSwipes
         if (typeof tg.disableVerticalSwipes === "function" && !isSwipeApplied) {
           tg.disableVerticalSwipes();
           isSwipeApplied = true;
@@ -404,7 +343,6 @@ export default function TelegramWebAppGlassPure() {
         tg.offEvent?.("web_app_setup_swipe_behavior", handleSetupSwipeBehavior)
       );
     } else {
-      // для старых клиентов пробуем сразу
       void applySwipeBehavior();
     }
 
@@ -422,7 +360,6 @@ export default function TelegramWebAppGlassPure() {
     };
   }, []);
 
-  // актуальный таб для BackButton
   useEffect(() => {
     activeTabRef.current = activeTab;
 
@@ -443,7 +380,6 @@ export default function TelegramWebAppGlassPure() {
     }
   }, [activeTab]);
 
-  // Горизонтальный свайп по контенту (между табами), вертикальный остаётся скроллом
   useEffect(() => {
     const container = swipeAreaRef.current;
     if (!container) return;
@@ -480,7 +416,6 @@ export default function TelegramWebAppGlassPure() {
           if (Math.abs(deltaX) > Math.abs(deltaY)) {
             isHorizontal = true;
           } else {
-            // вертикальный жест — отдаём браузеру / Telegram для скролла
             resetTracking();
           }
         }
@@ -501,10 +436,8 @@ export default function TelegramWebAppGlassPure() {
 
       if (isHorizontal && horizontalEnough) {
         if (deltaX < 0) {
-          // свайп влево → следующая вкладка
           changeTabBySwipe(1);
         } else {
-          // свайп вправо → предыдущая вкладка
           changeTabBySwipe(-1);
         }
       }
@@ -520,8 +453,10 @@ export default function TelegramWebAppGlassPure() {
       passive: true,
     });
     container.addEventListener("touchmove", handleTouchMove, { passive: true });
-    container.addEventListener("touchend", finishSwipe);
-    container.addEventListener("touchcancel", handleTouchCancel);
+    container.addEventListener("touchend", finishSwipe, { passive: true });
+    container.addEventListener("touchcancel", handleTouchCancel, {
+      passive: true,
+    });
 
     return () => {
       container.removeEventListener("touchstart", handleTouchStart);
@@ -531,12 +466,11 @@ export default function TelegramWebAppGlassPure() {
     };
   }, [changeTabBySwipe]);
 
-  // --- проверка соединения с backend + загрузка видов работ ---
   useEffect(() => {
     const controller = new AbortController();
-    const timeoutId = window.setTimeout(() => controller.abort(), 8000);
+    const timeoutId = window.setTimeout(() => controller.abort(), 2500);
 
-    fetch(`${API_URL}/work_types`, { signal: controller.signal, mode: "cors" })
+    fetch(`${API_URL}/work-types`, { signal: controller.signal })
       .then((response) => {
         if (!response.ok) {
           return Promise.reject();
@@ -560,8 +494,6 @@ export default function TelegramWebAppGlassPure() {
         if (error instanceof DOMException && error.name === "AbortError") {
         } else if (error instanceof TypeError) {
         }
-
-        /* silent fallback to default workTypes */
       })
       .finally(() => {
         window.clearTimeout(timeoutId);
@@ -580,21 +512,21 @@ export default function TelegramWebAppGlassPure() {
     { id: "2", name: "ЖК «Академический»", address: "пр-т Науки, 5" },
   ];
 
-  const contractorObjects = useMemo(
+  const contractorObjects = useMemo<ContractorObjectCard[]>(
     () => [
       {
         id: "1",
         name: "ЖК «Северный»",
         address: "ул. Парковая, 12",
         lastReportDate: "today",
-        status: "sent" as const,
+        status: "sent",
       },
       {
         id: "2",
         name: "ЖК «Академический»",
         address: "пр-т Науки, 5",
         lastReportDate: "2024-10-05",
-        status: "missing" as const,
+        status: "missing",
       },
     ],
     []
@@ -697,9 +629,6 @@ export default function TelegramWebAppGlassPure() {
 
   const latestHistoryDate = history[0]?.date;
 
-  const renderLastReportDate = (value: string) =>
-    value === "today" ? "сегодня" : formatRu(value);
-
   const isFormReady = useMemo(
     () => Boolean(project && workType && date && files.length > 0),
     [project, workType, date, files.length]
@@ -775,6 +704,96 @@ export default function TelegramWebAppGlassPure() {
     ? PREVIEW_COMPONENTS[previewKey]
     : undefined;
 
+  const userRole: UserRole = "contractor";
+
+  const handleClearFiles = () => {
+    setFiles([]);
+    setPreviews([]);
+    setFileValidationMessage("Добавьте хотя бы одно фото для отчёта");
+  };
+
+  const contractorContent = (
+    <>
+      <div className="mb-4 flex justify-center">
+        <div className="flex overflow-hidden rounded-full border border-white/20 bg-white/10 text-[12px] text-white shadow-[0_14px_40px_rgba(6,17,44,0.45)] backdrop-blur">
+          {[{ key: "objects", label: "Мои объекты" }, { key: "dashboard", label: "Отчёты и доступ" }].map((item) => (
+            <button
+              key={item.key}
+              onClick={() => setActiveScreen(item.key as ScreenKey)}
+              className={`px-4 py-2 transition ${
+                activeScreen === item.key
+                  ? "bg-white/80 text-slate-900 shadow-[0_12px_30px_rgba(255,255,255,0.35)]"
+                  : "text-white/80 hover:bg-white/15"
+              }`}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {activeScreen === "objects" ? (
+        <ContractorObjectsScreen
+          contractorName={contractorName}
+          logoUrl={logoUrl}
+          logoLoaded={logoLoaded}
+          logoReveal={logoReveal}
+          onLogoLoad={() => setLogoLoaded(true)}
+          objects={contractorObjects}
+          onOpenObject={handleOpenObjectCard}
+          onCreateReport={handleCreateReportClick}
+        />
+      ) : (
+        <DashboardScreen
+          logoUrl={logoUrl}
+          logoLoaded={logoLoaded}
+          logoReveal={logoReveal}
+          onLogoLoad={() => setLogoLoaded(true)}
+          activeTab={activeTab}
+          onTabChange={(tab) => setActiveTab(tab)}
+          projects={projects}
+          workTypes={workTypes}
+          accessList={accessList}
+          history={history}
+          project={project}
+          workType={workType}
+          date={date}
+          volume={volume}
+          machines={machines}
+          people={people}
+          comment={comment}
+          previews={previews}
+          fileValidationMessage={fileValidationMessage}
+          sending={sending}
+          progress={progress}
+          requiredHintVisible={requiredHintVisible}
+          onProjectChange={setProject}
+          onWorkTypeChange={setWorkType}
+          onDateChange={setDate}
+          onVolumeChange={setVolume}
+          onMachinesChange={setMachines}
+          onPeopleChange={setPeople}
+          onCommentChange={setComment}
+          onPickFiles={onPickFiles}
+          onClearFiles={handleClearFiles}
+          onSendReport={sendReport}
+          onFilesSelected={onFilesSelected}
+          swipeAreaRef={swipeAreaRef}
+          fileInputRef={fileInputRef}
+          hasFiles={Boolean(files.length)}
+          isFormReady={isFormReady}
+          missingFields={missingFields}
+          latestHistoryDate={latestHistoryDate}
+          formCompletion={formCompletion}
+        />
+      )}
+    </>
+  );
+
+  const managerContent = <div className="text-white">TODO: manager screens</div>;
+
+  const content = userRole === "contractor" ? contractorContent : managerContent;
+
   return PreviewComponent ? (
     <PreviewComponent />
   ) : (
@@ -796,674 +815,9 @@ export default function TelegramWebAppGlassPure() {
         style={{ WebkitOverflowScrolling: "touch" }}
       >
         <div className="mx-auto w-full max-w-full md:max-w-[620px] lg:max-w-[700px]">
-          <div className="mb-4 flex justify-center">
-            <div className="flex overflow-hidden rounded-full border border-white/20 bg-white/10 text-[12px] text-white shadow-[0_14px_40px_rgba(6,17,44,0.45)] backdrop-blur">
-              {[{ key: "objects", label: "Мои объекты" }, { key: "dashboard", label: "Отчёты и доступ" }].map((item) => (
-                <button
-                  key={item.key}
-                  onClick={() => setActiveScreen(item.key as ScreenKey)}
-                  className={`px-4 py-2 transition ${
-                    activeScreen === item.key
-                      ? "bg-white/80 text-slate-900 shadow-[0_12px_30px_rgba(255,255,255,0.35)]"
-                      : "text-white/80 hover:bg-white/15"
-                  }`}
-                >
-                  {item.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {activeScreen === "objects" ? (
-            <div className="relative mx-auto w-[92%] max-w-[780px]">
-              <div className="pointer-events-none absolute -left-10 -top-14 h-32 w-32 rounded-full bg-sky-300/25 blur-[110px]" />
-              <div className="pointer-events-none absolute -right-8 bottom-10 h-32 w-32 rounded-full bg-emerald-300/25 blur-[110px]" />
-              <div className="pointer-events-none absolute left-1/2 top-0 h-20 w-40 -translate-x-1/2 rounded-full bg-white/15 blur-[100px]" />
-              <div className="relative overflow-hidden rounded-[32px] border border-white/20 bg-white/10 px-5 py-6 text-white shadow-[0_24px_70px_rgba(6,17,44,0.55)] backdrop-blur-[28px] sm:px-7 sm:py-8">
-                <div className="glass-grid-overlay" />
-                <div className="relative flex flex-col gap-5">
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="flex items-center gap-3">
-                      <div
-                        className={`
-                          flex h-11 w-32 items-center justify-center overflow-hidden
-                          rounded-2xl bg-white/20
-                          transition-all duration-1000 ease-out delay-100
-                          ${logoReveal ? "opacity-100 translate-y-0" : "opacity-0 translate-y-3"}
-                        `}
-                      >
-                        {logoUrl ? (
-                          <img
-                            src={logoUrl}
-                            alt="Логотип компании"
-                            className={`
-                              h-full w-full object-contain transform-gpu transition-all duration-1000 ease-out
-                              ${logoLoaded ? "opacity-100 scale-100 blur-0" : "opacity-0 scale-105 blur-[6px]"}
-                            `}
-                            onLoad={() => setLogoLoaded(true)}
-                          />
-                        ) : (
-                          <span>Лого</span>
-                        )}
-                      </div>
-                      <div>
-                        <p className="text-[13px] font-semibold text-white">Добрый день, {contractorName}</p>
-                        <p className="text-[12px] text-white/75">Объекты под вашим контролем</p>
-                      </div>
-                    </div>
-                    <div className="rounded-full border border-white/25 bg-white/10 px-4 py-2 text-[11px] font-medium uppercase tracking-[0.2em] text-white/80">
-                      Подрядчик
-                    </div>
-                  </div>
-
-                  <div className="space-y-3 sm:space-y-4">
-                    {contractorObjects.map((object) => (
-                      <button
-                        key={object.id}
-                        onClick={() => handleOpenObjectCard(object.id)}
-                        className="group flex w-full flex-col gap-2 rounded-[24px] border border-white/35 bg-white/60 px-4 py-4 text-left text-slate-900 shadow-[0_16px_50px_rgba(6,17,44,0.35)] backdrop-blur transition hover:-translate-y-[2px] hover:shadow-[0_24px_60px_rgba(6,17,44,0.45)] sm:flex-row sm:items-center sm:justify-between sm:px-5 sm:py-4"
-                      >
-                        <div className="space-y-1">
-                          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">Название</p>
-                          <p className="text-[18px] font-semibold text-slate-900">{object.name}</p>
-                          <p className="text-[12px] text-slate-600">Адрес: {object.address}</p>
-                          <p className="text-[12px] text-slate-600">
-                            Последний отчёт: <span className="font-semibold text-slate-800">{renderLastReportDate(object.lastReportDate)}</span>
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-2 self-start rounded-full border border-white/60 bg-white/80 px-3 py-1 text-[12px] font-semibold shadow-[0_12px_30px_rgba(6,17,44,0.15)] sm:self-center">
-                          <span
-                            className={`h-2 w-2 rounded-full ${
-                              object.status === "sent" ? "bg-emerald-500" : "bg-amber-400"
-                            }`}
-                          />
-                          <span className={object.status === "sent" ? "text-emerald-700" : "text-amber-700"}>
-                            {object.status === "sent" ? "отчёт отправлен" : "нет отчёта"}
-                          </span>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-
-                  <div className="pt-1">
-                    <Button
-                      className="w-full rounded-full bg-gradient-to-r from-[#48C6EF] via-[#52E5FF] to-[#84FAB0] py-3 text-[13px] font-semibold text-sky-950 shadow-[0_24px_70px_rgba(6,17,44,0.55)] transition hover:brightness-110"
-                      onClick={handleCreateReportClick}
-                    >
-                      Создать отчёт
-                    </Button>
-                    <p className="mt-2 text-center text-[11px] text-white/75">Тап по карточке → Экран 3</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ) : (
-          <div className="relative rounded-[32px] px-4 pb-8 pt-6 sm:rounded-[44px] sm:px-6 sm:pb-9 sm:pt-7 lg:rounded-[52px] lg:px-8 lg:pb-10 lg:pt-8">
-            <div className="glass-grid-overlay" />
-            <div className="relative" ref={swipeAreaRef}>
-              <header className="mb-4 flex items-center justify-center sm:mb-6">
-                <div
-                  className={`
-                    flex h-12 w-36 items-center justify-center overflow-hidden
-                    rounded-2xl
-                    transition-all duration-1000 ease-out delay-100
-                    ${logoReveal ? "opacity-100 translate-y-0" : "opacity-0 translate-y-3"}
-                  `}
-                >
-                  {logoUrl ? (
-                    <img
-                      src={logoUrl}
-                      alt="Логотип компании"
-                      className={`
-                        h-full w-full object-contain transform-gpu transition-all duration-1000 ease-out
-                        ${logoLoaded ? "opacity-100 scale-100 blur-0" : "opacity-0 scale-105 blur-[6px]"}
-                      `}
-                      onLoad={() => setLogoLoaded(true)}
-                    />
-                  ) : (
-                    <span>Лого</span>
-                  )}
-                </div>
-              </header>
-
-              <div className="mb-5 grid gap-3 sm:grid-cols-3">
-                <div className="glass-chip border border-white/25 bg-white/10 px-3.5 py-3 text-white shadow-[0_16px_40px_rgba(6,17,44,0.45)] sm:px-4">
-                  <div className="flex items-center justify-between text-[10px] font-semibold uppercase tracking-[0.14em] text-white/65">
-                    <span>Готовность</span>
-                    <span className="rounded-full bg-white/10 px-2 py-0.5 text-[9px] text-white/70">glass</span>
-                  </div>
-                  <div className="mt-1 flex items-end justify-between">
-                    <span className="text-[22px] font-semibold sm:text-[24px]">{formCompletion}%</span>
-                    <span className="rounded-full bg-emerald-300/20 px-2 py-1 text-[10px] font-medium text-emerald-100">
-                      {isFormReady ? "готово" : "заполните поля"}
-                    </span>
-                  </div>
-                  <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/10">
-                    <div
-                      className="h-full rounded-full bg-gradient-to-r from-cyan-300/90 via-indigo-300/80 to-emerald-300/90"
-                      style={{ width: `${formCompletion}%` }}
-                    />
-                  </div>
-                </div>
-
-                <div className="glass-chip border border-white/25 bg-white/10 px-3.5 py-3 text-white shadow-[0_16px_40px_rgba(6,17,44,0.45)] sm:px-4">
-                  <div className="flex items-center justify-between text-[10px] font-semibold uppercase tracking-[0.14em] text-white/65">
-                    <span>История</span>
-                    <span className="rounded-full bg-white/10 px-2 py-0.5 text-[9px] text-white/70">{history.length} отчёта</span>
-                  </div>
-                  <div className="mt-1 flex items-end justify-between">
-                    <span className="text-[22px] font-semibold sm:text-[24px]">
-                      {latestHistoryDate ? formatRu(latestHistoryDate) : "—"}
-                    </span>
-                    <span className="rounded-full bg-white/12 px-2 py-1 text-[10px] font-medium text-white/80">
-                      {workTypes.find((item) => item.id === workType)?.name ?? "Виды работ"}
-                    </span>
-                  </div>
-                  <p className="mt-2 text-[11px] text-white/70">Последний отчёт открыт для просмотра.</p>
-                </div>
-
-                <div className="glass-chip border border-white/25 bg-white/10 px-3.5 py-3 text-white shadow-[0_16px_40px_rgba(6,17,44,0.45)] sm:px-4">
-                  <div className="flex items-center justify-between text-[10px] font-semibold uppercase tracking-[0.14em] text-white/65">
-                    <span>Доступы</span>
-                    <span className="rounded-full bg-white/10 px-2 py-0.5 text-[9px] text-white/70">{accessList.length} партнёра</span>
-                  </div>
-                  <div className="mt-1 flex items-end justify-between">
-                    <span className="text-[22px] font-semibold sm:text-[24px]">{projects.length}</span>
-                    <span className="rounded-full bg-white/12 px-2 py-1 text-[10px] font-medium text-white/80">
-                      объектов на контроле
-                    </span>
-                  </div>
-                  <p className="mt-2 text-[11px] text-white/70">Управляйте ролями прямо в мини-приложении.</p>
-                </div>
-              </div>
-
-              <Tabs
-                value={activeTab}
-                onValueChange={(v) => setActiveTab(v as TabKey)}
-                className="w-full"
-              >
-                <TabsList className="glass-chip mb-4 grid grid-cols-3 gap-1 rounded-full bg-white/12 p-1 text-[11px] text-white/80 shadow-[0_14px_40px_rgba(6,17,44,0.45)] sm:mb-5 sm:text-[12px]">
-                  <TabsTrigger
-                    value="report"
-                    className="flex items-center justify-center gap-1 rounded-full px-2 py-1.5 text-[10px] transition data-[state=active]:bg-white data-[state=active]:text-sky-900 data-[state=active]:shadow-[0_12px_30px_rgba(255,255,255,0.45)] sm:px-3 sm:py-2 sm:text-[12px]"
-                  >
-                    <ClipboardList className="h-3.5 w-3.5" /> Отчёт
-                  </TabsTrigger>
-                  <TabsTrigger
-                    value="history"
-                    className="flex items-center justify-center gap-1 rounded-full px-2 py-1.5 text-[10px] transition data-[state=active]:bg-white data-[state=active]:text-sky-900 data-[state=active]:shadow-[0_12px_30px_rgba(255,255,255,0.45)] sm:px-3 sm:py-2 sm:text-[12px]"
-                  >
-                    <History className="h-3.5 w-3.5" /> История
-                  </TabsTrigger>
-                  <TabsTrigger
-                    value="admin"
-                    className="flex items-center justify-center gap-1 rounded-full px-2 py-1.5 text-[10px] transition data-[state=active]:bg-white data-[state=active]:text-sky-900 data-[state=active]:shadow-[0_12px_30px_rgba(255,255,255,0.45)] sm:px-3 sm:py-2 sm:text-[12px]"
-                  >
-                    <ShieldCheck className="h-3.5 w-3.5" /> Доступ
-                  </TabsTrigger>
-                </TabsList>
-
-                {/* TAB: ОТЧЁТ */}
-                <TabsContent value="report" className="mt-0">
-                  <Card className="glass-panel border-white/25 bg-gradient-to-br from-white/14 via-white/10 to-white/5 text-white shadow-[0_28px_80px_rgba(6,17,44,0.55)] backdrop-blur-[32px]">
-                    <CardHeader className="pb-5 sm:pb-6">
-                      <CardTitle className="text-[18px] font-semibold tracking-wide text-white sm:text-[20px]">
-                        Ежедневный отчёт
-                      </CardTitle>
-                      <p className="text-xs text-white/80">{formatRu(date)}</p>
-                    </CardHeader>
-                    <CardContent className="space-y-6 text-[12px] sm:p-7 sm:pt-1 sm:text-[13px]">
-                      <div className="grid gap-3 rounded-3xl border border-white/20 bg-white/5 p-4 backdrop-blur-xl">
-                        <div className="space-y-1.5">
-                          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/60 sm:text-[11px]">
-                            Объект
-                          </p>
-                          <div className="relative">
-                            <Building2 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/65" />
-                            <Select value={project} onValueChange={setProject}>
-                              <SelectTrigger className="h-11 rounded-2xl border border-white/20 bg-white/10 pl-11 pr-12 text-[13px] font-medium text-white/90 shadow-[0_16px_38px_rgba(7,24,74,0.55)] backdrop-blur sm:h-12 sm:text-[14px]">
-                                <SelectValue placeholder="Выберите объект" />
-                              </SelectTrigger>
-                              <SelectContent className="border border-white/15 bg-[#07132F]/95 text-white">
-                                {projects.map((item) => (
-                                  <SelectItem key={item.id} value={item.id}>
-                                    {item.name}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        </div>
-                        <div className="space-y-1.5">
-                          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/60 sm:text-[11px]">
-                            Вид работ
-                          </p>
-                          <div className="relative">
-                            <HardHat className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/65" />
-                            <Select value={workType} onValueChange={setWorkType}>
-                              <SelectTrigger className="h-11 rounded-2xl border border-white/20 bg-white/10 pl-11 pr-12 text-[13px] font-medium text-white/90 shadow-[0_16px_38px_rgba(7,24,74,0.55)] backdrop-blur sm:h-12 sm:text-[14px]">
-                                <SelectValue placeholder="Выберите вид работ" />
-                              </SelectTrigger>
-                              <SelectContent className="border border-white/15 bg-[#07132F]/95 text-white">
-                                {workTypes.map((item) => (
-                                  <SelectItem key={item.id} value={item.id}>
-                                    {item.name}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="grid gap-3 sm:grid-cols-3">
-                        <div className="space-y-1.5">
-                          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/60 sm:text-[11px]">
-                            Дата
-                          </p>
-                          <div className="relative">
-                            <Input
-                              type="date"
-                              value={date}
-                              onChange={(event) => setDate(event.target.value)}
-                              className="h-11 rounded-2xl border border-white/20 bg-white/10 pl-12 pr-12 text-[13px] font-medium text-white/90 placeholder:text-white/50 [appearance:none] sm:h-12 sm:text-[14px]"
-                            />
-                            <CalendarDays className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/65" />
-                            <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/55" />
-                          </div>
-                        </div>
-                        <div className="space-y-1.5">
-                          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/60 sm:text-[11px]">
-                            Объём
-                          </p>
-                          <div className="flex items-center gap-2">
-                            <Input
-                              placeholder="12,5"
-                              value={volume}
-                              onChange={(event) => setVolume(event.target.value)}
-                              className="h-11 flex-1 rounded-2xl border border-white/20 bg-white/10 text-[13px] font-medium text-white/90 placeholder:text-white/40 sm:h-12 sm:text-[14px]"
-                            />
-                            <div className="flex h-11 items-center justify-center rounded-2xl border border-white/15 bg-white/10 px-3 text-[11px] text-white/75 sm:h-12 sm:px-4 sm:text-[12px]">
-                              м³
-                            </div>
-                          </div>
-                        </div>
-                        <div className="space-y-1.5">
-                          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/60 sm:text-[11px]">
-                            Техника
-                          </p>
-                          <div className="flex items-center gap-2">
-                            <Input
-                              placeholder="3"
-                              value={machines}
-                              onChange={(event) =>
-                                setMachines(event.target.value)
-                              }
-                              className="h-11 flex-1 rounded-2xl border border-white/20 bg-white/10 text-[13px] font-medium text-white/90 placeholder:text-white/40 sm:h-12 sm:text-[14px]"
-                            />
-                            <div className="flex h-11 items-center justify-center rounded-2xl border border-white/15 bg-white/10 px-3 text-[11px] text-white/75 sm:h-12 sm:px-4 sm:text-[12px]">
-                              шт.
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/60 sm:text-[11px]">
-                          Люди
-                        </p>
-                        <div className="relative">
-                          <Users className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/65" />
-                          <Input
-                            inputMode="numeric"
-                            placeholder="кол-во человек"
-                            value={people}
-                            onChange={(event) => setPeople(event.target.value)}
-                            className="h-11 rounded-2xl border border-white/20 bg-white/10 pl-11 text-[13px] font-medium text-white/90 placeholder:text-white/40 sm:h-12 sm:text-[14px]"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/60 sm:text-[11px]">
-                          Комментарий
-                        </p>
-                        <Textarea
-                          value={comment}
-                          onChange={(event) => setComment(event.target.value)}
-                          placeholder="Кратко опишите выполненные работы…"
-                          className="min-h-[80px] rounded-3xl border border-white/20 bg-white/10 text-[12px] text-white/90 placeholder:text-white/45 sm:min-h-[96px] sm:text-[13px]"
-                        />
-                      </div>
-
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between text-[10px] font-semibold uppercase tracking-[0.16em] text-white/65 sm:text-[11px]">
-                          <span className="flex items-center gap-1.5">
-                            <ImageIcon className="h-3.5 w-3.5" /> Выберите фото
-                          </span>
-                          <span className="text-white/55">
-                            JPG/PNG/HEIC, до 10 МБ
-                          </span>
-                        </div>
-
-                        <input
-                          ref={fileInputRef}
-                          type="file"
-                          accept="image/*"
-                          multiple
-                          className="hidden"
-                          onChange={onFilesSelected}
-                        />
-
-                        <div className="flex flex-col gap-3 rounded-3xl border border-dashed border-white/30 bg-white/5 px-4 py-3 text-sm text-white/75 sm:flex-row sm:items-center">
-                          <div className="flex-1 text-[11px] leading-tight sm:text-[12px]">
-                            Перетащите фото или нажмите «Выбрать»
-                          </div>
-                          <Button
-                            type="button"
-                            className="flex items-center gap-2 rounded-full bg-gradient-to-r from-[#5FE0FF] via-[#7DF0FF] to-[#B5F5FF] px-4 py-1.5 text-[12px] font-semibold text-sky-900 shadow-[0_18px_50px_rgba(3,144,255,0.9)] hover:brightness-110"
-                            onClick={onPickFiles}
-                          >
-                            <Upload className="h-3.5 w-3.5" /> Выбрать
-                          </Button>
-                          {Boolean(files.length) && (
-                            <Button
-                              type="button"
-                              variant="secondary"
-                              size="sm"
-                              className="h-8 rounded-full border-white/30 bg-white/15 px-3 text-[11px] text-white/80 backdrop-blur hover:bg-white/25"
-                              onClick={() => {
-                                setFiles([]);
-                                setPreviews([]);
-                                setFileValidationMessage(
-                                  "Добавьте хотя бы одно фото для отчёта"
-                                );
-                              }}
-                            >
-                              Очистить
-                            </Button>
-                          )}
-                        </div>
-
-                        {fileValidationMessage && (
-                          <p className="text-[10px] font-medium text-amber-200/90 sm:text-[11px]">
-                            {fileValidationMessage}
-                          </p>
-                        )}
-
-                        <div className="grid grid-cols-4 gap-2 sm:grid-cols-3 sm:gap-3">
-                            {(previews.length ? previews : [null, null, null])
-                              .slice(0, 3)
-                              .map((src, index) => (
-                                <div
-                                  key={index}
-                                className="flex aspect-square items-center justify-center rounded-xl border border-white/20 bg-white/5 sm:aspect-[4/3] sm:rounded-2xl"
-                              >
-                                {src ? (
-                                  <img
-                                    src={src}
-                                    alt="Предпросмотр"
-                                    className="h-full w-full rounded-xl object-cover sm:rounded-2xl"
-                                  />
-                                ) : (
-                                  <span className="text-[10px] text-white/45 sm:text-[11px]">
-                                    Фото
-                                  </span>
-                                )}
-                              </div>
-                            ))}
-                        </div>
-                      </div>
-
-                      <div className="space-y-2">
-                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                          <Button
-                            type="button"
-                            className="h-11 rounded-full bg-gradient-to-r from-[#5FE0FF] via-[#7DF0FF] to-[#B5F5FF] px-6 text-[12px] font-semibold text-sky-900 shadow-[0_24px_60px_rgba(3,144,255,0.85)] hover:brightness-110 disabled:opacity-70 sm:text-[13px]"
-                            onClick={sendReport}
-                            disabled={sending || !isFormReady}
-                          >
-                            {sending ? "Отправка…" : "Отправить отчёт"}
-                          </Button>
-                          <div className="flex-1">
-                            <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/15">
-                              <div
-                                className="h-full rounded-full bg-gradient-to-r from-[#5FE0FF] via-[#7DF0FF] to-[#B5F5FF] transition-all"
-                                style={{ width: `${progress}%` }}
-                              />
-                            </div>
-                          </div>
-                        </div>
-                        {requiredHintVisible && !isFormReady && (
-                          <p className="text-[10px] font-medium text-amber-100/90 sm:text-[11px]">
-                            Чтобы отправить отчёт, заполните: {missingFields.join(", ")}.
-                          </p>
-                        )}
-                        {progress > 0 && (
-                          <p className="text-[10px] text-white/70 sm:text-[11px]">
-                            Загрузка: {progress}%
-                          </p>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-
-                {/* TAB: ИСТОРИЯ */}
-                <TabsContent value="history" className="mt-0">
-                  <Card className="glass-panel border-white/25 bg-gradient-to-br from-white/14 via-white/10 to-white/5 text-white shadow-[0_28px_80px_rgba(6,17,44,0.55)] backdrop-blur-[32px]">
-                    <CardHeader className="pb-5 sm:pb-6">
-                      <CardTitle className="flex items-center gap-2 text-[16px] font-semibold text-white sm:text-[18px]">
-                        <History className="h-4 w-4" /> История отчётов
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-6 text-[11px] sm:p-7 sm:pt-1 sm:text-[12px]">
-                      <div className="grid gap-3 rounded-3xl border border-white/15 bg-white/5 p-4 backdrop-blur">
-                        <div className="grid gap-3 sm:grid-cols-4">
-                          <div className="space-y-1.5 sm:col-span-2">
-                            <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-white/60 sm:text-[10px]">
-                              Объект
-                            </p>
-                            <Select value={project} onValueChange={setProject}>
-                              <SelectTrigger className="h-9 rounded-2xl border border-white/20 bg-white/10 text-[11px] text-white/90 sm:text-[12px]">
-                                <SelectValue placeholder="Объект" />
-                              </SelectTrigger>
-                              <SelectContent className="border border-white/15 bg-[#07132F]/95 text-white">
-                                {projects.map((item) => (
-                                  <SelectItem key={item.id} value={item.id}>
-                                    {item.name}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div className="space-y-1.5">
-                            <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-white/60 sm:text-[10px]">
-                              С даты
-                            </p>
-                            <Input
-                              type="date"
-                              className="h-9 rounded-2xl border border-white/20 bg-white/10 text-[11px] text-white/90 sm:text-[12px]"
-                            />
-                          </div>
-                          <div className="space-y-1.5">
-                            <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-white/60 sm:text-[10px]">
-                              По дату
-                            </p>
-                            <Input
-                              type="date"
-                              className="h-9 rounded-2xl border border-white/20 bg-white/10 text-[11px] text-white/90 sm:text-[12px]"
-                            />
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="space-y-3">
-                        {history
-                          .filter((item) => !project || item.project_id === project)
-                          .map((item) => (
-                            <div
-                              key={item.id}
-                              className="rounded-[22px] border border-white/12 bg-white/8 p-4 text-white/85 shadow-[0_14px_36px_rgba(6,17,44,0.35)] backdrop-blur"
-                            >
-                              <div className="flex flex-col gap-1 text-[11px] sm:flex-row sm:items-center sm:justify-between sm:text-[12px]">
-                                <span>{formatRu(item.date)}</span>
-                                <span className="text-white/75">
-                                  {
-                                    workTypes.find(
-                                      (row) => row.id === item.work_type_id
-                                    )?.name
-                                  }
-                                </span>
-                              </div>
-                              <p className="mt-1 text-[11px] text-white/85 sm:text-[12px]">
-                                {toOneLine(item.description)}
-                              </p>
-                                <div className="mt-2 flex flex-wrap gap-2">
-                                  {item.photos.map((src, index) => (
-                                    <img
-                                      key={index}
-                                      src={src}
-                                      alt="Фото отчёта"
-                                    className="h-14 w-20 rounded-lg border border-white/35 object-cover sm:h-16 sm:w-24 sm:rounded-xl"
-                                  />
-                                ))}
-                              </div>
-                            </div>
-                          ))}
-                      </div>
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-
-                {/* TAB: ДОСТУП */}
-                <TabsContent value="admin" className="mt-0">
-                  <Card className="glass-panel border-white/25 bg-gradient-to-br from-white/14 via-white/10 to-white/5 text-white shadow-[0_28px_80px_rgba(6,17,44,0.55)] backdrop-blur-[32px]">
-                    <CardHeader className="pb-5 sm:pb-6">
-                      <CardTitle className="flex items-center gap-2 text-[16px] font-semibold text-white sm:text-[18px]">
-                        <ShieldCheck className="h-4 w-4" /> Назначение доступа
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-6 text-[11px] sm:p-7 sm:pt-1 sm:text-[12px]">
-                      <div className="grid gap-3 rounded-3xl border border-white/15 bg-white/5 p-4 backdrop-blur">
-                        <div className="grid gap-3 sm:grid-cols-3">
-                          <div className="space-y-1.5 sm:col-span-1">
-                            <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-white/60 sm:text-[10px]">
-                              Найти подрядчика
-                            </p>
-                            <Input
-                              placeholder="Поиск по названию / Telegram"
-                              className="h-9 rounded-2xl border border-white/20 bg-white/10 text-[11px] text-white/90 placeholder:text-white/50 sm:text-[12px]"
-                            />
-                          </div>
-                          <div className="space-y-1.5">
-                            <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-white/60 sm:text-[10px]">
-                              Объект
-                            </p>
-                            <Select value={project} onValueChange={setProject}>
-                              <SelectTrigger className="h-9 rounded-2xl border border-white/20 bg-white/10 text-[11px] text-white/90 sm:text-[12px]">
-                                <SelectValue placeholder="Выберите объект" />
-                              </SelectTrigger>
-                              <SelectContent className="border border-white/15 bg-[#07132F]/95 text-white">
-                                {projects.map((item) => (
-                                  <SelectItem key={item.id} value={item.id}>
-                                    {item.name}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div className="space-y-1.5">
-                            <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-white/60 sm:text-[10px]">
-                              Роль
-                            </p>
-                            <Select defaultValue="reporter">
-                              <SelectTrigger className="h-9 rounded-2xl border border-white/20 bg-white/10 text-[11px] text-white/90 sm:text-[12px]">
-                                <SelectValue placeholder="Роль" />
-                              </SelectTrigger>
-                              <SelectContent className="border border-white/15 bg-[#07132F]/95 text-white">
-                                <SelectItem value="reporter">
-                                  Может отправлять отчёты
-                                </SelectItem>
-                                <SelectItem value="viewer">
-                                  Только просмотр
-                                </SelectItem>
-                                <SelectItem value="manager">
-                                  Менеджер
-                                </SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="space-y-2">
-                        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/65 sm:text-[11px]">
-                          Текущие назначения
-                        </p>
-                          <div className="space-y-2">
-                            {accessList.map((row, index) => (
-                              <div
-                                key={index}
-                                className="flex flex-col gap-3 rounded-[18px] border border-white/12 bg-white/8 px-4 py-3 shadow-[0_12px_30px_rgba(6,17,44,0.35)] backdrop-blur sm:flex-row sm:items-center sm:justify-between"
-                              >
-                              <div>
-                                <div className="text-[12px] font-medium text-white/90 sm:text-[13px]">
-                                  {row.user.name}
-                                </div>
-                                <div className="text-[10px] text-white/65 sm:text-[11px]">
-                                  Проекты:{" "}
-                                  {row.projects
-                                    .map(
-                                      (pid) =>
-                                        projects.find((p) => p.id === pid)
-                                          ?.name
-                                    )
-                                    .join(", ")}
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <span className="text-[10px] text-white/70 sm:text-[11px]">
-                                  Роль: {row.role}
-                                </span>
-                                <Button
-                                  variant="secondary"
-                                  size="sm"
-                                  className="h-8 rounded-full border-none bg-white/85 px-3 text-[10px] font-semibold text-sky-800 shadow-[0_12px_32px_rgba(3,144,255,0.55)] hover:brightness-110 sm:text-[11px]"
-                                >
-                                  Изменить
-                                </Button>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-              </Tabs>
-            </div>
-          </div>
-          )}
+          {content}
         </div>
       </main>
     </div>
   );
-}
-
-function formatRu(iso: string) {
-  const [year, month, day] = iso.split("-");
-  return `${day}.${month}.${year}`;
-}
-
-function toOneLine(desc: string) {
-  const source = String(desc || "");
-  const vol = source.match(/Объём:\s*([^\n]+)/i)?.[1]?.trim();
-  const mach = source.match(/Техника:\s*([^\n]+)/i)?.[1]?.trim();
-  const ppl = source.match(/Люди:\s*([^\n]+)/i)?.[1]?.trim();
-  const parts: string[] = [];
-  if (vol) parts.push(`Объём: ${vol}`);
-  if (mach) parts.push(`Техника: ${mach}`);
-  if (ppl) parts.push(`Люди: ${ppl}`);
-  return parts.length ? parts.join(" • ") : source.replace(/\s+/g, " ").trim();
 }
