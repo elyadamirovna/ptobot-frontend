@@ -17,9 +17,9 @@ import type {
   TelegramWebApp,
 } from "@/types/telegram";
 import {
-  ContractorObjectCard,
-  ContractorObjectsScreen,
-} from "@/components/ContractorObjectsScreen";
+  ContractorHomeScreen,
+  ContractorObject,
+} from "@/components/ContractorHomeScreen";
 import { DashboardScreen } from "@/components/DashboardScreen";
 import { AccessRow, HistoryRow, ScreenKey, TabKey, WorkType } from "@/types/app";
 
@@ -512,7 +512,7 @@ export default function TelegramWebAppGlassPure() {
     { id: "2", name: "ЖК «Академический»", address: "пр-т Науки, 5" },
   ];
 
-  const contractorObjects = useMemo<ContractorObjectCard[]>(
+  const contractorObjects = useMemo<ContractorObject[]>(
     () => [
       {
         id: "1",
@@ -712,80 +712,102 @@ export default function TelegramWebAppGlassPure() {
     setFileValidationMessage("Добавьте хотя бы одно фото для отчёта");
   };
 
+  const handleContractorTabChange = (tab: "objects" | "reports") => {
+    if (tab === "objects") {
+      setActiveScreen("objects");
+      return;
+    }
+
+    setActiveScreen("dashboard");
+    setActiveTab("history");
+    requestAnimationFrame(() =>
+      swipeAreaRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
+    );
+  };
+
+  const contractorTab = activeScreen === "objects" ? "objects" : "reports";
+
   const contractorContent = (
     <>
-      <div className="mb-4 flex justify-center">
-        <div className="flex overflow-hidden rounded-full border border-white/20 bg-white/10 text-[12px] text-white shadow-[0_14px_40px_rgba(6,17,44,0.45)] backdrop-blur">
-          {[{ key: "objects", label: "Мои объекты" }, { key: "dashboard", label: "Отчёты и доступ" }].map((item) => (
-            <button
-              key={item.key}
-              onClick={() => setActiveScreen(item.key as ScreenKey)}
-              className={`px-4 py-2 transition ${
-                activeScreen === item.key
-                  ? "bg-white/80 text-slate-900 shadow-[0_12px_30px_rgba(255,255,255,0.35)]"
-                  : "text-white/80 hover:bg-white/15"
-              }`}
-            >
-              {item.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
       {activeScreen === "objects" ? (
-        <ContractorObjectsScreen
-          contractorName={contractorName}
-          logoUrl={logoUrl}
-          logoLoaded={logoLoaded}
-          logoReveal={logoReveal}
-          onLogoLoad={() => setLogoLoaded(true)}
+        <ContractorHomeScreen
+          userName={contractorName}
           objects={contractorObjects}
           onOpenObject={handleOpenObjectCard}
           onCreateReport={handleCreateReportClick}
-        />
-      ) : (
-        <DashboardScreen
           logoUrl={logoUrl}
           logoLoaded={logoLoaded}
           logoReveal={logoReveal}
           onLogoLoad={() => setLogoLoaded(true)}
-          activeTab={activeTab}
-          onTabChange={(tab) => setActiveTab(tab)}
-          projects={projects}
-          workTypes={workTypes}
-          accessList={accessList}
-          history={history}
-          project={project}
-          workType={workType}
-          date={date}
-          volume={volume}
-          machines={machines}
-          people={people}
-          comment={comment}
-          previews={previews}
-          fileValidationMessage={fileValidationMessage}
-          sending={sending}
-          progress={progress}
-          requiredHintVisible={requiredHintVisible}
-          onProjectChange={setProject}
-          onWorkTypeChange={setWorkType}
-          onDateChange={setDate}
-          onVolumeChange={setVolume}
-          onMachinesChange={setMachines}
-          onPeopleChange={setPeople}
-          onCommentChange={setComment}
-          onPickFiles={onPickFiles}
-          onClearFiles={handleClearFiles}
-          onSendReport={sendReport}
-          onFilesSelected={onFilesSelected}
-          swipeAreaRef={swipeAreaRef}
-          fileInputRef={fileInputRef}
-          hasFiles={Boolean(files.length)}
-          isFormReady={isFormReady}
-          missingFields={missingFields}
-          latestHistoryDate={latestHistoryDate}
-          formCompletion={formCompletion}
+          activeTab={contractorTab}
+          onTabChange={handleContractorTabChange}
         />
+      ) : (
+        <>
+          <div className="mb-4 flex justify-center">
+            <div className="flex items-center gap-1 rounded-full border border-white/20 bg-white/10 p-1 text-[12px] text-white shadow-[0_14px_36px_rgba(6,17,44,0.35)] backdrop-blur">
+              {[{ key: "objects", label: "Мои объекты" }, { key: "reports", label: "Отчёты и доступ" }].map((item) => {
+                const isActive = contractorTab === item.key;
+                return (
+                  <button
+                    key={item.key}
+                    onClick={() => handleContractorTabChange(item.key as "objects" | "reports")}
+                    className={`min-w-[120px] rounded-full px-4 py-2 font-semibold transition ${
+                      isActive
+                        ? "bg-white/85 text-slate-900 shadow-[0_12px_28px_rgba(255,255,255,0.35)]"
+                        : "text-white/80 hover:bg-white/10"
+                    }`}
+                  >
+                    {item.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <DashboardScreen
+            logoUrl={logoUrl}
+            logoLoaded={logoLoaded}
+            logoReveal={logoReveal}
+            onLogoLoad={() => setLogoLoaded(true)}
+            activeTab={activeTab}
+            onTabChange={(tab) => setActiveTab(tab)}
+            projects={projects}
+            workTypes={workTypes}
+            accessList={accessList}
+            history={history}
+            project={project}
+            workType={workType}
+            date={date}
+            volume={volume}
+            machines={machines}
+            people={people}
+            comment={comment}
+            previews={previews}
+            fileValidationMessage={fileValidationMessage}
+            sending={sending}
+            progress={progress}
+            requiredHintVisible={requiredHintVisible}
+            onProjectChange={setProject}
+            onWorkTypeChange={setWorkType}
+            onDateChange={setDate}
+            onVolumeChange={setVolume}
+            onMachinesChange={setMachines}
+            onPeopleChange={setPeople}
+            onCommentChange={setComment}
+            onPickFiles={onPickFiles}
+            onClearFiles={handleClearFiles}
+            onSendReport={sendReport}
+            onFilesSelected={onFilesSelected}
+            swipeAreaRef={swipeAreaRef}
+            fileInputRef={fileInputRef}
+            hasFiles={Boolean(files.length)}
+            isFormReady={isFormReady}
+            missingFields={missingFields}
+            latestHistoryDate={latestHistoryDate}
+            formCompletion={formCompletion}
+          />
+        </>
       )}
     </>
   );
