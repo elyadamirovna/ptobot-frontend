@@ -22,6 +22,7 @@ import {
 } from "@/components/ContractorHomeScreen";
 import { DashboardScreen } from "@/components/DashboardScreen";
 import { AccessRow, HistoryRow, ScreenKey, TabKey, WorkType } from "@/types/app";
+import { useReportForm } from "@/hooks/useReportForm";
 
 const API_URL = (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, "")
   ?? "https://ptobot-backend.onrender.com";
@@ -44,6 +45,10 @@ export default function TelegramWebAppGlassPure() {
   const [logoLoaded, setLogoLoaded] = useState(false);
   const [logoReveal, setLogoReveal] = useState(false);
   const [previewVariant, setPreviewVariant] = useState<string | null>(null);
+  const [historyLoading, setHistoryLoading] = useState(true);
+  const [accessLoading, setAccessLoading] = useState(true);
+  const [historyError] = useState<string | null>(null);
+  const [accessError] = useState<string | null>(null);
 
   useEffect(() => {
     try {
@@ -63,34 +68,67 @@ export default function TelegramWebAppGlassPure() {
   }, []);
 
   useEffect(() => {
+    setSubmitSuccess(null);
+  }, [comment, date, files.length, machines, people, project, volume, workType, setSubmitSuccess]);
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => {
+      setHistoryLoading(false);
+      setAccessLoading(false);
+    }, 450);
+
+    return () => {
+      window.clearTimeout(timeout);
+    };
+  }, []);
+
+  useEffect(() => {
     setLogoLoaded(false);
   }, [logoUrl]);
 
   const [activeScreen, setActiveScreen] = useState<ScreenKey>("objects");
   const [activeTab, setActiveTab] = useState<TabKey>("report");
-  const [project, setProject] = useState<string | undefined>("1");
-  const [workType, setWorkType] = useState<string | undefined>("2");
-  const [date, setDate] = useState<string>(() =>
-    new Date().toISOString().slice(0, 10)
-  );
-  const [volume, setVolume] = useState("");
-  const [machines, setMachines] = useState("");
-  const [people, setPeople] = useState("");
-  const [comment, setComment] = useState("");
-  const [requiredHintVisible, setRequiredHintVisible] = useState(false);
-
   const [workTypes, setWorkTypes] = useState<WorkType[]>([
     { id: "1", name: "Земляные работы" },
     { id: "2", name: "Бетонирование" },
     { id: "3", name: "Монтаж конструкций" },
   ]);
 
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const [files, setFiles] = useState<File[]>([]);
-  const [previews, setPreviews] = useState<string[]>([]);
-  const [fileValidationMessage, setFileValidationMessage] = useState<string | null>(
-    null
-  );
+  const {
+    project,
+    workType,
+    date,
+    volume,
+    machines,
+    people,
+    comment,
+    files,
+    previews,
+    fileValidationMessage,
+    sending,
+    progress,
+    requiredHintVisible,
+    formCompletion,
+    isFormReady,
+    missingFields,
+    fileInputRef,
+    fieldErrors,
+    submitError,
+    submitSuccess,
+    setProject,
+    setWorkType,
+    setDate,
+    setVolume,
+    setMachines,
+    setPeople,
+    setComment,
+    onPickFiles,
+    onFilesSelected,
+    handleClearFiles,
+    sendReport,
+    syncWorkTypes,
+    setSubmitSuccess,
+  } = useReportForm({ apiUrl: API_URL, initialProject: "1", initialWorkType: "2" });
 
   const swipeAreaRef = useRef<HTMLDivElement | null>(null);
   const telegramRef = useRef<TelegramWebApp | null>(null);
@@ -485,14 +523,14 @@ export default function TelegramWebAppGlassPure() {
             name: item.name,
           }));
           setWorkTypes(mapped);
-          if (!workType) {
-            setWorkType(mapped[0].id);
-          }
+          syncWorkTypes(mapped);
         }
       })
       .catch((error) => {
         if (error instanceof DOMException && error.name === "AbortError") {
+          console.warn("[WebApp] Загрузка видов работ отменена", error);
         } else if (error instanceof TypeError) {
+          console.warn("[WebApp] Не удалось загрузить виды работ", error);
         }
       })
       .finally(() => {
@@ -503,7 +541,7 @@ export default function TelegramWebAppGlassPure() {
       controller.abort();
       window.clearTimeout(timeoutId);
     };
-  }, [workType]);
+  }, [syncWorkTypes]);
 
   const contractorName = "Алексей";
 
@@ -572,33 +610,6 @@ export default function TelegramWebAppGlassPure() {
     },
   ];
 
-  const onPickFiles = () => fileInputRef.current?.click();
-
-  const onFilesSelected = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const selected = Array.from(event.target.files || []);
-
-    if (!selected.length) {
-      setFileValidationMessage("Добавьте хотя бы одно фото для отчёта");
-      setFiles([]);
-      setPreviews([]);
-      return;
-    }
-
-    setFileValidationMessage(null);
-    setFiles(selected);
-
-    Promise.all(
-      selected.map(
-        (file) =>
-          new Promise<string>((resolve) => {
-            const reader = new FileReader();
-            reader.onload = () => resolve(String(reader.result));
-            reader.readAsDataURL(file);
-          })
-      )
-    ).then(setPreviews);
-  };
-
   const handleOpenObjectCard = (objectId: string) => {
     setProject(objectId);
     setActiveScreen("dashboard");
@@ -616,86 +627,7 @@ export default function TelegramWebAppGlassPure() {
     );
   };
 
-  const [sending, setSending] = useState(false);
-  const [progress, setProgress] = useState(0);
-
-  const formCompletion = useMemo(() => {
-    const total = 4;
-    const filled = [project, workType, date, files.length ? "files" : null].filter(
-      Boolean
-    ).length;
-    return Math.max(8, Math.round((filled / total) * 100));
-  }, [date, files.length, project, workType]);
-
   const latestHistoryDate = history[0]?.date;
-
-  const isFormReady = useMemo(
-    () => Boolean(project && workType && date && files.length > 0),
-    [project, workType, date, files.length]
-  );
-
-  const missingFields = useMemo(() => {
-    const fields: string[] = [];
-    if (!project) fields.push("объект");
-    if (!workType) fields.push("вид работ");
-    if (!date) fields.push("дату");
-    if (!files.length) fields.push("фото");
-    return fields;
-  }, [project, workType, date, files.length]);
-
-  async function sendReport() {
-    setRequiredHintVisible(true);
-    if (!project || !workType || !date || !files.length) {
-      alert("Заполните обязательные поля перед отправкой");
-      return;
-    }
-
-    const descParts = [comment];
-    if (volume) descParts.push(`Объём: ${volume}`);
-    if (machines) descParts.push(`Техника: ${machines}`);
-    if (people) descParts.push(`Люди: ${people}`);
-    const description = descParts.filter(Boolean).join("\n");
-
-    const form = new FormData();
-    form.append("user_id", "1");
-    form.append("project_id", String(project ?? ""));
-    form.append("work_type_id", String(workType));
-    form.append("date", date);
-    form.append("description", description);
-    form.append("people", people);
-    form.append("volume", volume);
-    form.append("machines", machines);
-    files.forEach((file) => form.append("photos", file));
-
-    try {
-      setSending(true);
-      setProgress(25);
-      const res = await fetch(`${API_URL}/reports`, {
-        method: "POST",
-        body: form,
-        mode: "cors",
-        credentials: "omit",
-      });
-      setProgress(80);
-      if (!res.ok) throw new Error("Ошибка при отправке отчёта");
-      const data = await res.json();
-      setProgress(100);
-      alert(`Отчёт успешно отправлен! ID: ${data.id}`);
-      setVolume("");
-      setMachines("");
-      setPeople("");
-      setComment("");
-      setFiles([]);
-      setPreviews([]);
-    } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "Ошибка при отправке отчёта";
-      alert(message);
-    } finally {
-      setSending(false);
-      setTimeout(() => setProgress(0), 600);
-    }
-  }
 
   const previewKey = previewVariant?.toLowerCase() as
     | keyof typeof PREVIEW_COMPONENTS
@@ -705,12 +637,6 @@ export default function TelegramWebAppGlassPure() {
     : undefined;
 
   const userRole: UserRole = "contractor";
-
-  const handleClearFiles = () => {
-    setFiles([]);
-    setPreviews([]);
-    setFileValidationMessage("Добавьте хотя бы одно фото для отчёта");
-  };
 
   const handleContractorTabChange = (tab: "objects" | "reports") => {
     if (tab === "objects") {
@@ -806,6 +732,13 @@ export default function TelegramWebAppGlassPure() {
             missingFields={missingFields}
             latestHistoryDate={latestHistoryDate}
             formCompletion={formCompletion}
+            fieldErrors={fieldErrors}
+            submitError={submitError}
+            submitSuccess={submitSuccess}
+            historyLoading={historyLoading}
+            accessLoading={accessLoading}
+            historyError={historyError}
+            accessError={accessError}
           />
         </>
       )}
