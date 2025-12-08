@@ -68,13 +68,6 @@ interface DashboardScreenProps {
   missingFields: string[];
   latestHistoryDate?: string;
   formCompletion: number;
-  fieldErrors: Record<string, string>;
-  submitError: string | null;
-  submitSuccess: string | null;
-  historyLoading: boolean;
-  accessLoading: boolean;
-  historyError?: string | null;
-  accessError?: string | null;
 }
 
 export function DashboardScreen({
@@ -118,13 +111,6 @@ export function DashboardScreen({
   missingFields,
   latestHistoryDate,
   formCompletion,
-  fieldErrors,
-  submitError,
-  submitSuccess,
-  historyLoading,
-  accessLoading,
-  historyError,
-  accessError,
 }: DashboardScreenProps) {
   return (
     <div className="relative rounded-[32px] px-4 pb-8 pt-6 sm:rounded-[44px] sm:px-6 sm:pb-9 sm:pt-7 lg:rounded-[52px] lg:px-8 lg:pb-10 lg:pt-8">
@@ -162,49 +148,31 @@ export function DashboardScreen({
           <div className="glass-chip border border-white/25 bg-white/10 px-3.5 py-3 text-white shadow-[0_16px_40px_rgba(6,17,44,0.45)] sm:px-4">
             <div className="flex items-center justify-between text-[10px] font-semibold uppercase tracking-[0.14em] text-white/65">
               <span>История</span>
-              <span className="rounded-full bg-white/10 px-2 py-0.5 text-[9px] text-white/70">
-                {historyLoading ? "Загрузка…" : `${history.length} отчёта`}
-              </span>
+              <span className="rounded-full bg-white/10 px-2 py-0.5 text-[9px] text-white/70">{history.length} отчёта</span>
             </div>
             <div className="mt-1 flex items-end justify-between">
-              {historyLoading ? (
-                <div className="h-6 w-24 rounded-full bg-white/15" />
-              ) : (
-                <span className="text-[22px] font-semibold sm:text-[24px]">
-                  {latestHistoryDate ? formatRu(latestHistoryDate) : "—"}
-                </span>
-              )}
+              <span className="text-[22px] font-semibold sm:text-[24px]">
+                {latestHistoryDate ? formatRu(latestHistoryDate) : "—"}
+              </span>
               <span className="rounded-full bg-white/12 px-2 py-1 text-[10px] font-medium text-white/80">
                 {workTypes.find((item) => item.id === workType)?.name ?? "Виды работ"}
               </span>
             </div>
-            <p className="mt-2 text-[11px] text-white/70">
-              {historyError
-                ? "Не удалось загрузить историю"
-                : "Последний отчёт открыт для просмотра."}
-            </p>
+            <p className="mt-2 text-[11px] text-white/70">Последний отчёт открыт для просмотра.</p>
           </div>
 
           <div className="glass-chip border border-white/25 bg-white/10 px-3.5 py-3 text-white shadow-[0_16px_40px_rgba(6,17,44,0.45)] sm:px-4">
             <div className="flex items-center justify-between text-[10px] font-semibold uppercase tracking-[0.14em] text-white/65">
               <span>Доступы</span>
-              <span className="rounded-full bg-white/10 px-2 py-0.5 text-[9px] text-white/70">
-                {accessLoading ? "Загрузка…" : `${accessList.length} партнёра`}
-              </span>
+              <span className="rounded-full bg-white/10 px-2 py-0.5 text-[9px] text-white/70">{accessList.length} партнёра</span>
             </div>
             <div className="mt-1 flex items-end justify-between">
-              {accessLoading ? (
-                <div className="h-6 w-12 rounded-full bg-white/15" />
-              ) : (
-                <span className="text-[22px] font-semibold sm:text-[24px]">{projects.length}</span>
-              )}
+              <span className="text-[22px] font-semibold sm:text-[24px]">{projects.length}</span>
               <span className="rounded-full bg-white/12 px-2 py-1 text-[10px] font-medium text-white/80">
                 объектов на контроле
               </span>
             </div>
-            <p className="mt-2 text-[11px] text-white/70">
-              {accessError || "Управляйте ролями прямо в мини-приложении."}
-            </p>
+            <p className="mt-2 text-[11px] text-white/70">Управляйте ролями прямо в мини-приложении.</p>
           </div>
         </div>
 
@@ -258,11 +226,6 @@ export function DashboardScreen({
                           ))}
                         </SelectContent>
                       </Select>
-                      {fieldErrors.project && (
-                        <p className="mt-1 text-[11px] text-amber-100/90 sm:text-[12px]">
-                          {fieldErrors.project}
-                        </p>
-                      )}
                     </div>
                   </div>
                   <div className="space-y-1.5">
@@ -283,11 +246,6 @@ export function DashboardScreen({
                           ))}
                         </SelectContent>
                       </Select>
-                      {fieldErrors.workType && (
-                        <p className="mt-1 text-[11px] text-amber-100/90 sm:text-[12px]">
-                          {fieldErrors.workType}
-                        </p>
-                      )}
                     </div>
                   </div>
                 </div>
@@ -305,9 +263,6 @@ export function DashboardScreen({
                       <CalendarDays className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/65" />
                       <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/55" />
                     </div>
-                    {fieldErrors.date && (
-                      <p className="text-[11px] text-amber-100/90 sm:text-[12px]">{fieldErrors.date}</p>
-                    )}
                   </div>
                   <div className="space-y-1.5">
                     <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/60 sm:text-[11px]">Объём</p>
@@ -405,9 +360,6 @@ export function DashboardScreen({
                   {fileValidationMessage && (
                     <p className="text-[10px] font-medium text-amber-200/90 sm:text-[11px]">{fileValidationMessage}</p>
                   )}
-                  {fieldErrors.files && (
-                    <p className="text-[10px] font-medium text-amber-200/90 sm:text-[11px]">{fieldErrors.files}</p>
-                  )}
 
                   <div className="grid grid-cols-4 gap-2 sm:grid-cols-3 sm:gap-3">
                     {(previews.length ? previews : [null, null, null])
@@ -455,12 +407,6 @@ export function DashboardScreen({
                       Чтобы отправить отчёт, заполните: {missingFields.join(", ")}.
                     </p>
                   )}
-                  {submitError && (
-                    <p className="text-[10px] font-medium text-rose-100 sm:text-[11px]">{submitError}</p>
-                  )}
-                  {submitSuccess && (
-                    <p className="text-[10px] font-medium text-emerald-100 sm:text-[11px]">{submitSuccess}</p>
-                  )}
                   {progress > 0 && <p className="text-[10px] text-white/70 sm:text-[11px]">Загрузка: {progress}%</p>}
                 </div>
               </CardContent>
@@ -504,59 +450,34 @@ export function DashboardScreen({
                 </div>
 
                 <div className="space-y-3">
-                  {historyLoading ? (
-                    Array.from({ length: 3 }).map((_, index) => (
+                  {history
+                    .filter((item) => !project || item.project_id === project)
+                    .map((item) => (
                       <div
-                        key={index}
-                        className="rounded-[22px] border border-white/12 bg-white/5 p-4 text-white/85 shadow-[0_14px_36px_rgba(6,17,44,0.35)] backdrop-blur"
+                        key={item.id}
+                        className="rounded-[22px] border border-white/12 bg-white/8 p-4 text-white/85 shadow-[0_14px_36px_rgba(6,17,44,0.35)] backdrop-blur"
                       >
-                        <div className="flex items-center gap-3">
-                          <div className="h-9 w-9 rounded-full bg-white/10" />
-                          <div className="flex-1 space-y-2">
-                            <div className="h-3 w-1/2 rounded-full bg-white/12" />
-                            <div className="h-3 w-1/3 rounded-full bg-white/8" />
-                          </div>
+                        <div className="flex flex-col gap-1 text-[11px] sm:flex-row sm:items-center sm:justify-between sm:text-[12px]">
+                          <span>{formatRu(item.date)}</span>
+                          <span className="text-white/75">
+                            {projects.find((proj) => proj.id === item.project_id)?.name ?? "Объект"}
+                            <span className="mx-1 text-white/40">•</span>
+                            {workTypes.find((type) => type.id === item.work_type_id)?.name ?? "Вид работ"}
+                          </span>
                         </div>
-                        <div className="mt-4 grid grid-cols-3 gap-3">
-                          {Array.from({ length: 3 }).map((__, idx) => (
-                            <div
-                              key={idx}
-                              className="h-14 rounded-2xl border border-white/10 bg-white/6"
+                        <div className="mt-2 text-[12px] text-white/90 sm:text-[13px]">{toOneLine(item.description)}</div>
+                        <div className="mt-3 flex gap-2 overflow-hidden rounded-2xl">
+                          {item.photos.map((photo, index) => (
+                            <img
+                              key={`${item.id}-${index}`}
+                              src={photo}
+                              alt="Фото отчёта"
+                              className="h-20 w-full max-w-[120px] rounded-xl object-cover shadow-[0_10px_28px_rgba(6,17,44,0.35)]"
                             />
                           ))}
                         </div>
                       </div>
-                    ))
-                  ) : (
-                    history
-                      .filter((item) => !project || item.project_id === project)
-                      .map((item) => (
-                        <div
-                          key={item.id}
-                          className="rounded-[22px] border border-white/12 bg-white/8 p-4 text-white/85 shadow-[0_14px_36px_rgba(6,17,44,0.35)] backdrop-blur"
-                        >
-                          <div className="flex flex-col gap-1 text-[11px] sm:flex-row sm:items-center sm:justify-between sm:text-[12px]">
-                            <span>{formatRu(item.date)}</span>
-                            <span className="text-white/75">
-                              {projects.find((proj) => proj.id === item.project_id)?.name ?? "Объект"}
-                              <span className="mx-1 text-white/40">•</span>
-                              {workTypes.find((type) => type.id === item.work_type_id)?.name ?? "Вид работ"}
-                            </span>
-                          </div>
-                          <div className="mt-2 text-[12px] text-white/90 sm:text-[13px]">{toOneLine(item.description)}</div>
-                          <div className="mt-3 flex gap-2 overflow-hidden rounded-2xl">
-                            {item.photos.map((photo, index) => (
-                              <img
-                                key={`${item.id}-${index}`}
-                                src={photo}
-                                alt="Фото отчёта"
-                                className="h-20 w-full max-w-[120px] rounded-xl object-cover shadow-[0_10px_28px_rgba(6,17,44,0.35)]"
-                              />
-                            ))}
-                          </div>
-                        </div>
-                      ))
-                  )}
+                    ))}
                 </div>
               </CardContent>
             </Card>
