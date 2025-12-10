@@ -4,7 +4,7 @@ import { HeaderLogo } from "./HeaderLogo";
 import { GreetingHeader } from "./GreetingHeader";
 import { ObjectCard, ObjectCardProps } from "./ObjectCard";
 
-export type ContractorObject = Omit<ObjectCardProps, "onClick">;
+export interface ContractorObject extends Omit<ObjectCardProps, "onClick"> {}
 
 export interface ContractorHomeScreenProps {
   userName: string;

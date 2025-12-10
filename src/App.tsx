@@ -17,9 +17,9 @@ import type {
   TelegramWebApp,
 } from "@/types/telegram";
 import {
-  ContractorHomeV1,
+  ContractorHomeScreen,
   ContractorObject,
-} from "@/components/ContractorHomeV1";
+} from "@/components/ContractorHomeScreen";
 import { DashboardScreen } from "@/components/DashboardScreen";
 import { AccessRow, HistoryRow, ScreenKey, TabKey, WorkType } from "@/types/app";
 
@@ -492,16 +492,8 @@ export default function TelegramWebAppGlassPure() {
       })
       .catch((error) => {
         if (error instanceof DOMException && error.name === "AbortError") {
-          console.log("Отмена запроса списка видов работ", error);
-          return;
+        } else if (error instanceof TypeError) {
         }
-
-        if (error instanceof TypeError) {
-          console.warn("Сетевая ошибка при загрузке видов работ", error);
-          return;
-        }
-
-        console.warn("Ошибка при загрузке видов работ", error);
       })
       .finally(() => {
         window.clearTimeout(timeoutId);
@@ -611,6 +603,14 @@ export default function TelegramWebAppGlassPure() {
     setProject(objectId);
     setActiveScreen("dashboard");
     setActiveTab("history");
+    requestAnimationFrame(() =>
+      swipeAreaRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
+    );
+  };
+
+  const handleCreateReportClick = () => {
+    setActiveScreen("dashboard");
+    setActiveTab("report");
     requestAnimationFrame(() =>
       swipeAreaRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
     );
@@ -730,10 +730,17 @@ export default function TelegramWebAppGlassPure() {
   const contractorContent = (
     <>
       {activeScreen === "objects" ? (
-        <ContractorHomeV1
+        <ContractorHomeScreen
           userName={contractorName}
           objects={contractorObjects}
           onOpenObject={handleOpenObjectCard}
+          onCreateReport={handleCreateReportClick}
+          logoUrl={logoUrl}
+          logoLoaded={logoLoaded}
+          logoReveal={logoReveal}
+          onLogoLoad={() => setLogoLoaded(true)}
+          activeTab={contractorTab}
+          onTabChange={handleContractorTabChange}
         />
       ) : (
         <>
