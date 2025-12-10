@@ -520,6 +520,7 @@ export default function TelegramWebAppGlassPure() {
         address: "ул. Парковая, 12",
         lastReportDate: "today",
         status: "sent",
+        hasTodayReport: true,
       },
       {
         id: "2",
@@ -527,6 +528,7 @@ export default function TelegramWebAppGlassPure() {
         address: "пр-т Науки, 5",
         lastReportDate: "2024-10-05",
         status: "missing",
+        hasTodayReport: false,
       },
     ],
     []
