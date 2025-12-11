@@ -734,13 +734,6 @@ export default function TelegramWebAppGlassPure() {
           userName={contractorName}
           objects={contractorObjects}
           onOpenObject={handleOpenObjectCard}
-          onCreateReport={handleCreateReportClick}
-          logoUrl={logoUrl}
-          logoLoaded={logoLoaded}
-          logoReveal={logoReveal}
-          onLogoLoad={() => setLogoLoaded(true)}
-          activeTab={contractorTab}
-          onTabChange={handleContractorTabChange}
         />
       ) : (
         <>
