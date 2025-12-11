@@ -83,6 +83,23 @@
   line-height: 1.5;
 }
 
+.ch-v1-action-btn {
+  position: relative;
+  z-index: 1;
+  min-width: 140px;
+  padding: 12px 16px;
+  border-radius: 14px;
+  background: linear-gradient(120deg, #4de1ff, #78f3bd);
+  color: #05203b;
+  font-weight: 700;
+  font-size: 14px;
+  box-shadow: 0 20px 60px rgba(6, 17, 44, 0.48);
+}
+
+.ch-v1-action-btn:hover {
+  filter: brightness(1.03);
+}
+
 .ch-v1-list {
   display: flex;
   flex-direction: column;
@@ -221,6 +238,10 @@
   .ch-v1-hero {
     flex-direction: column;
     padding: 16px;
+  }
+
+  .ch-v1-action-btn {
+    width: 100%;
   }
 
   .ch-v1-card__footer {

@@ -734,6 +734,7 @@ export default function TelegramWebAppGlassPure() {
           userName={contractorName}
           objects={contractorObjects}
           onOpenObject={handleOpenObjectCard}
+          onCreateReport={handleCreateReportClick}
         />
       ) : (
         <>
