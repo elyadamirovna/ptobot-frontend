@@ -1,16 +1,20 @@
 import React from "react";
-import { Button } from "@/components/ui/button";
+import { formatRu } from "@/utils/format";
 import { HeaderLogo } from "./HeaderLogo";
-import { GreetingHeader } from "./GreetingHeader";
-import { ObjectCard, ObjectCardProps } from "./ObjectCard";
 
-export interface ContractorObject extends Omit<ObjectCardProps, "onClick"> {}
+export interface ContractorObject {
+  id: string;
+  name: string;
+  address?: string;
+  lastReportDate?: string | "today";
+  status: "sent" | "missing";
+  hasTodayReport?: boolean;
+}
 
 export interface ContractorHomeScreenProps {
   userName: string;
   objects: ContractorObject[];
   onOpenObject: (id: string) => void;
-  onCreateReport: () => void;
   logoUrl?: string;
   logoLoaded?: boolean;
   logoReveal?: boolean;
@@ -23,7 +27,6 @@ export function ContractorHomeScreen({
   userName,
   objects,
   onOpenObject,
-  onCreateReport,
   logoUrl,
   logoLoaded,
   logoReveal,
@@ -31,6 +34,11 @@ export function ContractorHomeScreen({
   activeTab = "objects",
   onTabChange,
 }: ContractorHomeScreenProps) {
+  const activeCount = objects.length;
+  const todayReports = objects.filter((object) =>
+    object.hasTodayReport ?? object.lastReportDate === "today"
+  ).length;
+
   return (
     <div className="relative mx-auto w-full max-w-[760px] text-white">
       <div
@@ -42,8 +50,8 @@ export function ContractorHomeScreen({
           padding: "20px 18px",
         }}
       >
-        <div className="flex flex-col gap-5 sm:gap-6">
-          <div className="flex flex-col gap-3 sm:gap-4">
+        <div className="flex flex-col gap-6 sm:gap-7">
+          <div className="flex flex-col gap-4 sm:gap-5">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <HeaderLogo
                 logoUrl={logoUrl || ""}
@@ -76,30 +84,111 @@ export function ContractorHomeScreen({
               </div>
             </div>
 
-            <GreetingHeader userName={userName} />
+            <ContractorHero
+              userName={userName}
+              activeCount={activeCount}
+              todayReports={todayReports}
+            />
           </div>
 
-          <div className="flex flex-col gap-[14px]">
-            {objects.map((object) => (
-              <ObjectCard
+          <div className="flex flex-col gap-[18px]">
+            {objects.map((object, index) => (
+              <ContractorObjectCard
                 key={object.id}
-                {...object}
+                object={object}
+                accentIndex={index}
                 onClick={() => onOpenObject(object.id)}
               />
             ))}
           </div>
-
-          <div className="space-y-3 pt-1 sm:pt-2">
-            <div className="h-px w-full bg-white/15" />
-            <Button
-              className="w-full rounded-full bg-gradient-to-r from-[#48C6EF] via-[#52E5FF] to-[#84FAB0] px-4 py-3 text-[13px] font-semibold text-sky-950 shadow-[0_20px_60px_rgba(6,17,44,0.45)] transition hover:brightness-110"
-              onClick={onCreateReport}
-            >
-              Создать отчёт
-            </Button>
-          </div>
         </div>
       </div>
     </div>
+  );
+}
+
+function ContractorHero({
+  userName,
+  activeCount,
+  todayReports,
+}: {
+  userName: string;
+  activeCount: number;
+  todayReports: number;
+}) {
+  return (
+    <div className="contractor-hero">
+      <div className="contractor-hero-title">Добрый день, {userName}</div>
+
+      <div className="contractor-hero-divider" />
+
+      <div className="contractor-hero-metrics">
+        <div className="contractor-hero-metric">
+          <div className="contractor-hero-metric-value">{activeCount}</div>
+          <div className="contractor-hero-metric-label">Активные объекты</div>
+        </div>
+
+        <div className="contractor-hero-metric">
+          <div className="contractor-hero-metric-value">{todayReports}</div>
+          <div className="contractor-hero-metric-label">Отчётов за сегодня</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ContractorObjectCard({
+  object,
+  onClick,
+  accentIndex,
+}: {
+  object: ContractorObject;
+  onClick: () => void;
+  accentIndex: number;
+}) {
+  const isSentToday = object.hasTodayReport ?? object.lastReportDate === "today";
+  const lastDateLabel = isSentToday
+    ? "сегодня"
+    : object.lastReportDate
+      ? formatRu(object.lastReportDate)
+      : "—";
+
+  return (
+    <button type="button" onClick={onClick} className="contractor-card">
+      <div className="contractor-card-inner">
+        <div className="contractor-card-header">
+          <div className="contractor-card-text">
+            <p className="contractor-card-title">{object.name}</p>
+            {object.address ? (
+              <p className="contractor-card-address">{object.address}</p>
+            ) : null}
+          </div>
+
+          <span
+            className={`contractor-status-chip ${
+              isSentToday ? "contractor-status-chip--ok" : "contractor-status-chip--missing"
+            }`}
+          >
+            {isSentToday ? "отчёт отправлен" : "нет отчёта"}
+          </span>
+        </div>
+
+        <div className="contractor-card-footer">
+          <div className="contractor-report">
+            <p className="contractor-report-label">Последний отчёт:</p>
+            <p className="contractor-report-value">{lastDateLabel}</p>
+          </div>
+
+          <div className="contractor-activity-dots" aria-hidden>
+            {Array.from({ length: 5 }).map((_, idx) => (
+              <span
+                key={idx}
+                className={`contractor-activity-dot ${idx === (accentIndex % 5) ? "is-active" : ""}`}
+              />
+            ))}
+          </div>
+        </div>
+      </div>
+    </button>
   );
 }
