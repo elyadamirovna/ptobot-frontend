@@ -520,6 +520,7 @@ export default function TelegramWebAppGlassPure() {
         address: "ул. Парковая, 12",
         lastReportDate: "today",
         status: "sent",
+        hasTodayReport: true,
       },
       {
         id: "2",
@@ -527,6 +528,7 @@ export default function TelegramWebAppGlassPure() {
         address: "пр-т Науки, 5",
         lastReportDate: "2024-10-05",
         status: "missing",
+        hasTodayReport: false,
       },
     ],
     []
@@ -603,14 +605,6 @@ export default function TelegramWebAppGlassPure() {
     setProject(objectId);
     setActiveScreen("dashboard");
     setActiveTab("history");
-    requestAnimationFrame(() =>
-      swipeAreaRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
-    );
-  };
-
-  const handleCreateReportClick = () => {
-    setActiveScreen("dashboard");
-    setActiveTab("report");
     requestAnimationFrame(() =>
       swipeAreaRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
     );
@@ -734,7 +728,6 @@ export default function TelegramWebAppGlassPure() {
           userName={contractorName}
           objects={contractorObjects}
           onOpenObject={handleOpenObjectCard}
-          onCreateReport={handleCreateReportClick}
           logoUrl={logoUrl}
           logoLoaded={logoLoaded}
           logoReveal={logoReveal}
