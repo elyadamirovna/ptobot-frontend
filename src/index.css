@@ -213,34 +213,11 @@ body {
     backdrop-filter: blur(22px);
   }
 
-  .contractor-hero-heading {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-  }
-
   .contractor-hero-title {
     font-size: 26px;
     font-weight: 700;
     line-height: 1.2;
     color: rgba(255, 255, 255, 0.95);
-  }
-
-  .contractor-hero-subtitle {
-    font-size: 14px;
-    color: rgba(255, 255, 255, 0.7);
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .contractor-hero-subtitle::before {
-    content: "";
-    width: 8px;
-    height: 8px;
-    border-radius: 999px;
-    background: linear-gradient(135deg, #8ddcf8, #8b5cf6);
-    box-shadow: 0 0 0 4px rgba(141, 220, 248, 0.15);
   }
 
   .contractor-hero-divider {
@@ -276,75 +253,6 @@ body {
     color: rgba(255, 255, 255, 0.76);
   }
 
-  .contractor-hero-progress {
-    margin-top: 14px;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    padding: 14px 14px 12px;
-    border-radius: 16px;
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0.04));
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
-  }
-
-  .contractor-hero-progress-top {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
-
-  .contractor-hero-progress-title {
-    font-size: 13px;
-    color: rgba(255, 255, 255, 0.76);
-  }
-
-  .contractor-hero-progress-value {
-    font-size: 16px;
-    font-weight: 800;
-    color: rgba(255, 255, 255, 0.95);
-  }
-
-  .contractor-hero-progress-bar {
-    width: 100%;
-    height: 10px;
-    border-radius: 999px;
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    overflow: hidden;
-  }
-
-  .contractor-hero-progress-fill {
-    height: 100%;
-    border-radius: inherit;
-    background: linear-gradient(90deg, #8ddcf8, #60a5fa, #c084fc);
-    box-shadow: 0 12px 30px rgba(96, 165, 250, 0.35);
-    transition: width 0.25s ease;
-  }
-
-  .contractor-hero-progress-bottom {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    font-size: 13px;
-    color: rgba(255, 255, 255, 0.72);
-  }
-
-  .contractor-hero-progress-caption {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-  }
-
-  .contractor-hero-progress-caption::before {
-    content: "";
-    width: 6px;
-    height: 6px;
-    border-radius: 999px;
-    background: rgba(255, 255, 255, 0.7);
-    opacity: 0.8;
-  }
-
   .contractor-card {
     position: relative;
     width: 100%;
@@ -373,15 +281,6 @@ body {
     flex-direction: column;
     gap: 14px;
     color: rgba(255, 255, 255, 0.94);
-  }
-
-  .contractor-card::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    background: radial-gradient(circle at 85% 12%, rgba(141, 220, 248, 0.24), transparent 38%);
-    pointer-events: none;
   }
 
   .contractor-card-header {

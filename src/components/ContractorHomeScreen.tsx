@@ -38,14 +38,6 @@ export function ContractorHomeScreen({
   const todayReports = objects.filter((object) =>
     object.hasTodayReport ?? object.lastReportDate === "today"
   ).length;
-  const missingReports = Math.max(activeCount - todayReports, 0);
-  const completionRate = activeCount ? Math.round((todayReports / activeCount) * 100) : 0;
-
-  const todayLabel = new Intl.DateTimeFormat("ru-RU", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-  }).format(new Date());
 
   return (
     <div className="relative mx-auto w-full max-w-[760px] text-white">
@@ -96,9 +88,6 @@ export function ContractorHomeScreen({
               userName={userName}
               activeCount={activeCount}
               todayReports={todayReports}
-              missingReports={missingReports}
-              completionRate={completionRate}
-              todayLabel={todayLabel}
             />
           </div>
 
@@ -122,23 +111,14 @@ function ContractorHero({
   userName,
   activeCount,
   todayReports,
-  missingReports,
-  completionRate,
-  todayLabel,
 }: {
   userName: string;
   activeCount: number;
   todayReports: number;
-  missingReports: number;
-  completionRate: number;
-  todayLabel: string;
 }) {
   return (
     <div className="contractor-hero">
-      <div className="contractor-hero-heading">
-        <div className="contractor-hero-title">Добрый день, {userName}</div>
-        <div className="contractor-hero-subtitle">Сегодня, {todayLabel}</div>
-      </div>
+      <div className="contractor-hero-title">Добрый день, {userName}</div>
 
       <div className="contractor-hero-divider" />
 
@@ -151,26 +131,6 @@ function ContractorHero({
         <div className="contractor-hero-metric">
           <div className="contractor-hero-metric-value">{todayReports}</div>
           <div className="contractor-hero-metric-label">Отчётов за сегодня</div>
-        </div>
-      </div>
-
-      <div className="contractor-hero-progress">
-        <div className="contractor-hero-progress-top">
-          <span className="contractor-hero-progress-title">Прогресс за день</span>
-          <span className="contractor-hero-progress-value">{completionRate}%</span>
-        </div>
-
-        <div className="contractor-hero-progress-bar">
-          <div
-            className="contractor-hero-progress-fill"
-            style={{ width: `${completionRate}%` }}
-            aria-hidden
-          />
-        </div>
-
-        <div className="contractor-hero-progress-bottom">
-          <span className="contractor-hero-progress-caption">{todayReports} сдано</span>
-          <span className="contractor-hero-progress-caption">{missingReports} без отчёта</span>
         </div>
       </div>
     </div>
