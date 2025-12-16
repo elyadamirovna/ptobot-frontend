@@ -759,10 +759,6 @@ export default function TelegramWebAppGlassPure() {
           </div>
 
           <DashboardScreen
-            logoUrl={logoUrl}
-            logoLoaded={logoLoaded}
-            logoReveal={logoReveal}
-            onLogoLoad={() => setLogoLoaded(true)}
             activeTab={activeTab}
             onTabChange={(tab) => setActiveTab(tab)}
             projects={projects}
@@ -797,8 +793,6 @@ export default function TelegramWebAppGlassPure() {
             hasFiles={Boolean(files.length)}
             isFormReady={isFormReady}
             missingFields={missingFields}
-            latestHistoryDate={latestHistoryDate}
-            formCompletion={formCompletion}
           />
         </>
       )}

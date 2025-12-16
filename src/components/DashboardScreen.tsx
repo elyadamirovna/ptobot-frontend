@@ -25,13 +25,8 @@ import {
 } from "lucide-react";
 import { AccessRow, HistoryRow, TabKey } from "@/types/app";
 import { formatRu, toOneLine } from "@/utils/format";
-import { HeaderLogo } from "./HeaderLogo";
 
 interface DashboardScreenProps {
-  logoUrl: string;
-  logoLoaded: boolean;
-  logoReveal: boolean;
-  onLogoLoad: () => void;
   activeTab: TabKey;
   onTabChange: (tab: TabKey) => void;
   projects: { id: string; name: string; address: string }[];
@@ -66,15 +61,9 @@ interface DashboardScreenProps {
   hasFiles: boolean;
   isFormReady: boolean;
   missingFields: string[];
-  latestHistoryDate?: string;
-  formCompletion: number;
 }
 
 export function DashboardScreen({
-  logoUrl,
-  logoLoaded,
-  logoReveal,
-  onLogoLoad,
   activeTab,
   onTabChange,
   projects,
@@ -109,73 +98,11 @@ export function DashboardScreen({
   hasFiles,
   isFormReady,
   missingFields,
-  latestHistoryDate,
-  formCompletion,
 }: DashboardScreenProps) {
   return (
     <div className="relative rounded-[32px] px-4 pb-8 pt-6 sm:rounded-[44px] sm:px-6 sm:pb-9 sm:pt-7 lg:rounded-[52px] lg:px-8 lg:pb-10 lg:pt-8">
       <div className="glass-grid-overlay" />
       <div className="relative" ref={swipeAreaRef}>
-        <header className="mb-4 flex items-center justify-center sm:mb-6">
-          <HeaderLogo
-            logoUrl={logoUrl}
-            logoLoaded={logoLoaded}
-            logoReveal={logoReveal}
-            onLoad={onLogoLoad}
-          />
-        </header>
-
-        <div className="mb-5 grid gap-3 sm:grid-cols-3">
-          <div className="glass-chip border border-white/25 bg-white/10 px-3.5 py-3 text-white shadow-[0_16px_40px_rgba(6,17,44,0.45)] sm:px-4">
-            <div className="flex items-center justify-between text-[10px] font-semibold uppercase tracking-[0.14em] text-white/65">
-              <span>Готовность</span>
-              <span className="rounded-full bg-white/10 px-2 py-0.5 text-[9px] text-white/70">glass</span>
-            </div>
-            <div className="mt-1 flex items-end justify-between">
-              <span className="text-[22px] font-semibold sm:text-[24px]">{formCompletion}%</span>
-              <span className="rounded-full bg-emerald-300/20 px-2 py-1 text-[10px] font-medium text-emerald-100">
-                {isFormReady ? "готово" : "заполните поля"}
-              </span>
-            </div>
-            <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/10">
-              <div
-                className="h-full rounded-full bg-gradient-to-r from-cyan-300/90 via-indigo-300/80 to-emerald-300/90"
-                style={{ width: `${formCompletion}%` }}
-              />
-            </div>
-          </div>
-
-          <div className="glass-chip border border-white/25 bg-white/10 px-3.5 py-3 text-white shadow-[0_16px_40px_rgba(6,17,44,0.45)] sm:px-4">
-            <div className="flex items-center justify-between text-[10px] font-semibold uppercase tracking-[0.14em] text-white/65">
-              <span>История</span>
-              <span className="rounded-full bg-white/10 px-2 py-0.5 text-[9px] text-white/70">{history.length} отчёта</span>
-            </div>
-            <div className="mt-1 flex items-end justify-between">
-              <span className="text-[22px] font-semibold sm:text-[24px]">
-                {latestHistoryDate ? formatRu(latestHistoryDate) : "—"}
-              </span>
-              <span className="rounded-full bg-white/12 px-2 py-1 text-[10px] font-medium text-white/80">
-                {workTypes.find((item) => item.id === workType)?.name ?? "Виды работ"}
-              </span>
-            </div>
-            <p className="mt-2 text-[11px] text-white/70">Последний отчёт открыт для просмотра.</p>
-          </div>
-
-          <div className="glass-chip border border-white/25 bg-white/10 px-3.5 py-3 text-white shadow-[0_16px_40px_rgba(6,17,44,0.45)] sm:px-4">
-            <div className="flex items-center justify-between text-[10px] font-semibold uppercase tracking-[0.14em] text-white/65">
-              <span>Доступы</span>
-              <span className="rounded-full bg-white/10 px-2 py-0.5 text-[9px] text-white/70">{accessList.length} партнёра</span>
-            </div>
-            <div className="mt-1 flex items-end justify-between">
-              <span className="text-[22px] font-semibold sm:text-[24px]">{projects.length}</span>
-              <span className="rounded-full bg-white/12 px-2 py-1 text-[10px] font-medium text-white/80">
-                объектов на контроле
-              </span>
-            </div>
-            <p className="mt-2 text-[11px] text-white/70">Управляйте ролями прямо в мини-приложении.</p>
-          </div>
-        </div>
-
         <Tabs value={activeTab} onValueChange={(v) => onTabChange(v as TabKey)} className="w-full">
           <TabsList className="glass-chip mb-4 grid grid-cols-3 gap-1 rounded-full bg-white/12 p-1 text-[11px] text-white/80 shadow-[0_14px_40px_rgba(6,17,44,0.45)] sm:mb-5 sm:text-[12px]">
             <TabsTrigger

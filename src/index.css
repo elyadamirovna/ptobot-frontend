@@ -322,18 +322,19 @@ body {
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 12px 32px rgba(6, 17, 44, 0.35);
     backdrop-filter: blur(16px);
     text-transform: lowercase;
+    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.2), 0 0 1px rgba(255, 255, 255, 0.25);
   }
 
   .contractor-status-chip--ok {
-    color: #0d9d71;
-    background: linear-gradient(135deg, rgba(34, 197, 94, 0.35), rgba(16, 185, 129, 0.18));
-    border-color: rgba(16, 185, 129, 0.45);
+    color: #065f46;
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.48), rgba(16, 185, 129, 0.3));
+    border-color: rgba(16, 185, 129, 0.6);
   }
 
   .contractor-status-chip--missing {
-    color: #b87400;
-    background: linear-gradient(135deg, rgba(251, 191, 36, 0.34), rgba(251, 146, 60, 0.22));
-    border-color: rgba(251, 191, 36, 0.45);
+    color: #92400e;
+    background: linear-gradient(135deg, rgba(251, 191, 36, 0.48), rgba(251, 146, 60, 0.32));
+    border-color: rgba(251, 191, 36, 0.6);
   }
 
   .contractor-card-footer {
