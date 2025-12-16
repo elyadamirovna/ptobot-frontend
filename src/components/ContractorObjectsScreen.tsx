@@ -1,4 +1,5 @@
 import React from "react";
+import { Button } from "@/components/ui/button";
 import { HeaderLogo } from "./HeaderLogo";
 import { formatRu } from "@/utils/format";
 
@@ -19,6 +20,7 @@ export interface ContractorObjectsScreenProps {
   logoReveal: boolean;
   objects: ContractorObjectCard[];
   onOpenObject: (objectId: string) => void;
+  onCreateReport: () => void;
   onLogoLoad: () => void;
 }
 
@@ -33,6 +35,7 @@ export function ContractorObjectsScreen({
   logoReveal,
   objects,
   onOpenObject,
+  onCreateReport,
   onLogoLoad,
 }: ContractorObjectsScreenProps) {
   return (
@@ -87,9 +90,13 @@ export function ContractorObjectsScreen({
           </div>
 
           <div className="pt-1">
-            <p className="mt-1 text-center text-[11px] text-white/75">
-              Тап по карточке — перейти к объекту и создать отчёт
-            </p>
+            <Button
+              className="w-full rounded-full bg-gradient-to-r from-[#48C6EF] via-[#52E5FF] to-[#84FAB0] py-3 text-[13px] font-semibold text-sky-950 shadow-[0_24px_70px_rgba(6,17,44,0.55)] transition hover:brightness-110"
+              onClick={onCreateReport}
+            >
+              Создать отчёт
+            </Button>
+            <p className="mt-2 text-center text-[11px] text-white/75">Тап по карточке → Экран 3</p>
           </div>
         </div>
       </div>

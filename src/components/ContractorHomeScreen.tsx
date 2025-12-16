@@ -63,7 +63,7 @@ export function ContractorHomeScreen({
               <div className="flex items-center gap-1 rounded-full border border-white/15 bg-white/10 p-1 shadow-[0_10px_24px_rgba(6,17,44,0.3)] backdrop-blur">
                 {[
                   { key: "objects", label: "Мои объекты" },
-                  { key: "reports", label: "Отчёты" },
+                  { key: "reports", label: "Отчёты и доступ" },
                 ].map((tab) => {
                   const isActive = activeTab === tab.key;
                   return (
@@ -100,8 +100,6 @@ export function ContractorHomeScreen({
                 onClick={() => onOpenObject(object.id)}
               />
             ))}
-
-            <p className="contractor-hint">Тап по карточке — перейти к объекту и создать отчёт</p>
           </div>
         </div>
       </div>
@@ -171,7 +169,6 @@ function ContractorObjectCard({
               isSentToday ? "contractor-status-chip--ok" : "contractor-status-chip--missing"
             }`}
           >
-            <span className="contractor-status-dot" aria-hidden />
             {isSentToday ? "отчёт отправлен" : "нет отчёта"}
           </span>
         </div>
