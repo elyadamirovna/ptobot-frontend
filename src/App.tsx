@@ -759,6 +759,10 @@ export default function TelegramWebAppGlassPure() {
           </div>
 
           <DashboardScreen
+            logoUrl={logoUrl}
+            logoLoaded={logoLoaded}
+            logoReveal={logoReveal}
+            onLogoLoad={() => setLogoLoaded(true)}
             activeTab={activeTab}
             onTabChange={(tab) => setActiveTab(tab)}
             projects={projects}
