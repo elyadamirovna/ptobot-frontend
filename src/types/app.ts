@@ -9,11 +9,5 @@ export type HistoryRow = {
   photos: string[];
 };
 
-export type AccessRow = {
-  user: { id: number; name: string };
-  projects: string[];
-  role: string;
-};
-
-export type TabKey = "report" | "history" | "admin";
+export type TabKey = "report" | "history";
 export type ScreenKey = "dashboard" | "objects";

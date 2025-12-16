@@ -21,13 +21,13 @@ import {
   ContractorObject,
 } from "@/components/ContractorHomeScreen";
 import { DashboardScreen } from "@/components/DashboardScreen";
-import { AccessRow, HistoryRow, ScreenKey, TabKey, WorkType } from "@/types/app";
+import { HistoryRow, ScreenKey, TabKey, WorkType } from "@/types/app";
 
 const API_URL = (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, "")
   ?? "https://ptobot-backend.onrender.com";
 const DEFAULT_LOGO_URL = "https://storage.yandexcloud.net/ptobot-assets/LOGO.svg";
 
-const TAB_ORDER: TabKey[] = ["report", "history", "admin"];
+const TAB_ORDER: TabKey[] = ["report", "history"];
 type UserRole = "contractor" | "manager";
 
 export default function TelegramWebAppGlassPure() {
@@ -561,19 +561,6 @@ export default function TelegramWebAppGlassPure() {
     []
   );
 
-  const accessList: AccessRow[] = [
-    {
-      user: { id: 8, name: "ИП «СтройСервис»" },
-      projects: ["1"],
-      role: "reporter",
-    },
-    {
-      user: { id: 9, name: "ООО «МонтажГрупп»" },
-      projects: ["1", "2"],
-      role: "reporter",
-    },
-  ];
-
   const onPickFiles = () => fileInputRef.current?.click();
 
   const onFilesSelected = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -763,7 +750,6 @@ export default function TelegramWebAppGlassPure() {
             onTabChange={(tab) => setActiveTab(tab)}
             projects={projects}
             workTypes={workTypes}
-            accessList={accessList}
             history={history}
             project={project}
             workType={workType}
