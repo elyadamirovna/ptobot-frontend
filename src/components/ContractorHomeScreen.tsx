@@ -41,15 +41,7 @@ export function ContractorHomeScreen({
 
   return (
     <div className="relative mx-auto w-full max-w-[760px] text-white">
-      <div
-        className="relative border border-white/15 shadow-[0_18px_54px_rgba(6,17,44,0.38)]"
-        style={{
-          borderRadius: "24px",
-          background: "rgba(255,255,255,0.06)",
-          backdropFilter: "blur(26px)",
-          padding: "20px 18px",
-        }}
-      >
+      <div className="contractor-shell">
         <div className="flex flex-col gap-6 sm:gap-7">
           <div className="flex flex-col gap-4 sm:gap-5">
             <div className="flex flex-wrap items-center justify-between gap-3">
@@ -118,9 +110,10 @@ function ContractorHero({
 }) {
   return (
     <div className="contractor-hero">
-      <div className="contractor-hero-title">Добрый день, {userName}</div>
-
-      <div className="contractor-hero-divider" />
+      <div className="space-y-2">
+        <div className="contractor-hero-title">Добрый день, {userName}</div>
+        <p className="contractor-hero-subtitle">Объекты под вашим контролем</p>
+      </div>
 
       <div className="contractor-hero-metrics">
         <div className="contractor-hero-metric">
