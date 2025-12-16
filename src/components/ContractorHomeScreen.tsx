@@ -179,7 +179,12 @@ function ContractorObjectCard({
             <p className="contractor-report-value">{lastDateLabel}</p>
           </div>
 
-          <div className="contractor-activity-dots" aria-hidden>
+          <div
+            className={`contractor-activity-dots ${
+              isSentToday ? "is-ok" : "is-missing"
+            }`}
+            aria-hidden
+          >
             {Array.from({ length: 5 }).map((_, idx) => (
               <span
                 key={idx}

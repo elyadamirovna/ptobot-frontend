@@ -21,9 +21,8 @@ import {
   ChevronDown,
   History as HistoryIcon,
   ClipboardList,
-  ShieldCheck,
 } from "lucide-react";
-import { AccessRow, HistoryRow, TabKey } from "@/types/app";
+import { HistoryRow, TabKey } from "@/types/app";
 import { formatRu, toOneLine } from "@/utils/format";
 
 interface DashboardScreenProps {
@@ -31,7 +30,6 @@ interface DashboardScreenProps {
   onTabChange: (tab: TabKey) => void;
   projects: { id: string; name: string; address: string }[];
   workTypes: { id: string; name: string }[];
-  accessList: AccessRow[];
   history: HistoryRow[];
   project: string | undefined;
   workType: string | undefined;
@@ -68,7 +66,6 @@ export function DashboardScreen({
   onTabChange,
   projects,
   workTypes,
-  accessList,
   history,
   project,
   workType,
@@ -104,7 +101,7 @@ export function DashboardScreen({
       <div className="glass-grid-overlay" />
       <div className="relative" ref={swipeAreaRef}>
         <Tabs value={activeTab} onValueChange={(v) => onTabChange(v as TabKey)} className="w-full">
-          <TabsList className="glass-chip mb-4 grid grid-cols-3 gap-1 rounded-full bg-white/12 p-1 text-[11px] text-white/80 shadow-[0_14px_40px_rgba(6,17,44,0.45)] sm:mb-5 sm:text-[12px]">
+          <TabsList className="glass-chip mb-4 grid grid-cols-2 gap-1 rounded-full bg-white/12 p-1 text-[11px] text-white/80 shadow-[0_14px_40px_rgba(6,17,44,0.45)] sm:mb-5 sm:text-[12px]">
             <TabsTrigger
               value="report"
               className="flex items-center justify-center gap-1 rounded-full px-2 py-1.5 text-[10px] transition data-[state=active]:bg-white data-[state=active]:text-sky-900 data-[state=active]:shadow-[0_12px_30px_rgba(255,255,255,0.45)] sm:px-3 sm:py-2 sm:text-[12px]"
@@ -116,12 +113,6 @@ export function DashboardScreen({
               className="flex items-center justify-center gap-1 rounded-full px-2 py-1.5 text-[10px] transition data-[state=active]:bg-white data-[state=active]:text-sky-900 data-[state=active]:shadow-[0_12px_30px_rgba(255,255,255,0.45)] sm:px-3 sm:py-2 sm:text-[12px]"
             >
               <HistoryIcon className="h-3.5 w-3.5" /> История
-            </TabsTrigger>
-            <TabsTrigger
-              value="admin"
-              className="flex items-center justify-center gap-1 rounded-full px-2 py-1.5 text-[10px] transition data-[state=active]:bg-white data-[state=active]:text-sky-900 data-[state=active]:shadow-[0_12px_30px_rgba(255,255,255,0.45)] sm:px-3 sm:py-2 sm:text-[12px]"
-            >
-              <ShieldCheck className="h-3.5 w-3.5" /> Доступ
             </TabsTrigger>
           </TabsList>
 
@@ -405,86 +396,6 @@ export function DashboardScreen({
                         </div>
                       </div>
                     ))}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="admin" className="mt-0">
-            <Card className="glass-panel border-white/25 bg-gradient-to-br from-white/14 via-white/10 to-white/5 text-white shadow-[0_28px_80px_rgba(6,17,44,0.55)] backdrop-blur-[32px]">
-              <CardHeader className="pb-5 sm:pb-6">
-                <CardTitle className="flex items-center gap-2 text-[16px] font-semibold text-white sm:text-[18px]">
-                  <ShieldCheck className="h-4 w-4" /> Доступы подрядчиков
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6 text-[11px] sm:p-7 sm:pt-1 sm:text-[12px]">
-                <div className="grid gap-3 rounded-3xl border border-white/15 bg-white/5 p-4 backdrop-blur">
-                  <div className="grid gap-3 sm:grid-cols-3">
-                    <div className="space-y-1.5">
-                      <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-white/60 sm:text-[10px]">Найти подрядчика</p>
-                      <Input
-                        placeholder="Поиск по названию / Telegram"
-                        className="h-9 rounded-2xl border border-white/20 bg-white/10 text-[11px] text-white/90 placeholder:text-white/50 sm:text-[12px]"
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-white/60 sm:text-[10px]">Объект</p>
-                      <Select value={project} onValueChange={onProjectChange}>
-                        <SelectTrigger className="h-9 rounded-2xl border border-white/20 bg-white/10 text-[11px] text-white/90 sm:text-[12px]">
-                          <SelectValue placeholder="Выберите объект" />
-                        </SelectTrigger>
-                        <SelectContent className="border border-white/15 bg-[#07132F]/95 text-white">
-                          {projects.map((item) => (
-                            <SelectItem key={item.id} value={item.id}>
-                              {item.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-1.5">
-                      <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-white/60 sm:text-[10px]">Роль</p>
-                      <Select defaultValue="reporter">
-                        <SelectTrigger className="h-9 rounded-2xl border border-white/20 bg-white/10 text-[11px] text-white/90 sm:text-[12px]">
-                          <SelectValue placeholder="Роль" />
-                        </SelectTrigger>
-                        <SelectContent className="border border-white/15 bg-[#07132F]/95 text-white">
-                          <SelectItem value="reporter">Может отправлять отчёты</SelectItem>
-                          <SelectItem value="viewer">Только просмотр</SelectItem>
-                          <SelectItem value="manager">Менеджер</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/65 sm:text-[11px]">Текущие назначения</p>
-                  <div className="space-y-2">
-                    {accessList.map((row, index) => (
-                      <div
-                        key={index}
-                        className="flex flex-col gap-3 rounded-[18px] border border-white/12 bg-white/8 px-4 py-3 shadow-[0_12px_30px_rgba(6,17,44,0.35)] backdrop-blur sm:flex-row sm:items-center sm:justify-between"
-                      >
-                        <div>
-                          <div className="text-[12px] font-medium text-white/90 sm:text-[13px]">{row.user.name}</div>
-                          <div className="text-[10px] text-white/65 sm:text-[11px]">
-                            Проекты: {row.projects.map((pid) => projects.find((p) => p.id === pid)?.name).join(", ")}
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-[10px] text-white/70 sm:text-[11px]">Роль: {row.role}</span>
-                          <Button
-                            variant="secondary"
-                            size="sm"
-                            className="h-8 rounded-full border-none bg-white/85 px-3 text-[10px] font-semibold text-sky-800 shadow-[0_12px_32px_rgba(3,144,255,0.55)] hover:brightness-110 sm:text-[11px]"
-                          >
-                            Изменить
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
                 </div>
               </CardContent>
             </Card>
