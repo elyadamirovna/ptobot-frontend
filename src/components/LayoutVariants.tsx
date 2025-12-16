@@ -305,7 +305,7 @@ export const GlassmorphismLayout: FC = () => (
             <h2 className="text-lg font-semibold">Уведомления</h2>
 
             <div className="space-y-3 text-sm text-white/80">
-              {["Отчёт отправлен", "Отчёт принят", "Новый комментарий"].map((note, index) => (
+              {["Новый доступ выдан", "Отчёт принят", "Новый комментарий"].map((note, index) => (
                 <div
                   key={index}
                   className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-4 py-3"
@@ -364,7 +364,7 @@ export const CorporateStrictLayout: FC = () => (
             История
           </button>
           <button className="rounded-md border border-slate-200 bg-white px-3 py-2 font-medium">
-            Отчёты
+            Доступы
           </button>
           <div className="flex flex-col text-right">
             <span className="text-[10px] uppercase tracking-wide text-slate-400">
