@@ -11,7 +11,7 @@ export function HeaderLogo({ logoUrl, logoLoaded, logoReveal, onLoad }: HeaderLo
   return (
     <div
       className={`
-        flex h-12 w-36 items-center justify-center overflow-hidden
+        flex h-9 w-28 items-center justify-center overflow-hidden sm:h-10 sm:w-32
         transition-all duration-1000 ease-out delay-100
         ${logoReveal ? "opacity-100 translate-y-0" : "opacity-0 translate-y-3"}
       `}
@@ -21,7 +21,7 @@ export function HeaderLogo({ logoUrl, logoLoaded, logoReveal, onLoad }: HeaderLo
           src={logoUrl}
           alt="Логотип компании"
           className={`
-            h-full w-full object-contain transform-gpu transition-all duration-1000 ease-out
+            h-full w-full object-contain opacity-90 transform-gpu transition-all duration-1000 ease-out
             ${logoLoaded ? "opacity-100 scale-100 blur-0" : "opacity-0 scale-105 blur-[6px]"}
           `}
           onLoad={onLoad}
