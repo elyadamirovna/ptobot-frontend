@@ -1,7 +1,7 @@
 import React, { RefObject } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -20,7 +20,6 @@ import {
   Upload,
   ChevronDown,
   History as HistoryIcon,
-  ClipboardList,
 } from "lucide-react";
 import { HistoryRow, TabKey } from "@/types/app";
 import { formatRu, toOneLine } from "@/utils/format";
@@ -101,20 +100,6 @@ export function DashboardScreen({
       <div className="glass-grid-overlay" />
       <div className="relative" ref={swipeAreaRef}>
         <Tabs value={activeTab} onValueChange={(v) => onTabChange(v as TabKey)} className="w-full">
-          <TabsList className="glass-chip mb-4 grid grid-cols-2 gap-1 rounded-full bg-white/12 p-1 text-[11px] text-white/80 shadow-[0_14px_40px_rgba(6,17,44,0.45)] sm:mb-5 sm:text-[12px]">
-            <TabsTrigger
-              value="report"
-              className="flex items-center justify-center gap-1 rounded-full px-2 py-1.5 text-[10px] transition data-[state=active]:bg-white data-[state=active]:text-sky-900 data-[state=active]:shadow-[0_12px_30px_rgba(255,255,255,0.45)] sm:px-3 sm:py-2 sm:text-[12px]"
-            >
-              <ClipboardList className="h-3.5 w-3.5" /> Отчёт
-            </TabsTrigger>
-            <TabsTrigger
-              value="history"
-              className="flex items-center justify-center gap-1 rounded-full px-2 py-1.5 text-[10px] transition data-[state=active]:bg-white data-[state=active]:text-sky-900 data-[state=active]:shadow-[0_12px_30px_rgba(255,255,255,0.45)] sm:px-3 sm:py-2 sm:text-[12px]"
-            >
-              <HistoryIcon className="h-3.5 w-3.5" /> История
-            </TabsTrigger>
-          </TabsList>
 
           <TabsContent value="report" className="mt-0">
             <Card className="glass-panel border-white/25 bg-gradient-to-br from-white/14 via-white/10 to-white/5 text-white shadow-[0_28px_80px_rgba(6,17,44,0.55)] backdrop-blur-[32px]">
