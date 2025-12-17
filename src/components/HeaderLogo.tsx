@@ -11,7 +11,7 @@ export function HeaderLogo({ logoUrl, logoLoaded, logoReveal, onLoad }: HeaderLo
   return (
     <div
       className={`
-        flex h-12 w-36 items-center justify-center overflow-hidden
+        flex h-9 w-28 sm:h-10 sm:w-32 items-center justify-center overflow-hidden
         transition-all duration-1000 ease-out delay-100
         ${logoReveal ? "opacity-100 translate-y-0" : "opacity-0 translate-y-3"}
       `}
