@@ -724,7 +724,7 @@ export default function TelegramWebAppGlassPure() {
         <>
           <div className="mb-4 flex justify-center">
             <div className="flex items-center gap-1 rounded-full border border-white/20 bg-white/10 p-1 text-[12px] text-white shadow-[0_14px_36px_rgba(6,17,44,0.35)] backdrop-blur">
-              {[{ key: "objects", label: "Мои объекты" }, { key: "reports", label: "Отчёты и доступ" }].map((item) => {
+              {[{ key: "objects", label: "Мои объекты" }, { key: "reports", label: "Отчёты" }].map((item) => {
                 const isActive = contractorTab === item.key;
                 return (
                   <button
