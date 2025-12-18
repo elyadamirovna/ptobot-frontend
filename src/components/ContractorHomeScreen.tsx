@@ -101,6 +101,8 @@ function ContractorHero({
           <div className="contractor-hero-metric-label">Активные объекты</div>
         </div>
 
+        <div className="contractor-hero-metric-divider" aria-hidden />
+
         <div className="contractor-hero-metric">
           <div className="contractor-hero-metric-value">{todayReports}</div>
           <div className="contractor-hero-metric-label">Отчётов за сегодня</div>

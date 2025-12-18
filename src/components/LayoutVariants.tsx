@@ -305,7 +305,7 @@ export const GlassmorphismLayout: FC = () => (
             <h2 className="text-lg font-semibold">Уведомления</h2>
 
             <div className="space-y-3 text-sm text-white/80">
-              {["Новый доступ выдан", "Отчёт принят", "Новый комментарий"].map((note, index) => (
+              {["Новый объект добавлен", "Отчёт принят", "Новый комментарий"].map((note, index) => (
                 <div
                   key={index}
                   className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-4 py-3"
