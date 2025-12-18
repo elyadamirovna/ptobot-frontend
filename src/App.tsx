@@ -505,7 +505,7 @@ export default function TelegramWebAppGlassPure() {
     };
   }, [workType]);
 
-  const contractorName = "Алексей";
+  const contractorName = "Никита";
 
   const projects = [
     { id: "1", name: "ЖК «Северный»", address: "ул. Парковая, 12" },

@@ -119,13 +119,13 @@ body {
   }
 
   .safe-area-page {
-    padding-top: calc(var(--safe-area-top) + 1.5rem);
+    padding-top: calc(var(--safe-area-top) + 2.5rem);
     padding-bottom: calc(var(--safe-area-bottom) + 1.5rem);
   }
 
   @media (min-width: 768px) {
     .safe-area-page {
-      padding-top: calc(var(--safe-area-top) + 2.5rem);
+      padding-top: calc(var(--safe-area-top) + 3rem);
       padding-bottom: calc(var(--safe-area-bottom) + 2.5rem);
     }
   }
@@ -233,6 +233,7 @@ body {
     justify-content: center;
     align-items: center;
     gap: 0;
+    text-align: center;
   }
 
   .contractor-hero-metric {
@@ -241,6 +242,7 @@ body {
     align-items: center;
     gap: 6px;
     padding: 0 4px;
+    text-align: center;
   }
 
   .contractor-hero-metric-divider {
@@ -258,7 +260,21 @@ body {
 
   .contractor-hero-metric-label {
     font-size: 13px;
-    color: rgba(255, 255, 255, 0.72);
+    color: rgba(230, 237, 247, 0.8);
+    text-align: center;
+  }
+
+  .contractor-sticky-header {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    margin: -6px -2px 2px;
+    padding: 8px 6px 10px;
+    background: rgba(10, 18, 38, 0.58);
+    backdrop-filter: blur(16px);
+    border-radius: 18px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 16px 36px rgba(6, 17, 44, 0.35);
   }
 
   .contractor-card {
@@ -266,10 +282,10 @@ body {
     width: 100%;
     text-align: left;
     border-radius: 24px;
-    background: linear-gradient(150deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.06));
-    backdrop-filter: blur(18px);
-    border: 1px solid rgba(255, 255, 255, 0.16);
-    box-shadow: 0 18px 46px rgba(6, 17, 44, 0.42);
+    background: linear-gradient(160deg, rgba(14, 22, 40, 0.88), rgba(7, 12, 26, 0.75));
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.13);
+    box-shadow: 0 18px 46px rgba(6, 17, 44, 0.5);
     transform: perspective(900px) rotateX(7deg);
     transform-origin: center top;
     transition: transform 0.25s ease, box-shadow 0.25s ease, background 0.25s ease;
@@ -278,8 +294,8 @@ body {
 
   .contractor-card:hover {
     transform: perspective(900px) rotateX(2deg) translateY(-4px);
-    box-shadow: 0 18px 48px rgba(10, 18, 38, 0.45);
-    background: linear-gradient(150deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.07));
+    box-shadow: 0 20px 52px rgba(8, 14, 28, 0.48);
+    background: linear-gradient(160deg, rgba(18, 28, 50, 0.95), rgba(9, 15, 32, 0.82));
   }
 
   .contractor-card-inner {
@@ -326,31 +342,40 @@ body {
     font-size: 12px;
     font-weight: 700;
     letter-spacing: 0.01em;
-    background: rgba(255, 255, 255, 0.02);
-    border: 1px solid rgba(255, 255, 255, 0.14);
-    backdrop-filter: blur(14px);
+    background: rgba(8, 13, 26, 0.55);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 12px 28px rgba(5, 10, 22, 0.45);
+    backdrop-filter: blur(16px);
     text-transform: none;
+    color: rgba(240, 245, 255, 0.9);
   }
 
   .contractor-status-chip::before {
     content: "";
-    width: 6px;
-    height: 6px;
+    width: 7px;
+    height: 7px;
     border-radius: 999px;
     background: currentColor;
-    opacity: 0.95;
+    opacity: 0.98;
+    box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.24);
   }
 
   .contractor-status-chip--ok {
-    color: #34d399;
-    background: rgba(16, 185, 129, 0.12);
-    border-color: rgba(52, 211, 153, 0.55);
+    color: rgba(46, 220, 132, 1);
+    background: rgba(10, 18, 38, 0.42);
+    border-color: rgba(46, 220, 132, 0.85);
+    box-shadow:
+      0 12px 30px rgba(22, 235, 155, 0.25),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05);
   }
 
   .contractor-status-chip--missing {
-    color: #fbbf24;
-    background: rgba(245, 158, 11, 0.12);
-    border-color: rgba(251, 191, 36, 0.6);
+    color: rgba(245, 158, 11, 1);
+    background: rgba(10, 18, 38, 0.42);
+    border-color: rgba(245, 158, 11, 0.9);
+    box-shadow:
+      0 12px 30px rgba(245, 158, 11, 0.25),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05);
   }
 
   .contractor-card-footer {
@@ -396,10 +421,10 @@ body {
   }
 
   .contractor-activity-dots.is-ok .contractor-activity-dot.is-active {
-    background: #34d399;
+    background: rgb(46, 220, 132);
   }
 
   .contractor-activity-dots.is-missing .contractor-activity-dot.is-active {
-    background: #fbbf24;
+    background: rgb(245, 158, 11);
   }
 }

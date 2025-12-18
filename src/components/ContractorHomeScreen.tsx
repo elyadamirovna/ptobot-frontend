@@ -36,7 +36,7 @@ export function ContractorHomeScreen({
   ).length;
 
   return (
-    <div className="relative mx-auto w-full max-w-[760px] text-white">
+    <div className="relative mx-auto w-full max-w-[760px] pt-1 text-white sm:pt-2">
       <div
         className="relative border border-white/15 shadow-[0_18px_54px_rgba(6,17,44,0.38)]"
         style={{
@@ -48,13 +48,15 @@ export function ContractorHomeScreen({
       >
         <div className="flex flex-col gap-6 sm:gap-7">
           <div className="flex flex-col gap-4 sm:gap-5">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <HeaderLogo
-                logoUrl={logoUrl || ""}
-                logoLoaded={Boolean(logoLoaded)}
-                logoReveal={Boolean(logoReveal)}
-                onLoad={onLogoLoad || (() => {})}
-              />
+            <div className="contractor-sticky-header">
+              <div className="flex flex-wrap items-center justify-center gap-3 sm:justify-between">
+                <HeaderLogo
+                  logoUrl={logoUrl || ""}
+                  logoLoaded={Boolean(logoLoaded)}
+                  logoReveal={Boolean(logoReveal)}
+                  onLoad={onLogoLoad || (() => {})}
+                />
+              </div>
             </div>
 
             <ContractorHero
