@@ -36,7 +36,7 @@ export function ContractorHomeScreen({
   ).length;
 
   return (
-    <div className="relative mx-auto flex min-h-full w-full max-w-[760px] flex-col pt-1.5 text-white sm:pt-2">
+    <div className="relative mx-auto flex h-full w-full max-w-[760px] flex-1 flex-col pt-1.5 text-white sm:pt-2">
       <div
         className="relative flex flex-1 flex-col border border-white/15 shadow-[0_18px_54px_rgba(6,17,44,0.38)]"
         style={{
@@ -81,7 +81,7 @@ export function ContractorHomeScreen({
 }
 
 function ContractorHero({
-  userName,
+  userName: _userName,
   activeCount,
   todayReports,
 }: {
@@ -89,11 +89,9 @@ function ContractorHero({
   activeCount: number;
   todayReports: number;
 }) {
-  const greetingName = userName === "Алексей" ? "Никита" : userName;
-
   return (
     <div className="contractor-hero">
-      <div className="contractor-hero-title">Добрый день, {greetingName}</div>
+      <div className="contractor-hero-title">Добрый день, Никита</div>
 
       <div className="contractor-hero-divider" />
 
