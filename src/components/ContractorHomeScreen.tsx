@@ -76,6 +76,12 @@ export function ContractorHomeScreen({
           </div>
         </div>
       </div>
+
+      <div className="ch-v1-list" aria-label="Список объектов подрядчика">
+        {objects.map((object) => (
+          <ContractorObjectCard key={object.id} {...object} onClick={() => onOpenObject(object.id)} />
+        ))}
+      </div>
     </div>
   );
 }
