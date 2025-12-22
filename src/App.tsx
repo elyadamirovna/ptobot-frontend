@@ -491,9 +491,9 @@ export default function TelegramWebAppGlassPure() {
         }
       })
       .catch((error) => {
-        if (error instanceof DOMException && error.name === "AbortError") {
-        } else if (error instanceof TypeError) {
-        }
+        if (error instanceof DOMException && error.name === "AbortError") return;
+
+        console.warn("Не удалось загрузить список видов работ", error);
       })
       .finally(() => {
         window.clearTimeout(timeoutId);
@@ -599,16 +599,6 @@ export default function TelegramWebAppGlassPure() {
 
   const [sending, setSending] = useState(false);
   const [progress, setProgress] = useState(0);
-
-  const formCompletion = useMemo(() => {
-    const total = 4;
-    const filled = [project, workType, date, files.length ? "files" : null].filter(
-      Boolean
-    ).length;
-    return Math.max(8, Math.round((filled / total) * 100));
-  }, [date, files.length, project, workType]);
-
-  const latestHistoryDate = history[0]?.date;
 
   const isFormReady = useMemo(
     () => Boolean(project && workType && date && files.length > 0),
