@@ -7,7 +7,10 @@ export type HistoryRow = {
   work_type_id: string;
   description: string;
   photos: string[];
+  volume?: string;
+  people?: number;
+  machines?: number;
+  comment?: string;
 };
 
-export type TabKey = "report" | "history";
-export type ScreenKey = "dashboard" | "objects";
+export type ScreenKey = "objects" | "report";

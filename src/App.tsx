@@ -20,14 +20,15 @@ import {
   ContractorHomeScreen,
   ContractorObject,
 } from "@/components/ContractorHomeScreen";
-import { DashboardScreen } from "@/components/DashboardScreen";
-import { HistoryRow, ScreenKey, TabKey, WorkType } from "@/types/app";
+import { HistorySheet } from "@/components/HistorySheet";
+import { ReportDetailsSheet } from "@/components/ReportDetailsSheet";
+import { ReportFormScreen } from "@/components/ReportFormScreen";
+import { HistoryRow, ScreenKey, WorkType } from "@/types/app";
 
 const API_URL = (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, "")
   ?? "https://ptobot-backend.onrender.com";
 const DEFAULT_LOGO_URL = "https://storage.yandexcloud.net/ptobot-assets/LOGO.svg";
 
-const TAB_ORDER: TabKey[] = ["report", "history"];
 type UserRole = "contractor" | "manager";
 
 export default function TelegramWebAppGlassPure() {
@@ -67,17 +68,18 @@ export default function TelegramWebAppGlassPure() {
   }, [logoUrl]);
 
   const [activeScreen, setActiveScreen] = useState<ScreenKey>("objects");
-  const [activeTab, setActiveTab] = useState<TabKey>("report");
-  const [project, setProject] = useState<string | undefined>("1");
+  const [selectedObjectId, setSelectedObjectId] = useState<string | null>(null);
   const [workType, setWorkType] = useState<string | undefined>("2");
   const [date, setDate] = useState<string>(() =>
     new Date().toISOString().slice(0, 10)
   );
   const [volume, setVolume] = useState("");
-  const [machines, setMachines] = useState("");
-  const [people, setPeople] = useState("");
+  const [machines, setMachines] = useState(0);
+  const [people, setPeople] = useState(0);
   const [comment, setComment] = useState("");
   const [requiredHintVisible, setRequiredHintVisible] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [submitSuccess, setSubmitSuccess] = useState(false);
 
   const [workTypes, setWorkTypes] = useState<WorkType[]>([
     { id: "1", name: "Земляные работы" },
@@ -92,9 +94,8 @@ export default function TelegramWebAppGlassPure() {
     null
   );
 
-  const swipeAreaRef = useRef<HTMLDivElement | null>(null);
   const telegramRef = useRef<TelegramWebApp | null>(null);
-  const activeTabRef = useRef<TabKey>("report");
+  const activeScreenRef = useRef<ScreenKey>("objects");
 
   useEffect(() => {
     const tg =
@@ -147,20 +148,6 @@ export default function TelegramWebAppGlassPure() {
     return undefined;
   }, []);
 
-  const changeTabBySwipe = useCallback(
-    (direction: 1 | -1) => {
-      setActiveTab((current) => {
-        const index = TAB_ORDER.indexOf(current);
-        const nextIndex = index + direction;
-        if (nextIndex < 0 || nextIndex >= TAB_ORDER.length) {
-          return current;
-        }
-        return TAB_ORDER[nextIndex];
-      });
-    },
-    []
-  );
-
   useEffect(() => {
     const tg =
       typeof window !== "undefined" ? window.Telegram?.WebApp : undefined;
@@ -189,7 +176,7 @@ export default function TelegramWebAppGlassPure() {
       if (!backButton) return;
 
       try {
-        if (activeTabRef.current !== "report") {
+        if (activeScreenRef.current !== "objects") {
           backButton.show();
         } else {
           backButton.hide();
@@ -200,8 +187,8 @@ export default function TelegramWebAppGlassPure() {
     };
 
     const handleBackButtonClick = () => {
-      if (activeTabRef.current !== "report") {
-        setActiveTab("report");
+      if (activeScreenRef.current !== "objects") {
+        setActiveScreen("objects");
         return;
       }
       try {
@@ -361,13 +348,13 @@ export default function TelegramWebAppGlassPure() {
   }, []);
 
   useEffect(() => {
-    activeTabRef.current = activeTab;
+    activeScreenRef.current = activeScreen;
 
     const backButton = telegramRef.current?.BackButton;
     if (!backButton) return;
 
     try {
-      if (activeTab !== "report") {
+      if (activeScreen !== "objects") {
         backButton.show();
       } else {
         backButton.hide();
@@ -378,93 +365,7 @@ export default function TelegramWebAppGlassPure() {
         error
       );
     }
-  }, [activeTab]);
-
-  useEffect(() => {
-    const container = swipeAreaRef.current;
-    if (!container) return;
-
-    let startX = 0;
-    let startY = 0;
-    let isTracking = false;
-    let isHorizontal = false;
-
-    const resetTracking = () => {
-      startX = 0;
-      startY = 0;
-      isTracking = false;
-      isHorizontal = false;
-    };
-
-    const handleTouchStart = (event: TouchEvent) => {
-      if (event.touches.length !== 1) return;
-      const touch = event.touches[0];
-      startX = touch.clientX;
-      startY = touch.clientY;
-      isTracking = true;
-      isHorizontal = false;
-    };
-
-    const handleTouchMove = (event: TouchEvent) => {
-      if (!isTracking || event.touches.length !== 1) return;
-      const touch = event.touches[0];
-      const deltaX = touch.clientX - startX;
-      const deltaY = touch.clientY - startY;
-
-      if (!isHorizontal) {
-        if (Math.abs(deltaX) > 12 || Math.abs(deltaY) > 12) {
-          if (Math.abs(deltaX) > Math.abs(deltaY)) {
-            isHorizontal = true;
-          } else {
-            resetTracking();
-          }
-        }
-      }
-    };
-
-    const finishSwipe = (event: TouchEvent) => {
-      if (!isTracking) {
-        resetTracking();
-        return;
-      }
-
-      const touch = event.changedTouches[0];
-      const deltaX = touch.clientX - startX;
-      const deltaY = touch.clientY - startY;
-      const horizontalEnough =
-        Math.abs(deltaX) >= 60 && Math.abs(deltaX) > Math.abs(deltaY);
-
-      if (isHorizontal && horizontalEnough) {
-        if (deltaX < 0) {
-          changeTabBySwipe(1);
-        } else {
-          changeTabBySwipe(-1);
-        }
-      }
-
-      resetTracking();
-    };
-
-    const handleTouchCancel = () => {
-      resetTracking();
-    };
-
-    container.addEventListener("touchstart", handleTouchStart, {
-      passive: true,
-    });
-    container.addEventListener("touchmove", handleTouchMove, { passive: true });
-    container.addEventListener("touchend", finishSwipe, { passive: true });
-    container.addEventListener("touchcancel", handleTouchCancel, {
-      passive: true,
-    });
-
-    return () => {
-      container.removeEventListener("touchstart", handleTouchStart);
-      container.removeEventListener("touchmove", handleTouchMove);
-      container.removeEventListener("touchend", finishSwipe);
-      container.removeEventListener("touchcancel", handleTouchCancel);
-    };
-  }, [changeTabBySwipe]);
+  }, [activeScreen]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -507,12 +408,7 @@ export default function TelegramWebAppGlassPure() {
 
   const contractorName = "Алексей";
 
-  const projects = [
-    { id: "1", name: "ЖК «Северный»", address: "ул. Парковая, 12" },
-    { id: "2", name: "ЖК «Академический»", address: "пр-т Науки, 5" },
-  ];
-
-  const contractorObjects = useMemo<ContractorObject[]>(
+  const [contractorObjects, setContractorObjects] = useState<ContractorObject[]>(
     () => [
       {
         id: "1",
@@ -530,36 +426,93 @@ export default function TelegramWebAppGlassPure() {
         status: "missing",
         hasTodayReport: false,
       },
-    ],
-    []
+    ]
   );
 
-  const history = useMemo<HistoryRow[]>(
-    () => [
-      {
-        id: 101,
-        project_id: "1",
-        date: "2025-11-11",
-        work_type_id: "2",
-        description:
-          "Бетонирование ростверка\nОбъём: 12,5 м³\nТехника: 2\nЛюди: 7",
-        photos: [
-          "https://picsum.photos/seed/a/300/200",
-          "https://picsum.photos/seed/b/300/200",
-        ],
-      },
-      {
-        id: 100,
-        project_id: "1",
-        date: "2025-11-10",
-        work_type_id: "1",
-        description:
-          "Разработка котлована\nОбъём: 80 м³\nТехника: 3\nЛюди: 5",
-        photos: ["https://picsum.photos/seed/c/300/200"],
-      },
-    ],
-    []
+  const [history, setHistory] = useState<HistoryRow[]>(() => [
+    {
+      id: 102,
+      project_id: "1",
+      date: new Date().toISOString().slice(0, 10),
+      work_type_id: "2",
+      description: "Бетонирование ростверка",
+      volume: "12,5",
+      machines: 2,
+      people: 7,
+      comment: "Работы выполнены по плану.",
+      photos: [
+        "https://picsum.photos/seed/a/300/200",
+        "https://picsum.photos/seed/b/300/200",
+      ],
+    },
+    {
+      id: 101,
+      project_id: "1",
+      date: "2025-11-11",
+      work_type_id: "2",
+      description: "Бетонирование ростверка",
+      volume: "12,5",
+      machines: 2,
+      people: 7,
+      comment: "Подготовка под дальнейший этап.",
+      photos: [
+        "https://picsum.photos/seed/a/300/200",
+        "https://picsum.photos/seed/b/300/200",
+      ],
+    },
+    {
+      id: 100,
+      project_id: "1",
+      date: "2025-11-10",
+      work_type_id: "1",
+      description: "Разработка котлована",
+      volume: "80",
+      machines: 3,
+      people: 5,
+      comment: "Без замечаний.",
+      photos: ["https://picsum.photos/seed/c/300/200"],
+    },
+  ]);
+
+  const [historyObjectId, setHistoryObjectId] = useState<string | null>(null);
+  const [activeReportId, setActiveReportId] = useState<number | null>(null);
+
+  const selectedObject = useMemo(
+    () =>
+      selectedObjectId
+        ? contractorObjects.find((object) => object.id === selectedObjectId) ?? null
+        : null,
+    [contractorObjects, selectedObjectId]
   );
+
+  const historyForSelectedObject = useMemo(() => {
+    if (!selectedObjectId) return [];
+    return history
+      .filter((item) => item.project_id === selectedObjectId)
+      .sort((a, b) => b.date.localeCompare(a.date));
+  }, [history, selectedObjectId]);
+
+  const historyForSheet = useMemo(() => {
+    if (!historyObjectId) return [];
+    return history
+      .filter((item) => item.project_id === historyObjectId)
+      .sort((a, b) => b.date.localeCompare(a.date))
+      .slice(0, 7);
+  }, [history, historyObjectId]);
+
+  const activeReport = useMemo(
+    () => history.find((item) => item.id === activeReportId) ?? null,
+    [activeReportId, history]
+  );
+
+  const historyObjectName =
+    contractorObjects.find((object) => object.id === historyObjectId)?.name ??
+    "Объект";
+
+  const detailsObjectName =
+    contractorObjects.find((object) => object.id === activeReport?.project_id)?.name ??
+    selectedObject?.name ??
+    "Объект";
 
   const onPickFiles = () => fileInputRef.current?.click();
 
@@ -588,45 +541,57 @@ export default function TelegramWebAppGlassPure() {
     ).then(setPreviews);
   };
 
-  const handleOpenObjectCard = (objectId: string) => {
-    setProject(objectId);
-    setActiveScreen("dashboard");
-    setActiveTab("history");
-    requestAnimationFrame(() =>
-      swipeAreaRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
-    );
-  };
-
-  const [sending, setSending] = useState(false);
-  const [progress, setProgress] = useState(0);
-
-  const formCompletion = useMemo(() => {
-    const total = 4;
-    const filled = [project, workType, date, files.length ? "files" : null].filter(
-      Boolean
-    ).length;
-    return Math.max(8, Math.round((filled / total) * 100));
-  }, [date, files.length, project, workType]);
-
-  const latestHistoryDate = history[0]?.date;
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const isFormReady = useMemo(
-    () => Boolean(project && workType && date && files.length > 0),
-    [project, workType, date, files.length]
+    () => Boolean(selectedObjectId && workType && files.length > 0),
+    [files.length, selectedObjectId, workType]
   );
 
   const missingFields = useMemo(() => {
     const fields: string[] = [];
-    if (!project) fields.push("объект");
     if (!workType) fields.push("вид работ");
-    if (!date) fields.push("дату");
     if (!files.length) fields.push("фото");
     return fields;
-  }, [project, workType, date, files.length]);
+  }, [files.length, workType]);
+
+  useEffect(() => {
+    if (!selectedObjectId) {
+      setActiveScreen("objects");
+      return;
+    }
+
+    if (activeScreen === "report") {
+      setDate(new Date().toISOString().slice(0, 10));
+      const lastReport = historyForSelectedObject[0];
+      setWorkType(lastReport?.work_type_id ?? workTypes[0]?.id);
+      setVolume(lastReport?.volume ?? "");
+      setMachines(lastReport?.machines ?? 0);
+      setPeople(lastReport?.people ?? 0);
+      setComment(lastReport?.comment ?? "");
+    }
+  }, [activeScreen, historyForSelectedObject, selectedObjectId, workTypes]);
+
+  const triggerHaptic = useCallback(
+    (type: "light" | "success" | "error") => {
+      const haptic = telegramRef.current?.HapticFeedback;
+      if (!haptic) return;
+      try {
+        if (type === "light") {
+          haptic.impactOccurred?.("light");
+        } else {
+          haptic.notificationOccurred?.(type === "success" ? "success" : "error");
+        }
+      } catch (error) {
+        console.warn("[WebApp] Ошибка при haptic", error);
+      }
+    },
+    []
+  );
 
   async function sendReport() {
     setRequiredHintVisible(true);
-    if (!project || !workType || !date || !files.length) {
+    if (!selectedObjectId || !workType || !files.length) {
       alert("Заполните обязательные поля перед отправкой");
       return;
     }
@@ -639,42 +604,75 @@ export default function TelegramWebAppGlassPure() {
 
     const form = new FormData();
     form.append("user_id", "1");
-    form.append("project_id", String(project ?? ""));
+    form.append("project_id", String(selectedObjectId ?? ""));
     form.append("work_type_id", String(workType));
     form.append("date", date);
     form.append("description", description);
-    form.append("people", people);
+    form.append("people", String(people));
     form.append("volume", volume);
-    form.append("machines", machines);
+    form.append("machines", String(machines));
     files.forEach((file) => form.append("photos", file));
 
     try {
-      setSending(true);
-      setProgress(25);
+      setIsSubmitting(true);
+      setSubmitError(null);
+      setSubmitSuccess(false);
       const res = await fetch(`${API_URL}/reports`, {
         method: "POST",
         body: form,
         mode: "cors",
         credentials: "omit",
       });
-      setProgress(80);
       if (!res.ok) throw new Error("Ошибка при отправке отчёта");
       const data = await res.json();
-      setProgress(100);
-      alert(`Отчёт успешно отправлен! ID: ${data.id}`);
+      setSubmitSuccess(true);
+      triggerHaptic("success");
+      const newReportId = Number(data.id) || Date.now();
+      setHistory((prev) => [
+        {
+          id: newReportId,
+          project_id: selectedObjectId,
+          date,
+          work_type_id: workType,
+          description,
+          volume,
+          machines,
+          people,
+          comment,
+          photos: previews.length ? previews : [],
+        },
+        ...prev,
+      ]);
+      setContractorObjects((prev) =>
+        prev.map((object) =>
+          object.id === selectedObjectId
+            ? {
+                ...object,
+                hasTodayReport: true,
+                status: "sent",
+                lastReportDate: "today",
+              }
+            : object
+        )
+      );
       setVolume("");
       setMachines("");
       setPeople("");
       setComment("");
       setFiles([]);
       setPreviews([]);
+      setFileValidationMessage("Добавьте хотя бы одно фото для отчёта");
+      window.setTimeout(() => {
+        setActiveScreen("objects");
+        setSubmitSuccess(false);
+      }, 2000);
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Ошибка при отправке отчёта";
-      alert(message);
+      setSubmitError(message);
+      triggerHaptic("error");
     } finally {
-      setSending(false);
-      setTimeout(() => setProgress(0), 600);
+      setIsSubmitting(false);
     }
   }
 
@@ -693,20 +691,46 @@ export default function TelegramWebAppGlassPure() {
     setFileValidationMessage("Добавьте хотя бы одно фото для отчёта");
   };
 
-  const handleContractorTabChange = (tab: "objects" | "reports") => {
-    if (tab === "objects") {
-      setActiveScreen("objects");
-      return;
-    }
-
-    setActiveScreen("dashboard");
-    setActiveTab("history");
-    requestAnimationFrame(() =>
-      swipeAreaRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
-    );
+  const handlePeopleChange = (value: number) => {
+    setPeople(value);
+    triggerHaptic("light");
   };
 
-  const contractorTab = activeScreen === "objects" ? "objects" : "reports";
+  const handleMachinesChange = (value: number) => {
+    setMachines(value);
+    triggerHaptic("light");
+  };
+
+  const handleStartReport = (objectId: string) => {
+    setSelectedObjectId(objectId);
+    setActiveScreen("report");
+    setRequiredHintVisible(false);
+    setSubmitError(null);
+    setSubmitSuccess(false);
+    setFiles([]);
+    setPreviews([]);
+    setFileValidationMessage("Добавьте хотя бы одно фото для отчёта");
+  };
+
+  const handleViewTodayReport = (objectId: string) => {
+    const today = new Date().toISOString().slice(0, 10);
+    const todayReport = history.find(
+      (item) => item.project_id === objectId && item.date === today
+    );
+    if (todayReport) {
+      setActiveReportId(todayReport.id);
+      setSelectedObjectId(objectId);
+      return;
+    }
+    handleStartReport(objectId);
+  };
+
+  const handleOpenHistory = (objectId: string) => {
+    setHistoryObjectId(objectId);
+  };
+
+  const closeHistory = () => setHistoryObjectId(null);
+  const closeReportDetails = () => setActiveReportId(null);
 
   const contractorContent = (
     <>
@@ -714,72 +738,45 @@ export default function TelegramWebAppGlassPure() {
         <ContractorHomeScreen
           userName={contractorName}
           objects={contractorObjects}
-          onOpenObject={handleOpenObjectCard}
+          onStartReport={handleStartReport}
+          onViewTodayReport={handleViewTodayReport}
+          onOpenHistory={handleOpenHistory}
           logoUrl={logoUrl}
           logoLoaded={logoLoaded}
           logoReveal={logoReveal}
           onLogoLoad={() => setLogoLoaded(true)}
         />
-      ) : (
-        <>
-          <div className="mb-4 flex justify-center">
-            <div className="flex items-center gap-1 rounded-full border border-white/20 bg-white/10 p-1 text-[12px] text-white shadow-[0_14px_36px_rgba(6,17,44,0.35)] backdrop-blur">
-              {[{ key: "objects", label: "Мои объекты" }, { key: "reports", label: "Отчёты" }].map((item) => {
-                const isActive = contractorTab === item.key;
-                return (
-                  <button
-                    key={item.key}
-                    onClick={() => handleContractorTabChange(item.key as "objects" | "reports")}
-                    className={`min-w-[120px] rounded-full px-4 py-2 font-semibold transition ${
-                      isActive
-                        ? "bg-white/85 text-slate-900 shadow-[0_12px_28px_rgba(255,255,255,0.35)]"
-                        : "text-white/80 hover:bg-white/10"
-                    }`}
-                  >
-                    {item.label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          <DashboardScreen
-            activeTab={activeTab}
-            onTabChange={(tab) => setActiveTab(tab)}
-            projects={projects}
-            workTypes={workTypes}
-            history={history}
-            project={project}
-            workType={workType}
-            date={date}
-            volume={volume}
-            machines={machines}
-            people={people}
-            comment={comment}
-            previews={previews}
-            fileValidationMessage={fileValidationMessage}
-            sending={sending}
-            progress={progress}
-            requiredHintVisible={requiredHintVisible}
-            onProjectChange={setProject}
-            onWorkTypeChange={setWorkType}
-            onDateChange={setDate}
-            onVolumeChange={setVolume}
-            onMachinesChange={setMachines}
-            onPeopleChange={setPeople}
-            onCommentChange={setComment}
-            onPickFiles={onPickFiles}
-            onClearFiles={handleClearFiles}
-            onSendReport={sendReport}
-            onFilesSelected={onFilesSelected}
-            swipeAreaRef={swipeAreaRef}
-            fileInputRef={fileInputRef}
-            hasFiles={Boolean(files.length)}
-            isFormReady={isFormReady}
-            missingFields={missingFields}
-          />
-        </>
-      )}
+      ) : selectedObject ? (
+        <ReportFormScreen
+          objectName={selectedObject.name}
+          date={date}
+          workTypes={workTypes}
+          workType={workType}
+          volume={volume}
+          machines={machines}
+          people={people}
+          comment={comment}
+          previews={previews}
+          fileValidationMessage={fileValidationMessage}
+          isSubmitting={isSubmitting}
+          isFormReady={isFormReady}
+          requiredHintVisible={requiredHintVisible}
+          missingFields={missingFields}
+          submitSuccess={submitSuccess}
+          submitError={submitError}
+          onWorkTypeChange={setWorkType}
+          onVolumeChange={setVolume}
+          onMachinesChange={handleMachinesChange}
+          onPeopleChange={handlePeopleChange}
+          onCommentChange={setComment}
+          onPickFiles={onPickFiles}
+          onClearFiles={handleClearFiles}
+          onSendReport={sendReport}
+          onFilesSelected={onFilesSelected}
+          fileInputRef={fileInputRef}
+          hasFiles={Boolean(files.length)}
+        />
+      ) : null}
     </>
   );
 
@@ -811,6 +808,25 @@ export default function TelegramWebAppGlassPure() {
           {content}
         </div>
       </main>
+
+      <HistorySheet
+        isOpen={Boolean(historyObjectId)}
+        onClose={closeHistory}
+        objectName={historyObjectName}
+        reports={historyForSheet}
+        workTypes={workTypes}
+        onSelectReport={(reportId) => {
+          setActiveReportId(reportId);
+          closeHistory();
+        }}
+      />
+      <ReportDetailsSheet
+        isOpen={Boolean(activeReportId)}
+        onClose={closeReportDetails}
+        report={activeReport}
+        objectName={detailsObjectName}
+        workTypes={workTypes}
+      />
     </div>
   );
 }

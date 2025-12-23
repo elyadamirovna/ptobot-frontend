@@ -14,7 +14,9 @@ export interface ContractorObject {
 export interface ContractorHomeScreenProps {
   userName: string;
   objects: ContractorObject[];
-  onOpenObject: (id: string) => void;
+  onStartReport: (id: string) => void;
+  onViewTodayReport: (id: string) => void;
+  onOpenHistory: (id: string) => void;
   logoUrl?: string;
   logoLoaded?: boolean;
   logoReveal?: boolean;
@@ -24,7 +26,9 @@ export interface ContractorHomeScreenProps {
 export function ContractorHomeScreen({
   userName,
   objects,
-  onOpenObject,
+  onStartReport,
+  onViewTodayReport,
+  onOpenHistory,
   logoUrl,
   logoLoaded,
   logoReveal,
@@ -70,7 +74,9 @@ export function ContractorHomeScreen({
                 key={object.id}
                 object={object}
                 accentIndex={index}
-                onClick={() => onOpenObject(object.id)}
+                onStartReport={() => onStartReport(object.id)}
+                onViewTodayReport={() => onViewTodayReport(object.id)}
+                onOpenHistory={() => onOpenHistory(object.id)}
               />
             ))}
           </div>
@@ -114,11 +120,15 @@ function ContractorHero({
 
 function ContractorObjectCard({
   object,
-  onClick,
+  onStartReport,
+  onViewTodayReport,
+  onOpenHistory,
   accentIndex,
 }: {
   object: ContractorObject;
-  onClick: () => void;
+  onStartReport: () => void;
+  onViewTodayReport: () => void;
+  onOpenHistory: () => void;
   accentIndex: number;
 }) {
   const isSentToday = object.hasTodayReport ?? object.lastReportDate === "today";
@@ -129,7 +139,7 @@ function ContractorObjectCard({
       : "—";
 
   return (
-    <button type="button" onClick={onClick} className="contractor-card">
+    <div className="contractor-card">
       <div className="contractor-card-inner">
         <div className="contractor-card-header">
           <div className="contractor-card-text">
@@ -137,6 +147,9 @@ function ContractorObjectCard({
             {object.address ? (
               <p className="contractor-card-address">{object.address}</p>
             ) : null}
+            <p className="contractor-card-today-status">
+              {isSentToday ? "Сегодня: отчёт есть" : "Сегодня: отчёта нет"}
+            </p>
           </div>
 
           <span
@@ -168,7 +181,20 @@ function ContractorObjectCard({
             ))}
           </div>
         </div>
+
+        <div className="contractor-card-actions">
+          <button
+            type="button"
+            onClick={isSentToday ? onViewTodayReport : onStartReport}
+            className="contractor-card-primary"
+          >
+            {isSentToday ? "👁 Посмотреть" : "➕ Заполнить отчёт"}
+          </button>
+          <button type="button" onClick={onOpenHistory} className="contractor-card-secondary">
+            📜 История
+          </button>
+        </div>
       </div>
-    </button>
+    </div>
   );
 }
