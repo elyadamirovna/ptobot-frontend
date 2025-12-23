@@ -129,7 +129,7 @@ function ContractorObjectCard({
       : "—";
 
   return (
-    <button type="button" onClick={onClick} className="app-card contractor-card">
+    <button type="button" onClick={onClick} className="contractor-card">
       <div className="contractor-card-inner">
         <div className="contractor-card-header">
           <div className="contractor-card-text">
