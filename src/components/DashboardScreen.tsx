@@ -1,7 +1,6 @@
-import React, { RefObject } from "react";
+import React, { RefObject, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -20,14 +19,12 @@ import {
   Upload,
   ChevronDown,
   History as HistoryIcon,
-  ClipboardList,
+  X,
 } from "lucide-react";
-import { HistoryRow, TabKey } from "@/types/app";
+import { HistoryRow } from "@/types/app";
 import { formatRu, toOneLine } from "@/utils/format";
 
 interface DashboardScreenProps {
-  activeTab: TabKey;
-  onTabChange: (tab: TabKey) => void;
   projects: { id: string; name: string; address: string }[];
   workTypes: { id: string; name: string }[];
   history: HistoryRow[];
@@ -59,11 +56,10 @@ interface DashboardScreenProps {
   hasFiles: boolean;
   isFormReady: boolean;
   missingFields: string[];
+  onBack: () => void;
 }
 
 export function DashboardScreen({
-  activeTab,
-  onTabChange,
   projects,
   workTypes,
   history,
@@ -95,36 +91,109 @@ export function DashboardScreen({
   hasFiles,
   isFormReady,
   missingFields,
+  onBack,
 }: DashboardScreenProps) {
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const selectedProject = projects.find((item) => item.id === project);
+  const projectName = selectedProject?.name ?? "Объект";
+  const formattedDate = formatRu(date);
+
+  const historyContent = (
+    <div className="space-y-6 text-[11px] sm:text-[12px]">
+      <div className="grid gap-3 rounded-3xl border border-white/15 bg-white/5 p-4 backdrop-blur">
+        <div className="grid gap-3 sm:grid-cols-4">
+          <div className="space-y-1.5 sm:col-span-2">
+            <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-white/60 sm:text-[10px]">Объект</p>
+            <Select value={project} onValueChange={onProjectChange}>
+              <SelectTrigger className="h-9 rounded-2xl border border-white/20 bg-white/10 text-[11px] text-white/90 sm:text-[12px]">
+                <SelectValue placeholder="Объект" />
+              </SelectTrigger>
+              <SelectContent className="border border-white/15 bg-[#07132F]/95 text-white">
+                {projects.map((item) => (
+                  <SelectItem key={item.id} value={item.id}>
+                    {item.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-white/60 sm:text-[10px]">С даты</p>
+            <Input type="date" className="h-9 rounded-2xl border border-white/20 bg-white/10 text-[11px] text-white/90 sm:text-[12px]" />
+          </div>
+          <div className="space-y-1.5">
+            <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-white/60 sm:text-[10px]">По дату</p>
+            <Input type="date" className="h-9 rounded-2xl border border-white/20 bg-white/10 text-[11px] text-white/90 sm:text-[12px]" />
+          </div>
+        </div>
+      </div>
+
+      <div className="space-y-3">
+        {history
+          .filter((item) => !project || item.project_id === project)
+          .map((item) => (
+            <div
+              key={item.id}
+              className="rounded-[22px] border border-white/12 bg-white/8 p-4 text-white/85 shadow-[0_14px_36px_rgba(6,17,44,0.35)] backdrop-blur"
+            >
+              <div className="flex flex-col gap-1 text-[11px] sm:flex-row sm:items-center sm:justify-between sm:text-[12px]">
+                <span>{formatRu(item.date)}</span>
+                <span className="text-white/75">
+                  {projects.find((proj) => proj.id === item.project_id)?.name ?? "Объект"}
+                  <span className="mx-1 text-white/40">•</span>
+                  {workTypes.find((type) => type.id === item.work_type_id)?.name ?? "Вид работ"}
+                </span>
+              </div>
+              <div className="mt-2 text-[12px] text-white/90 sm:text-[13px]">{toOneLine(item.description)}</div>
+              <div className="mt-3 flex gap-2 overflow-hidden rounded-2xl">
+                {item.photos.map((photo, index) => (
+                  <img
+                    key={`${item.id}-${index}`}
+                    src={photo}
+                    alt="Фото отчёта"
+                    className="h-20 w-full max-w-[120px] rounded-xl object-cover shadow-[0_10px_28px_rgba(6,17,44,0.35)]"
+                  />
+                ))}
+              </div>
+            </div>
+          ))}
+      </div>
+    </div>
+  );
+
   return (
     <div className="relative rounded-[32px] px-4 pb-8 pt-6 sm:rounded-[44px] sm:px-6 sm:pb-9 sm:pt-7 lg:rounded-[52px] lg:px-8 lg:pb-10 lg:pt-8">
       <div className="glass-grid-overlay" />
       <div className="relative" ref={swipeAreaRef}>
-        <Tabs value={activeTab} onValueChange={(v) => onTabChange(v as TabKey)} className="w-full">
-          <TabsList className="glass-chip mb-4 grid grid-cols-2 gap-1 rounded-full bg-white/12 p-1 text-[11px] text-white/80 shadow-[0_14px_40px_rgba(6,17,44,0.45)] sm:mb-5 sm:text-[12px]">
-            <TabsTrigger
-              value="report"
-              className="flex items-center justify-center gap-1 rounded-full px-2 py-1.5 text-[10px] transition data-[state=active]:bg-white data-[state=active]:text-sky-900 data-[state=active]:shadow-[0_12px_30px_rgba(255,255,255,0.45)] sm:px-3 sm:py-2 sm:text-[12px]"
-            >
-              <ClipboardList className="h-3.5 w-3.5" /> Отчёт
-            </TabsTrigger>
-            <TabsTrigger
-              value="history"
-              className="flex items-center justify-center gap-1 rounded-full px-2 py-1.5 text-[10px] transition data-[state=active]:bg-white data-[state=active]:text-sky-900 data-[state=active]:shadow-[0_12px_30px_rgba(255,255,255,0.45)] sm:px-3 sm:py-2 sm:text-[12px]"
-            >
-              <HistoryIcon className="h-3.5 w-3.5" /> История
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="report" className="mt-0">
-            <Card className="glass-panel border-white/25 bg-gradient-to-br from-white/14 via-white/10 to-white/5 text-white shadow-[0_28px_80px_rgba(6,17,44,0.55)] backdrop-blur-[32px]">
-              <CardHeader className="pb-5 sm:pb-6">
-                <CardTitle className="text-[18px] font-semibold tracking-wide text-white sm:text-[20px]">
-                  Ежедневный отчёт
-                </CardTitle>
-                <p className="text-xs text-white/80">{formatRu(date)}</p>
-              </CardHeader>
-              <CardContent className="space-y-6 text-[12px] sm:p-7 sm:pt-1 sm:text-[13px]">
+        <div className="mb-5 flex items-start justify-between gap-3 text-white sm:mb-6">
+          <button
+            type="button"
+            onClick={onBack}
+            className="flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-[11px] font-semibold text-white/80 shadow-[0_12px_30px_rgba(6,17,44,0.35)] transition hover:text-white sm:text-[12px]"
+          >
+            ← Назад
+          </button>
+          <div className="flex flex-1 flex-col items-center text-center">
+            <span className="text-[14px] font-semibold text-white sm:text-[15px]">{projectName}</span>
+            <span className="text-[11px] text-white/70 sm:text-[12px]">Сегодня · {formattedDate}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setIsHistoryOpen(true)}
+            className="flex items-center gap-1 rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-[11px] font-semibold text-white/80 shadow-[0_12px_30px_rgba(6,17,44,0.35)] transition hover:text-white sm:text-[12px]"
+          >
+            <HistoryIcon className="h-3.5 w-3.5" />
+            История
+          </button>
+        </div>
+        <Card className="glass-panel border-white/25 bg-gradient-to-br from-white/14 via-white/10 to-white/5 text-white shadow-[0_28px_80px_rgba(6,17,44,0.55)] backdrop-blur-[32px]">
+          <CardHeader className="pb-5 sm:pb-6">
+            <CardTitle className="text-[18px] font-semibold tracking-wide text-white sm:text-[20px]">
+              Ежедневный отчёт
+            </CardTitle>
+            <p className="text-xs text-white/80">{formatRu(date)}</p>
+          </CardHeader>
+          <CardContent className="space-y-6 text-[12px] sm:p-7 sm:pt-1 sm:text-[13px]">
                 <div className="grid gap-3 rounded-3xl border border-white/20 bg-white/5 p-4 backdrop-blur-xl">
                   <div className="space-y-1.5">
                     <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/60 sm:text-[11px]">
@@ -327,81 +396,38 @@ export function DashboardScreen({
                   )}
                   {progress > 0 && <p className="text-[10px] text-white/70 sm:text-[11px]">Загрузка: {progress}%</p>}
                 </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="history" className="mt-0">
-            <Card className="glass-panel border-white/25 bg-gradient-to-br from-white/14 via-white/10 to-white/5 text-white shadow-[0_28px_80px_rgba(6,17,44,0.55)] backdrop-blur-[32px]">
-              <CardHeader className="pb-5 sm:pb-6">
-                <CardTitle className="flex items-center gap-2 text-[16px] font-semibold text-white sm:text-[18px]">
-                  <HistoryIcon className="h-4 w-4" /> История отчётов
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6 text-[11px] sm:p-7 sm:pt-1 sm:text-[12px]">
-                <div className="grid gap-3 rounded-3xl border border-white/15 bg-white/5 p-4 backdrop-blur">
-                  <div className="grid gap-3 sm:grid-cols-4">
-                    <div className="space-y-1.5 sm:col-span-2">
-                      <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-white/60 sm:text-[10px]">Объект</p>
-                      <Select value={project} onValueChange={onProjectChange}>
-                        <SelectTrigger className="h-9 rounded-2xl border border-white/20 bg-white/10 text-[11px] text-white/90 sm:text-[12px]">
-                          <SelectValue placeholder="Объект" />
-                        </SelectTrigger>
-                        <SelectContent className="border border-white/15 bg-[#07132F]/95 text-white">
-                          {projects.map((item) => (
-                            <SelectItem key={item.id} value={item.id}>
-                              {item.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-1.5">
-                      <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-white/60 sm:text-[10px]">С даты</p>
-                      <Input type="date" className="h-9 rounded-2xl border border-white/20 bg-white/10 text-[11px] text-white/90 sm:text-[12px]" />
-                    </div>
-                    <div className="space-y-1.5">
-                      <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-white/60 sm:text-[10px]">По дату</p>
-                      <Input type="date" className="h-9 rounded-2xl border border-white/20 bg-white/10 text-[11px] text-white/90 sm:text-[12px]" />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  {history
-                    .filter((item) => !project || item.project_id === project)
-                    .map((item) => (
-                      <div
-                        key={item.id}
-                        className="rounded-[22px] border border-white/12 bg-white/8 p-4 text-white/85 shadow-[0_14px_36px_rgba(6,17,44,0.35)] backdrop-blur"
-                      >
-                        <div className="flex flex-col gap-1 text-[11px] sm:flex-row sm:items-center sm:justify-between sm:text-[12px]">
-                          <span>{formatRu(item.date)}</span>
-                          <span className="text-white/75">
-                            {projects.find((proj) => proj.id === item.project_id)?.name ?? "Объект"}
-                            <span className="mx-1 text-white/40">•</span>
-                            {workTypes.find((type) => type.id === item.work_type_id)?.name ?? "Вид работ"}
-                          </span>
-                        </div>
-                        <div className="mt-2 text-[12px] text-white/90 sm:text-[13px]">{toOneLine(item.description)}</div>
-                        <div className="mt-3 flex gap-2 overflow-hidden rounded-2xl">
-                          {item.photos.map((photo, index) => (
-                            <img
-                              key={`${item.id}-${index}`}
-                              src={photo}
-                              alt="Фото отчёта"
-                              className="h-20 w-full max-w-[120px] rounded-xl object-cover shadow-[0_10px_28px_rgba(6,17,44,0.35)]"
-                            />
-                          ))}
-                        </div>
-                      </div>
-                    ))}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+          </CardContent>
+        </Card>
       </div>
+      {isHistoryOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center"
+          onClick={() => setIsHistoryOpen(false)}
+        >
+          <div className="absolute inset-0 bg-[#050B1F]/70 backdrop-blur-[2px]" />
+          <div
+            className="relative w-full max-w-[720px] rounded-t-[28px] border border-white/15 bg-[#0B1530]/95 px-4 pb-8 pt-3 text-white shadow-[0_-24px_70px_rgba(6,17,44,0.65)] backdrop-blur-[28px] sm:rounded-t-[32px] sm:px-6"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-white/20" />
+            <div className="mb-4 flex items-center justify-between">
+              <div className="flex items-center gap-2 text-[14px] font-semibold sm:text-[15px]">
+                <HistoryIcon className="h-4 w-4" /> История
+              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={() => setIsHistoryOpen(false)}
+                className="h-8 w-8 rounded-full text-white/70 hover:text-white"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            {historyContent}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

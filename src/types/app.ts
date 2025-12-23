@@ -8,6 +8,4 @@ export type HistoryRow = {
   description: string;
   photos: string[];
 };
-
-export type TabKey = "report" | "history";
 export type ScreenKey = "dashboard" | "objects";
