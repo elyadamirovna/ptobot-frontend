@@ -539,6 +539,21 @@ export default function TelegramWebAppGlassPure() {
     setFileValidationMessage("Добавьте хотя бы одно фото для отчёта");
   };
 
+  const handleCloseMiniApp = () => {
+    const tg = telegramRef.current;
+    if (tg?.close) {
+      try {
+        tg.close();
+        return;
+      } catch (error) {
+        console.warn("[WebApp] Не удалось закрыть Mini App", error);
+      }
+    }
+    if (typeof window !== "undefined") {
+      window.close();
+    }
+  };
+
   const contractorContent = (
     <>
       {activeScreen === "objects" ? (
@@ -585,6 +600,7 @@ export default function TelegramWebAppGlassPure() {
           isFormReady={isFormReady}
           missingFields={missingFields}
           onBack={() => setActiveScreen("objects")}
+          onClose={handleCloseMiniApp}
         />
       )}
     </>
