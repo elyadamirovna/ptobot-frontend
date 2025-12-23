@@ -327,6 +327,12 @@ body {
     color: rgba(255, 255, 255, 0.7);
   }
 
+  .contractor-card-today-status {
+    font-size: 12px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.72);
+  }
+
   .contractor-status-chip {
     position: relative;
     display: inline-flex;
@@ -412,5 +418,45 @@ body {
 
   .contractor-activity-dots.is-missing .contractor-activity-dot.is-active {
     background: #fbbf24;
+  }
+
+  .contractor-card-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .contractor-card-primary,
+  .contractor-card-secondary {
+    min-height: 44px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+  }
+
+  .contractor-card-primary {
+    color: #0b3954;
+    background: linear-gradient(120deg, #5fe0ff, #b5f5ff);
+    box-shadow: 0 12px 30px rgba(94, 224, 255, 0.45);
+  }
+
+  .contractor-card-secondary {
+    color: rgba(255, 255, 255, 0.9);
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+  }
+
+  .contractor-card-primary:hover,
+  .contractor-card-secondary:hover {
+    transform: translateY(-1px);
+  }
+
+  .contractor-card-primary:disabled,
+  .contractor-card-secondary:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
   }
 }
