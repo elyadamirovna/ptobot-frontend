@@ -57,7 +57,6 @@ interface DashboardScreenProps {
   isFormReady: boolean;
   missingFields: string[];
   onBack: () => void;
-  onClose: () => void;
 }
 
 export function DashboardScreen({
@@ -93,7 +92,6 @@ export function DashboardScreen({
   isFormReady,
   missingFields,
   onBack,
-  onClose,
 }: DashboardScreenProps) {
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const selectedProject = projects.find((item) => item.id === project);
@@ -168,14 +166,7 @@ export function DashboardScreen({
       <div className="glass-grid-overlay" />
       <div className="relative" ref={swipeAreaRef}>
         <div className="mb-5 flex items-start justify-between gap-3 text-white sm:mb-6">
-          <button
-            type="button"
-            onClick={onClose}
-            className="flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-[11px] font-semibold text-white/80 shadow-[0_12px_30px_rgba(6,17,44,0.35)] transition hover:text-white sm:text-[12px]"
-          >
-            <span className="text-[12px] sm:text-[13px]">✕</span>
-            Закрыть
-          </button>
+          <div className="w-[86px]" aria-hidden />
           <div className="flex flex-1 flex-col items-center text-center">
             <span className="text-[14px] font-semibold text-white sm:text-[15px]">{projectName}</span>
             <span className="text-[11px] text-white/70 sm:text-[12px]">Сегодня · {formattedDate}</span>
@@ -397,7 +388,7 @@ export function DashboardScreen({
               onClick={() => setIsHistoryOpen(true)}
               className="flex flex-1 items-center justify-center gap-2 rounded-full border border-white/20 bg-white/5 px-3 py-2 text-white/80 transition hover:text-white"
             >
-              📜 История
+              История
             </button>
           </div>
         </div>
