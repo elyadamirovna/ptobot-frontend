@@ -1,5 +1,5 @@
 import React, { RefObject, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -57,6 +57,7 @@ interface DashboardScreenProps {
   isFormReady: boolean;
   missingFields: string[];
   onBack: () => void;
+  onClose: () => void;
 }
 
 export function DashboardScreen({
@@ -92,6 +93,7 @@ export function DashboardScreen({
   isFormReady,
   missingFields,
   onBack,
+  onClose,
 }: DashboardScreenProps) {
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const selectedProject = projects.find((item) => item.id === project);
@@ -162,38 +164,26 @@ export function DashboardScreen({
   );
 
   return (
-    <div className="relative rounded-[32px] px-4 pb-8 pt-6 sm:rounded-[44px] sm:px-6 sm:pb-9 sm:pt-7 lg:rounded-[52px] lg:px-8 lg:pb-10 lg:pt-8">
+    <div className="relative rounded-[32px] px-4 pb-24 pt-6 sm:rounded-[44px] sm:px-6 sm:pb-28 sm:pt-7 lg:rounded-[52px] lg:px-8 lg:pb-32 lg:pt-8">
       <div className="glass-grid-overlay" />
       <div className="relative" ref={swipeAreaRef}>
         <div className="mb-5 flex items-start justify-between gap-3 text-white sm:mb-6">
           <button
             type="button"
-            onClick={onBack}
+            onClick={onClose}
             className="flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-[11px] font-semibold text-white/80 shadow-[0_12px_30px_rgba(6,17,44,0.35)] transition hover:text-white sm:text-[12px]"
           >
-            ← Назад
+            <span className="text-[12px] sm:text-[13px]">✕</span>
+            Закрыть
           </button>
           <div className="flex flex-1 flex-col items-center text-center">
             <span className="text-[14px] font-semibold text-white sm:text-[15px]">{projectName}</span>
             <span className="text-[11px] text-white/70 sm:text-[12px]">Сегодня · {formattedDate}</span>
           </div>
-          <button
-            type="button"
-            onClick={() => setIsHistoryOpen(true)}
-            className="flex items-center gap-1 rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-[11px] font-semibold text-white/80 shadow-[0_12px_30px_rgba(6,17,44,0.35)] transition hover:text-white sm:text-[12px]"
-          >
-            <HistoryIcon className="h-3.5 w-3.5" />
-            История
-          </button>
+          <div className="w-[86px]" aria-hidden />
         </div>
         <Card className="glass-panel border-white/25 bg-gradient-to-br from-white/14 via-white/10 to-white/5 text-white shadow-[0_28px_80px_rgba(6,17,44,0.55)] backdrop-blur-[32px]">
-          <CardHeader className="pb-5 sm:pb-6">
-            <CardTitle className="text-[18px] font-semibold tracking-wide text-white sm:text-[20px]">
-              Ежедневный отчёт
-            </CardTitle>
-            <p className="text-xs text-white/80">{formatRu(date)}</p>
-          </CardHeader>
-          <CardContent className="space-y-6 text-[12px] sm:p-7 sm:pt-1 sm:text-[13px]">
+          <CardContent className="space-y-6 pt-6 text-[12px] sm:p-7 sm:pt-6 sm:text-[13px]">
                 <div className="grid gap-3 rounded-3xl border border-white/20 bg-white/5 p-4 backdrop-blur-xl">
                   <div className="space-y-1.5">
                     <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/60 sm:text-[11px]">
@@ -201,18 +191,11 @@ export function DashboardScreen({
                     </p>
                     <div className="relative">
                       <Building2 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/65" />
-                      <Select value={project} onValueChange={onProjectChange}>
-                        <SelectTrigger className="h-11 rounded-2xl border border-white/20 bg-white/10 pl-11 pr-12 text-[13px] font-medium text-white/90 shadow-[0_16px_38px_rgba(7,24,74,0.55)] backdrop-blur sm:h-12 sm:text-[14px]">
-                          <SelectValue placeholder="Выберите объект" />
-                        </SelectTrigger>
-                        <SelectContent className="border border-white/15 bg-[#07132F]/95 text-white">
-                          {projects.map((item) => (
-                            <SelectItem key={item.id} value={item.id}>
-                              {item.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <Input
+                        readOnly
+                        value={projectName}
+                        className="h-11 rounded-2xl border border-white/20 bg-white/10 pl-11 text-[13px] font-medium text-white/90 shadow-[0_16px_38px_rgba(7,24,74,0.55)] backdrop-blur sm:h-12 sm:text-[14px]"
+                      />
                     </div>
                   </div>
                   <div className="space-y-1.5">
@@ -398,6 +381,26 @@ export function DashboardScreen({
                 </div>
           </CardContent>
         </Card>
+      </div>
+      <div className="fixed inset-x-0 bottom-0 z-40 flex justify-center px-4 pb-[max(env(safe-area-inset-bottom),16px)]">
+        <div className="w-full max-w-[700px] rounded-[28px] border border-white/15 bg-white/10 px-4 py-3 text-white/85 shadow-[0_-18px_50px_rgba(6,17,44,0.55)] backdrop-blur-[18px] sm:px-6">
+          <div className="flex items-center justify-between gap-3 text-[12px] font-semibold sm:text-[13px]">
+            <button
+              type="button"
+              onClick={onBack}
+              className="flex flex-1 items-center justify-center gap-2 rounded-full border border-white/20 bg-white/5 px-3 py-2 text-white/80 transition hover:text-white"
+            >
+              ← На главный
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsHistoryOpen(true)}
+              className="flex flex-1 items-center justify-center gap-2 rounded-full border border-white/20 bg-white/5 px-3 py-2 text-white/80 transition hover:text-white"
+            >
+              📜 История
+            </button>
+          </div>
+        </div>
       </div>
       {isHistoryOpen && (
         <div
