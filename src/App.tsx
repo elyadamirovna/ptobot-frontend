@@ -4,7 +4,6 @@ import React, {
   useState,
   useEffect,
   useRef,
-  useCallback,
 } from "react";
 
 import {
@@ -21,13 +20,12 @@ import {
   ContractorObject,
 } from "@/components/ContractorHomeScreen";
 import { DashboardScreen } from "@/components/DashboardScreen";
-import { HistoryRow, ScreenKey, TabKey, WorkType } from "@/types/app";
+import { HistoryRow, ScreenKey, WorkType } from "@/types/app";
 
 const API_URL = (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, "")
   ?? "https://ptobot-backend.onrender.com";
 const DEFAULT_LOGO_URL = "https://storage.yandexcloud.net/ptobot-assets/LOGO.svg";
 
-const TAB_ORDER: TabKey[] = ["report", "history"];
 type UserRole = "contractor" | "manager";
 
 export default function TelegramWebAppGlassPure() {
@@ -67,7 +65,6 @@ export default function TelegramWebAppGlassPure() {
   }, [logoUrl]);
 
   const [activeScreen, setActiveScreen] = useState<ScreenKey>("objects");
-  const [activeTab, setActiveTab] = useState<TabKey>("report");
   const [project, setProject] = useState<string | undefined>("1");
   const [workType, setWorkType] = useState<string | undefined>("2");
   const [date, setDate] = useState<string>(() =>
@@ -94,7 +91,6 @@ export default function TelegramWebAppGlassPure() {
 
   const swipeAreaRef = useRef<HTMLDivElement | null>(null);
   const telegramRef = useRef<TelegramWebApp | null>(null);
-  const activeTabRef = useRef<TabKey>("report");
 
   useEffect(() => {
     const tg =
@@ -147,20 +143,6 @@ export default function TelegramWebAppGlassPure() {
     return undefined;
   }, []);
 
-  const changeTabBySwipe = useCallback(
-    (direction: 1 | -1) => {
-      setActiveTab((current) => {
-        const index = TAB_ORDER.indexOf(current);
-        const nextIndex = index + direction;
-        if (nextIndex < 0 || nextIndex >= TAB_ORDER.length) {
-          return current;
-        }
-        return TAB_ORDER[nextIndex];
-      });
-    },
-    []
-  );
-
   useEffect(() => {
     const tg =
       typeof window !== "undefined" ? window.Telegram?.WebApp : undefined;
@@ -184,26 +166,7 @@ export default function TelegramWebAppGlassPure() {
       console.warn("[WebApp] Ошибка при вызове ready/expand", error);
     }
 
-    const syncBackButtonVisibility = () => {
-      const backButton = tg.BackButton;
-      if (!backButton) return;
-
-      try {
-        if (activeTabRef.current !== "report") {
-          backButton.show();
-        } else {
-          backButton.hide();
-        }
-      } catch (error) {
-        console.warn("[WebApp] Ошибка при обновлении BackButton", error);
-      }
-    };
-
     const handleBackButtonClick = () => {
-      if (activeTabRef.current !== "report") {
-        setActiveTab("report");
-        return;
-      }
       try {
         tg.close?.();
       } catch (error) {
@@ -215,16 +178,10 @@ export default function TelegramWebAppGlassPure() {
       try {
         tg.BackButton.onClick(handleBackButtonClick);
         pushCleanup(() => tg.BackButton?.offClick(handleBackButtonClick));
-        syncBackButtonVisibility();
       } catch (error) {
         console.warn("[WebApp] Не удалось настроить BackButton", error);
       }
     }
-
-    const handleBackButtonSetupEvent = () => {
-      console.log("[WebApp] Событие web_app_setup_back_button");
-      syncBackButtonVisibility();
-    };
 
     const handleExpandEvent = () => {
       console.log("[WebApp] Событие web_app_expand");
@@ -250,10 +207,6 @@ export default function TelegramWebAppGlassPure() {
         tg.offEvent?.("web_app_exit_fullscreen", handleExitFullscreenEvent)
       );
 
-      tg.onEvent("web_app_setup_back_button", handleBackButtonSetupEvent);
-      pushCleanup(() =>
-        tg.offEvent?.("web_app_setup_back_button", handleBackButtonSetupEvent)
-      );
     }
 
     let isDestroyed = false;
@@ -359,112 +312,6 @@ export default function TelegramWebAppGlassPure() {
       telegramRef.current = null;
     };
   }, []);
-
-  useEffect(() => {
-    activeTabRef.current = activeTab;
-
-    const backButton = telegramRef.current?.BackButton;
-    if (!backButton) return;
-
-    try {
-      if (activeTab !== "report") {
-        backButton.show();
-      } else {
-        backButton.hide();
-      }
-    } catch (error) {
-      console.warn(
-        "[WebApp] Ошибка при обновлении BackButton из эффекта",
-        error
-      );
-    }
-  }, [activeTab]);
-
-  useEffect(() => {
-    const container = swipeAreaRef.current;
-    if (!container) return;
-
-    let startX = 0;
-    let startY = 0;
-    let isTracking = false;
-    let isHorizontal = false;
-
-    const resetTracking = () => {
-      startX = 0;
-      startY = 0;
-      isTracking = false;
-      isHorizontal = false;
-    };
-
-    const handleTouchStart = (event: TouchEvent) => {
-      if (event.touches.length !== 1) return;
-      const touch = event.touches[0];
-      startX = touch.clientX;
-      startY = touch.clientY;
-      isTracking = true;
-      isHorizontal = false;
-    };
-
-    const handleTouchMove = (event: TouchEvent) => {
-      if (!isTracking || event.touches.length !== 1) return;
-      const touch = event.touches[0];
-      const deltaX = touch.clientX - startX;
-      const deltaY = touch.clientY - startY;
-
-      if (!isHorizontal) {
-        if (Math.abs(deltaX) > 12 || Math.abs(deltaY) > 12) {
-          if (Math.abs(deltaX) > Math.abs(deltaY)) {
-            isHorizontal = true;
-          } else {
-            resetTracking();
-          }
-        }
-      }
-    };
-
-    const finishSwipe = (event: TouchEvent) => {
-      if (!isTracking) {
-        resetTracking();
-        return;
-      }
-
-      const touch = event.changedTouches[0];
-      const deltaX = touch.clientX - startX;
-      const deltaY = touch.clientY - startY;
-      const horizontalEnough =
-        Math.abs(deltaX) >= 60 && Math.abs(deltaX) > Math.abs(deltaY);
-
-      if (isHorizontal && horizontalEnough) {
-        if (deltaX < 0) {
-          changeTabBySwipe(1);
-        } else {
-          changeTabBySwipe(-1);
-        }
-      }
-
-      resetTracking();
-    };
-
-    const handleTouchCancel = () => {
-      resetTracking();
-    };
-
-    container.addEventListener("touchstart", handleTouchStart, {
-      passive: true,
-    });
-    container.addEventListener("touchmove", handleTouchMove, { passive: true });
-    container.addEventListener("touchend", finishSwipe, { passive: true });
-    container.addEventListener("touchcancel", handleTouchCancel, {
-      passive: true,
-    });
-
-    return () => {
-      container.removeEventListener("touchstart", handleTouchStart);
-      container.removeEventListener("touchmove", handleTouchMove);
-      container.removeEventListener("touchend", finishSwipe);
-      container.removeEventListener("touchcancel", handleTouchCancel);
-    };
-  }, [changeTabBySwipe]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -591,7 +438,6 @@ export default function TelegramWebAppGlassPure() {
   const handleOpenObjectCard = (objectId: string) => {
     setProject(objectId);
     setActiveScreen("dashboard");
-    setActiveTab("history");
     requestAnimationFrame(() =>
       swipeAreaRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
     );
@@ -693,21 +539,6 @@ export default function TelegramWebAppGlassPure() {
     setFileValidationMessage("Добавьте хотя бы одно фото для отчёта");
   };
 
-  const handleContractorTabChange = (tab: "objects" | "reports") => {
-    if (tab === "objects") {
-      setActiveScreen("objects");
-      return;
-    }
-
-    setActiveScreen("dashboard");
-    setActiveTab("history");
-    requestAnimationFrame(() =>
-      swipeAreaRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
-    );
-  };
-
-  const contractorTab = activeScreen === "objects" ? "objects" : "reports";
-
   const contractorContent = (
     <>
       {activeScreen === "objects" ? (
@@ -721,64 +552,40 @@ export default function TelegramWebAppGlassPure() {
           onLogoLoad={() => setLogoLoaded(true)}
         />
       ) : (
-        <>
-          <div className="mb-4 flex justify-center">
-            <div className="flex items-center gap-1 rounded-full border border-white/20 bg-white/10 p-1 text-[12px] text-white shadow-[0_14px_36px_rgba(6,17,44,0.35)] backdrop-blur">
-              {[{ key: "objects", label: "Мои объекты" }, { key: "reports", label: "Отчёты" }].map((item) => {
-                const isActive = contractorTab === item.key;
-                return (
-                  <button
-                    key={item.key}
-                    onClick={() => handleContractorTabChange(item.key as "objects" | "reports")}
-                    className={`min-w-[120px] rounded-full px-4 py-2 font-semibold transition ${
-                      isActive
-                        ? "bg-white/85 text-slate-900 shadow-[0_12px_28px_rgba(255,255,255,0.35)]"
-                        : "text-white/80 hover:bg-white/10"
-                    }`}
-                  >
-                    {item.label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          <DashboardScreen
-            activeTab={activeTab}
-            onTabChange={(tab) => setActiveTab(tab)}
-            projects={projects}
-            workTypes={workTypes}
-            history={history}
-            project={project}
-            workType={workType}
-            date={date}
-            volume={volume}
-            machines={machines}
-            people={people}
-            comment={comment}
-            previews={previews}
-            fileValidationMessage={fileValidationMessage}
-            sending={sending}
-            progress={progress}
-            requiredHintVisible={requiredHintVisible}
-            onProjectChange={setProject}
-            onWorkTypeChange={setWorkType}
-            onDateChange={setDate}
-            onVolumeChange={setVolume}
-            onMachinesChange={setMachines}
-            onPeopleChange={setPeople}
-            onCommentChange={setComment}
-            onPickFiles={onPickFiles}
-            onClearFiles={handleClearFiles}
-            onSendReport={sendReport}
-            onFilesSelected={onFilesSelected}
-            swipeAreaRef={swipeAreaRef}
-            fileInputRef={fileInputRef}
-            hasFiles={Boolean(files.length)}
-            isFormReady={isFormReady}
-            missingFields={missingFields}
-          />
-        </>
+        <DashboardScreen
+          projects={projects}
+          workTypes={workTypes}
+          history={history}
+          project={project}
+          workType={workType}
+          date={date}
+          volume={volume}
+          machines={machines}
+          people={people}
+          comment={comment}
+          previews={previews}
+          fileValidationMessage={fileValidationMessage}
+          sending={sending}
+          progress={progress}
+          requiredHintVisible={requiredHintVisible}
+          onProjectChange={setProject}
+          onWorkTypeChange={setWorkType}
+          onDateChange={setDate}
+          onVolumeChange={setVolume}
+          onMachinesChange={setMachines}
+          onPeopleChange={setPeople}
+          onCommentChange={setComment}
+          onPickFiles={onPickFiles}
+          onClearFiles={handleClearFiles}
+          onSendReport={sendReport}
+          onFilesSelected={onFilesSelected}
+          swipeAreaRef={swipeAreaRef}
+          fileInputRef={fileInputRef}
+          hasFiles={Boolean(files.length)}
+          isFormReady={isFormReady}
+          missingFields={missingFields}
+          onBack={() => setActiveScreen("objects")}
+        />
       )}
     </>
   );
