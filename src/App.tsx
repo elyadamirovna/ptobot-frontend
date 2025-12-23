@@ -1,10 +1,5 @@
 // src/App.tsx
-import React, {
-  useMemo,
-  useState,
-  useEffect,
-  useRef,
-} from "react";
+import React, { useMemo, useState, useEffect, useRef } from "react";
 
 import {
   CorporateStrictLayout,
@@ -67,14 +62,31 @@ export default function TelegramWebAppGlassPure() {
   const [activeScreen, setActiveScreen] = useState<ScreenKey>("objects");
   const [project, setProject] = useState<string | undefined>("1");
   const [workType, setWorkType] = useState<string | undefined>("2");
-  const [date, setDate] = useState<string>(() =>
-    new Date().toISOString().slice(0, 10)
-  );
+  const [date] = useState<string>(() => new Date().toISOString().slice(0, 10));
   const [volume, setVolume] = useState("");
   const [machines, setMachines] = useState("");
   const [people, setPeople] = useState("");
   const [comment, setComment] = useState("");
   const [requiredHintVisible, setRequiredHintVisible] = useState(false);
+  const [submitStatus, setSubmitStatus] = useState<
+    "idle" | "submitting" | "success" | "error"
+  >("idle");
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const initialFormRef = useRef({
+    project: project,
+    workType: workType,
+    date: date,
+  });
+
+  useEffect(() => {
+    if (activeScreen === "dashboard") {
+      initialFormRef.current = {
+        project,
+        workType,
+        date,
+      };
+    }
+  }, [activeScreen, date, project, workType]);
 
   const [workTypes, setWorkTypes] = useState<WorkType[]>([
     { id: "1", name: "Земляные работы" },
@@ -91,6 +103,19 @@ export default function TelegramWebAppGlassPure() {
 
   const swipeAreaRef = useRef<HTMLDivElement | null>(null);
   const telegramRef = useRef<TelegramWebApp | null>(null);
+  const isDirty = useMemo(() => {
+    const initial = initialFormRef.current;
+    const hasText =
+      volume.trim() ||
+      machines.trim() ||
+      people.trim() ||
+      comment.trim();
+    const baseChanged =
+      project !== initial.project ||
+      workType !== initial.workType ||
+      date !== initial.date;
+    return Boolean(hasText || files.length || baseChanged);
+  }, [comment, date, files.length, machines, people, project, volume, workType]);
 
   useEffect(() => {
     const tg =
@@ -167,6 +192,10 @@ export default function TelegramWebAppGlassPure() {
     }
 
     const handleBackButtonClick = () => {
+      if (submitStatus !== "success" && isDirty) {
+        const shouldExit = window.confirm("Отчёт не отправлен. Выйти?");
+        if (!shouldExit) return;
+      }
       try {
         tg.close?.();
       } catch (error) {
@@ -311,7 +340,7 @@ export default function TelegramWebAppGlassPure() {
       runRestore();
       telegramRef.current = null;
     };
-  }, []);
+  }, [isDirty, submitStatus]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -443,8 +472,17 @@ export default function TelegramWebAppGlassPure() {
     );
   };
 
-  const [sending, setSending] = useState(false);
   const [progress, setProgress] = useState(0);
+  const sending = submitStatus === "submitting";
+  const isFormLocked = submitStatus === "submitting" || submitStatus === "success";
+
+  const markFormClean = () => {
+    initialFormRef.current = {
+      project,
+      workType,
+      date,
+    };
+  };
 
   const formCompletion = useMemo(() => {
     const total = 4;
@@ -472,8 +510,9 @@ export default function TelegramWebAppGlassPure() {
 
   async function sendReport() {
     setRequiredHintVisible(true);
+    setSubmitError(null);
     if (!project || !workType || !date || !files.length) {
-      alert("Заполните обязательные поля перед отправкой");
+      setSubmitStatus("idle");
       return;
     }
 
@@ -495,7 +534,7 @@ export default function TelegramWebAppGlassPure() {
     files.forEach((file) => form.append("photos", file));
 
     try {
-      setSending(true);
+      setSubmitStatus("submitting");
       setProgress(25);
       const res = await fetch(`${API_URL}/reports`, {
         method: "POST",
@@ -507,19 +546,29 @@ export default function TelegramWebAppGlassPure() {
       if (!res.ok) throw new Error("Ошибка при отправке отчёта");
       const data = await res.json();
       setProgress(100);
-      alert(`Отчёт успешно отправлен! ID: ${data.id}`);
-      setVolume("");
-      setMachines("");
-      setPeople("");
-      setComment("");
-      setFiles([]);
-      setPreviews([]);
+      setSubmitStatus("success");
+      markFormClean();
+      setTimeout(() => {
+        setActiveScreen("objects");
+        setVolume("");
+        setMachines("");
+        setPeople("");
+        setComment("");
+        setFiles([]);
+        setPreviews([]);
+        setSubmitStatus("idle");
+        setSubmitError(null);
+        setProgress(0);
+        setRequiredHintVisible(false);
+      }, 2000);
+      void data;
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "Ошибка при отправке отчёта";
-      alert(message);
+      setSubmitStatus("error");
+      setSubmitError(
+        error instanceof Error ? error.message : "Не удалось отправить отчёт"
+      );
     } finally {
-      setSending(false);
+      setSubmitStatus((current) => (current === "submitting" ? "idle" : current));
       setTimeout(() => setProgress(0), 600);
     }
   }
@@ -568,9 +617,11 @@ export default function TelegramWebAppGlassPure() {
           sending={sending}
           progress={progress}
           requiredHintVisible={requiredHintVisible}
+          submitStatus={submitStatus}
+          submitError={submitError}
+          isFormLocked={isFormLocked}
           onProjectChange={setProject}
           onWorkTypeChange={setWorkType}
-          onDateChange={setDate}
           onVolumeChange={setVolume}
           onMachinesChange={setMachines}
           onPeopleChange={setPeople}
@@ -584,7 +635,13 @@ export default function TelegramWebAppGlassPure() {
           hasFiles={Boolean(files.length)}
           isFormReady={isFormReady}
           missingFields={missingFields}
-          onBack={() => setActiveScreen("objects")}
+          onBack={() => {
+            if (submitStatus !== "success" && isDirty) {
+              const shouldExit = window.confirm("Отчёт не отправлен. Выйти?");
+              if (!shouldExit) return;
+            }
+            setActiveScreen("objects");
+          }}
         />
       )}
     </>
