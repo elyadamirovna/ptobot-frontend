@@ -16,8 +16,6 @@ import {
   HardHat,
   Users,
   Image as ImageIcon,
-  Upload,
-  ChevronDown,
   History as HistoryIcon,
   X,
 } from "lucide-react";
@@ -77,7 +75,6 @@ export function DashboardScreen({
   requiredHintVisible,
   onProjectChange,
   onWorkTypeChange,
-  onDateChange,
   onVolumeChange,
   onMachinesChange,
   onPeopleChange,
@@ -181,11 +178,11 @@ export function DashboardScreen({
                       Объект
                     </p>
                     <div className="relative">
-                      <Building2 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/65" />
+                      <Building2 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/45" />
                       <Input
                         readOnly
                         value={projectName}
-                        className="h-11 rounded-2xl border border-white/20 bg-white/10 pl-11 text-[13px] font-medium text-white/90 shadow-[0_16px_38px_rgba(7,24,74,0.55)] backdrop-blur sm:h-12 sm:text-[14px]"
+                        className="h-11 rounded-2xl border border-white/10 bg-white/5 pl-11 text-[13px] font-medium text-white/70 sm:h-12 sm:text-[14px]"
                       />
                     </div>
                   </div>
@@ -194,9 +191,9 @@ export function DashboardScreen({
                       Вид работ
                     </p>
                     <div className="relative">
-                      <HardHat className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/65" />
+                      <HardHat className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/70" />
                       <Select value={workType} onValueChange={onWorkTypeChange}>
-                        <SelectTrigger className="h-11 rounded-2xl border border-white/20 bg-white/10 pl-11 pr-12 text-[13px] font-medium text-white/90 shadow-[0_16px_38px_rgba(7,24,74,0.55)] backdrop-blur sm:h-12 sm:text-[14px]">
+                        <SelectTrigger className="h-11 rounded-2xl border border-white/25 bg-white/12 pl-11 pr-12 text-[13px] font-medium text-white sm:h-12 sm:text-[14px]">
                           <SelectValue placeholder="Выберите вид работ" />
                         </SelectTrigger>
                         <SelectContent className="border border-white/15 bg-[#07132F]/95 text-white">
@@ -218,11 +215,10 @@ export function DashboardScreen({
                       <Input
                         type="date"
                         value={date}
-                        onChange={(event) => onDateChange(event.target.value)}
-                        className="h-11 rounded-2xl border border-white/20 bg-white/10 pl-12 pr-12 text-[13px] font-medium text-white/90 placeholder:text-white/50 [appearance:none] sm:h-12 sm:text-[14px]"
+                        readOnly
+                        className="h-11 rounded-2xl border border-white/10 bg-white/5 pl-12 pr-12 text-[13px] font-medium text-white/70 [appearance:none] sm:h-12 sm:text-[14px]"
                       />
-                      <CalendarDays className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/65" />
-                      <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/55" />
+                      <CalendarDays className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/45" />
                     </div>
                   </div>
                   <div className="space-y-1.5">
@@ -232,9 +228,9 @@ export function DashboardScreen({
                         placeholder="12,5"
                         value={volume}
                         onChange={(event) => onVolumeChange(event.target.value)}
-                        className="h-11 flex-1 rounded-2xl border border-white/20 bg-white/10 text-[13px] font-medium text-white/90 placeholder:text-white/40 sm:h-12 sm:text-[14px]"
+                        className="h-11 flex-1 rounded-2xl border border-white/25 bg-white/12 text-[13px] font-medium text-white placeholder:text-white/30 sm:h-12 sm:text-[14px]"
                       />
-                      <div className="flex h-11 items-center justify-center rounded-2xl border border-white/15 bg-white/10 px-3 text-[11px] text-white/75 sm:h-12 sm:px-4 sm:text-[12px]">
+                      <div className="flex h-11 items-center justify-center rounded-2xl border border-white/20 bg-white/10 px-3 text-[11px] text-white/80 sm:h-12 sm:px-4 sm:text-[12px]">
                         м³
                       </div>
                     </div>
@@ -246,9 +242,9 @@ export function DashboardScreen({
                         placeholder="3"
                         value={machines}
                         onChange={(event) => onMachinesChange(event.target.value)}
-                        className="h-11 flex-1 rounded-2xl border border-white/20 bg-white/10 text-[13px] font-medium text-white/90 placeholder:text-white/40 sm:h-12 sm:text-[14px]"
+                        className="h-11 flex-1 rounded-2xl border border-white/25 bg-white/12 text-[13px] font-medium text-white placeholder:text-white/30 sm:h-12 sm:text-[14px]"
                       />
-                      <div className="flex h-11 items-center justify-center rounded-2xl border border-white/15 bg-white/10 px-3 text-[11px] text-white/75 sm:h-12 sm:px-4 sm:text-[12px]">
+                      <div className="flex h-11 items-center justify-center rounded-2xl border border-white/20 bg-white/10 px-3 text-[11px] text-white/80 sm:h-12 sm:px-4 sm:text-[12px]">
                         шт.
                       </div>
                     </div>
@@ -258,33 +254,38 @@ export function DashboardScreen({
                 <div className="space-y-1.5">
                   <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/60 sm:text-[11px]">Люди</p>
                   <div className="relative">
-                    <Users className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/65" />
+                    <Users className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/70" />
                     <Input
                       inputMode="numeric"
                       placeholder="кол-во человек"
                       value={people}
                       onChange={(event) => onPeopleChange(event.target.value)}
-                      className="h-11 rounded-2xl border border-white/20 bg-white/10 pl-11 text-[13px] font-medium text-white/90 placeholder:text-white/40 sm:h-12 sm:text-[14px]"
+                      className="h-11 rounded-2xl border border-white/25 bg-white/12 pl-11 text-[13px] font-medium text-white placeholder:text-white/30 sm:h-12 sm:text-[14px]"
                     />
                   </div>
                 </div>
 
-                <div className="space-y-1.5">
+                <div className="space-y-1.5 pt-2">
                   <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/60 sm:text-[11px]">Комментарий</p>
                   <Textarea
                     value={comment}
                     onChange={(event) => onCommentChange(event.target.value)}
                     placeholder="Кратко опишите выполненные работы…"
-                    className="min-h-[80px] rounded-3xl border border-white/20 bg-white/10 text-[12px] text-white/90 placeholder:text-white/45 sm:min-h-[96px] sm:text-[13px]"
+                    className="min-h-[80px] rounded-3xl border border-white/25 bg-white/12 text-[12px] text-white placeholder:text-white/35 sm:min-h-[96px] sm:text-[13px]"
                   />
                 </div>
 
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between text-[10px] font-semibold uppercase tracking-[0.16em] text-white/65 sm:text-[11px]">
-                    <span className="flex items-center gap-1.5">
-                      <ImageIcon className="h-3.5 w-3.5" /> Выберите фото
+                <div className="space-y-3 pt-2">
+                  <div className="flex flex-col gap-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/65 sm:text-[11px]">
+                    <div className="flex items-center justify-between">
+                      <span className="flex items-center gap-1.5">
+                        <ImageIcon className="h-3.5 w-3.5" /> Фото
+                      </span>
+                      <span className="text-white/55">JPG/PNG/HEIC, до 10 МБ</span>
+                    </div>
+                    <span className="text-[10px] font-medium normal-case tracking-normal text-white/60 sm:text-[11px]">
+                      Подтверждение выполненных работ · Рекомендуется добавить фото
                     </span>
-                    <span className="text-white/55">JPG/PNG/HEIC, до 10 МБ</span>
                   </div>
 
                   <input
@@ -300,18 +301,22 @@ export function DashboardScreen({
                     <div className="flex-1 text-[11px] leading-tight sm:text-[12px]">Перетащите фото или нажмите «Выбрать»</div>
                     <Button
                       type="button"
-                      className="flex items-center gap-2 rounded-full bg-gradient-to-r from-[#5FE0FF] via-[#7DF0FF] to-[#B5F5FF] px-4 py-1.5 text-[12px] font-semibold text-sky-900 shadow-[0_18px_50px_rgba(3,144,255,0.9)] hover:brightness-110"
+                      className="flex items-center gap-2 rounded-full border border-white/30 bg-white/20 px-4 py-1.5 text-[12px] font-semibold text-white shadow-[0_12px_36px_rgba(6,17,44,0.4)] hover:bg-white/25"
                       onClick={onPickFiles}
                     >
-                      <Upload className="h-3.5 w-3.5" /> Выбрать
+                      <ImageIcon className="h-3.5 w-3.5" /> Выбрать фото
                     </Button>
                     {hasFiles && (
                       <Button
                         type="button"
                         variant="secondary"
                         size="sm"
-                        className="h-8 rounded-full border-white/30 bg-white/15 px-3 text-[11px] text-white/80 backdrop-blur hover:bg-white/25"
-                        onClick={onClearFiles}
+                        className="h-8 rounded-full border-transparent bg-transparent px-2 text-[11px] text-white/45 hover:text-white/70"
+                        onClick={() => {
+                          if (window.confirm("Удалить выбранные фото?")) {
+                            onClearFiles();
+                          }
+                        }}
                       >
                         Очистить
                       </Button>
@@ -344,7 +349,7 @@ export function DashboardScreen({
                   </div>
                 </div>
 
-                <div className="space-y-2">
+                <div className="space-y-2 pt-3">
                   <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                     <Button
                       type="button"
@@ -374,19 +379,19 @@ export function DashboardScreen({
         </Card>
       </div>
       <div className="fixed inset-x-0 bottom-0 z-40 flex justify-center px-4 pb-[max(env(safe-area-inset-bottom),16px)]">
-        <div className="w-full max-w-[700px] rounded-[28px] border border-white/15 bg-white/10 px-4 py-3 text-white/85 shadow-[0_-18px_50px_rgba(6,17,44,0.55)] backdrop-blur-[18px] sm:px-6">
-          <div className="flex items-center justify-between gap-3 text-[12px] font-semibold sm:text-[13px]">
+        <div className="w-full max-w-[700px] rounded-[28px] border border-white/10 bg-white/6 px-4 py-3 text-white/80 shadow-[0_-10px_30px_rgba(6,17,44,0.4)] backdrop-blur-[12px] sm:px-6">
+          <div className="flex h-14 items-center justify-between gap-3 text-[12px] font-semibold sm:text-[13px]">
             <button
               type="button"
               onClick={onBack}
-              className="flex flex-1 items-center justify-center gap-2 rounded-full border border-white/20 bg-white/5 px-3 py-2 text-white/80 transition hover:text-white"
+              className="flex flex-1 items-center justify-center rounded-full border border-white/15 bg-white/5 px-3 py-2 text-white/75 transition hover:text-white/90"
             >
-              ← На главный
+              На главный
             </button>
             <button
               type="button"
               onClick={() => setIsHistoryOpen(true)}
-              className="flex flex-1 items-center justify-center gap-2 rounded-full border border-white/20 bg-white/5 px-3 py-2 text-white/80 transition hover:text-white"
+              className="flex flex-1 items-center justify-center rounded-full border border-white/15 bg-white/5 px-3 py-2 text-white/75 transition hover:text-white/90"
             >
               История
             </button>
