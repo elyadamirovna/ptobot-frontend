@@ -326,13 +326,13 @@ export const GlassmorphismLayout: FC = () => (
           </div>
 
           <div className="rounded-[2.5rem] border border-white/10 bg-gradient-to-br from-white/15 via-white/5 to-transparent p-6 text-center backdrop-blur-2xl md:p-8">
-            <h2 className="text-2xl font-semibold">Telegram WebApp готов</h2>
+            <h2 className="text-2xl font-semibold">Веб-приложение готово</h2>
             <p className="mt-3 text-sm text-white/70">
-              Подключите WebApp и получайте отчёты в реальном времени.
+              Подключайтесь и получайте отчёты в реальном времени.
             </p>
 
             <button className="mt-6 inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-fuchsia-400 via-rose-400 to-amber-300 px-6 py-2 text-sm font-semibold text-slate-950 shadow-lg shadow-rose-400/25">
-              Подключить
+              Начать работу
             </button>
           </div>
         </div>
@@ -446,7 +446,7 @@ export const CorporateStrictLayout: FC = () => (
               Сохранить черновик
             </button>
             <button className="rounded-md bg-slate-900 px-4 py-2 font-semibold text-white">
-              Отправить в Telegram
+              Отправить отчёт
             </button>
           </div>
 
@@ -456,4 +456,3 @@ export const CorporateStrictLayout: FC = () => (
     </main>
   </div>
 );
-
