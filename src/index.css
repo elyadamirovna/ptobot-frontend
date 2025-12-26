@@ -20,6 +20,21 @@ body {
   min-height: 100%;
   padding-top: env(safe-area-inset-top);
   background: transparent;
+  position: relative;
+}
+
+#root::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: env(safe-area-inset-top);
+  pointer-events: none;
+  background-color: var(--app-surface);
+  background-image: var(--app-surface-gradient);
+  background-attachment: fixed;
+  z-index: 9999;
 }
 
 /* Базовые tailwind-стили + шрифт */
@@ -57,7 +72,7 @@ body {
     --chart-5: 27 87% 67%;
     --radius: 0.5rem;
 
-    --app-surface: #0b1226;
+    --app-surface: #0b1320;
     --app-surface-gradient:
       radial-gradient(circle at 20% 18%, rgba(99, 102, 241, 0.28), transparent 52%),
       radial-gradient(circle at 82% 8%, rgba(56, 189, 248, 0.24), transparent 44%),
