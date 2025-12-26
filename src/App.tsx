@@ -374,8 +374,6 @@ export default function App() {
     <div
       className="relative flex h-[100dvh] w-full flex-col text-white"
       style={{
-        backgroundColor: "var(--app-surface)",
-        backgroundImage: "var(--app-surface-gradient)",
         overscrollBehaviorY: "none",
         WebkitOverflowScrolling: "touch",
       }}
