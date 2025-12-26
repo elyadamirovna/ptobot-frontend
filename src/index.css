@@ -18,9 +18,7 @@ body {
 #root {
   height: 100%;
   min-height: 100%;
-  background-color: var(--app-surface);
-  background-image: var(--app-surface-gradient);
-  background-attachment: fixed;
+  padding-top: env(safe-area-inset-top);
 }
 
 /* Базовые tailwind-стили + шрифт */
@@ -108,7 +106,9 @@ body {
   }
 
   #root {
+    background-color: var(--app-surface);
     color: var(--app-foreground);
+    background-image: var(--app-surface-gradient);
   }
 
   .safe-area-page {
