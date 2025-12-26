@@ -9,7 +9,9 @@ body {
   margin: 0;
   padding: 0;
   overflow: hidden;
-  background: transparent;
+  background-color: var(--app-surface);
+  background-image: var(--app-surface-gradient);
+  background-attachment: fixed;
 }
 
 /* React-корень занимает всю высоту, скролл дальше организуем в App.tsx */
@@ -30,7 +32,7 @@ body {
   right: 0;
   height: env(safe-area-inset-top);
   pointer-events: none;
-  background: #1e2a44;
+  background-color: var(--app-surface-gradient-start);
   z-index: 9999;
 }
 
