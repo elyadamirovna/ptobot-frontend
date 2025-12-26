@@ -10,13 +10,14 @@ export default defineConfig({
       registerType: "autoUpdate",
       includeAssets: ["favicon.ico"],
       manifest: {
-        name: "PTObot Reports",
-        short_name: "PTObot",
+        name: "РБК СтройИнвест",
+        short_name: "РБК Строй",
         start_url: "/",
         display: "standalone",
-        theme_color: "#0b1226",
-        background_color: "#0b1226",
-        icons: [],
+        icons: [
+          { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+          { src: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
+        ],
       },
       workbox: {
         navigateFallback: "/offline.html",
