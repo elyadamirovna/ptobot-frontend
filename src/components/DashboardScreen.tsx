@@ -12,7 +12,6 @@ import {
 } from "@/components/ui/select";
 import {
   CalendarDays,
-  Building2,
   HardHat,
   Users,
   Image as ImageIcon,
@@ -174,21 +173,8 @@ export function DashboardScreen({
           <div className="w-[86px]" aria-hidden />
         </div>
         <Card className="glass-panel border-white/25 bg-gradient-to-br from-white/14 via-white/10 to-white/5 text-white shadow-[0_28px_80px_rgba(6,17,44,0.55)] backdrop-blur-[32px]">
-          <CardContent className="space-y-6 pt-6 text-[12px] sm:p-7 sm:pt-6 sm:text-[13px]">
+          <CardContent className="space-y-6 pt-4 text-[12px] sm:p-7 sm:pt-5 sm:text-[13px]">
                 <div className="grid gap-3 rounded-3xl border border-white/20 bg-white/5 p-4 backdrop-blur-xl">
-                  <div className="space-y-1.5">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/60 sm:text-[11px]">
-                      Объект
-                    </p>
-                    <div className="relative">
-                      <Building2 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/65" />
-                      <Input
-                        readOnly
-                        value={projectName}
-                        className="h-11 rounded-2xl border border-white/20 bg-white/10 pl-11 text-[13px] font-medium text-white/90 shadow-[0_16px_38px_rgba(7,24,74,0.55)] backdrop-blur sm:h-12 sm:text-[14px]"
-                      />
-                    </div>
-                  </div>
                   <div className="space-y-1.5">
                     <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/60 sm:text-[11px]">
                       Вид работ
