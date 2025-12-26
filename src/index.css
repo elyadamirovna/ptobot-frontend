@@ -71,12 +71,15 @@ body {
     --chart-5: 27 87% 67%;
     --radius: 0.5rem;
 
+    --app-top-color: #1e2f4d;
     --app-surface: #0b1320;
-    --app-surface-gradient-start: #0b1320;
-    --app-surface-gradient:
-      radial-gradient(circle at 20% 18%, rgba(99, 102, 241, 0.28), transparent 52%),
-      radial-gradient(circle at 82% 8%, rgba(56, 189, 248, 0.24), transparent 44%),
-      radial-gradient(circle at 50% 82%, rgba(72, 187, 120, 0.22), transparent 52%);
+    --app-surface-gradient-start: var(--app-top-color);
+    --app-surface-gradient: linear-gradient(
+      180deg,
+      #1e2f4d 0%,
+      #2a4a5c 45%,
+      #1f3f47 100%
+    );
     --app-foreground: #f8fbff;
 
     /* Безопасные отступы для экранных вырезов */
