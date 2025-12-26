@@ -1,5 +1,6 @@
 // src/App.tsx
 import React, {
+  useCallback,
   useMemo,
   useState,
   useEffect,
@@ -21,6 +22,7 @@ import {
 } from "@/components/ContractorHomeScreen";
 import { DashboardScreen } from "@/components/DashboardScreen";
 import { HistoryRow, ScreenKey, WorkType } from "@/types/app";
+import { AuthGate } from "@/components/AuthGate";
 
 const API_URL = (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, "")
   ?? "https://ptobot-backend.onrender.com";
@@ -42,6 +44,10 @@ export default function TelegramWebAppGlassPure() {
   const [logoLoaded, setLogoLoaded] = useState(false);
   const [logoReveal, setLogoReveal] = useState(false);
   const [previewVariant, setPreviewVariant] = useState<string | null>(null);
+  const [accessToken, setAccessToken] = useState<string | null>(() => {
+    if (typeof window === "undefined") return null;
+    return sessionStorage.getItem("access_token");
+  });
 
   useEffect(() => {
     try {
@@ -63,6 +69,15 @@ export default function TelegramWebAppGlassPure() {
   useEffect(() => {
     setLogoLoaded(false);
   }, [logoUrl]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (accessToken) {
+      sessionStorage.setItem("access_token", accessToken);
+    } else {
+      sessionStorage.removeItem("access_token");
+    }
+  }, [accessToken]);
 
   const [activeScreen, setActiveScreen] = useState<ScreenKey>("objects");
   const [project, setProject] = useState<string | undefined>("1");
@@ -313,11 +328,62 @@ export default function TelegramWebAppGlassPure() {
     };
   }, []);
 
+  const refreshAccessToken = useCallback(async () => {
+    try {
+      const res = await fetch(`${API_URL}/auth/refresh`, {
+        method: "POST",
+        credentials: "include",
+      });
+
+      if (!res.ok) {
+        return null;
+      }
+
+      const data = await res.json().catch(() => null);
+      const token = data?.access_token;
+      if (typeof token === "string" && token.length > 0) {
+        setAccessToken(token);
+        return token;
+      }
+    } catch (error) {
+      return null;
+    }
+
+    return null;
+  }, []);
+
+  const authFetch = useCallback(
+    async (input: RequestInfo | URL, init: RequestInit = {}) => {
+      const makeRequest = (token: string | null) => {
+        const headers = new Headers(init.headers);
+        if (token) {
+          headers.set("Authorization", `Bearer ${token}`);
+        }
+        return fetch(input, { ...init, headers });
+      };
+
+      let response = await makeRequest(accessToken);
+
+      if (response.status === 401) {
+        const refreshed = await refreshAccessToken();
+        if (refreshed) {
+          response = await makeRequest(refreshed);
+        } else {
+          setAccessToken(null);
+        }
+      }
+
+      return response;
+    },
+    [accessToken, refreshAccessToken]
+  );
+
   useEffect(() => {
+    if (!accessToken) return undefined;
     const controller = new AbortController();
     const timeoutId = window.setTimeout(() => controller.abort(), 2500);
 
-    fetch(`${API_URL}/work-types`, { signal: controller.signal })
+    authFetch(`${API_URL}/work-types`, { signal: controller.signal })
       .then((response) => {
         if (!response.ok) {
           return Promise.reject();
@@ -350,7 +416,7 @@ export default function TelegramWebAppGlassPure() {
       controller.abort();
       window.clearTimeout(timeoutId);
     };
-  }, [workType]);
+  }, [accessToken, authFetch, workType]);
 
   const contractorName = "Алексей";
 
@@ -497,7 +563,7 @@ export default function TelegramWebAppGlassPure() {
     try {
       setSending(true);
       setProgress(25);
-      const res = await fetch(`${API_URL}/reports`, {
+      const res = await authFetch(`${API_URL}/reports`, {
         method: "POST",
         body: form,
         mode: "cors",
@@ -592,7 +658,17 @@ export default function TelegramWebAppGlassPure() {
 
   const managerContent = <div className="text-white">TODO: manager screens</div>;
 
-  const content = userRole === "contractor" ? contractorContent : managerContent;
+  const content = accessToken ? (
+    userRole === "contractor" ? contractorContent : managerContent
+  ) : (
+    <AuthGate
+      apiUrl={API_URL}
+      onAuthenticated={(token) => {
+        setAccessToken(token);
+        setActiveScreen("objects");
+      }}
+    />
+  );
 
   return PreviewComponent ? (
     <PreviewComponent />
