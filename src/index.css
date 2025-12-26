@@ -19,6 +19,7 @@ body {
   height: 100%;
   min-height: 100%;
   padding-top: env(safe-area-inset-top);
+  background-clip: content-box;
   background: transparent;
   position: relative;
 }
@@ -31,9 +32,7 @@ body {
   right: 0;
   height: env(safe-area-inset-top);
   pointer-events: none;
-  background-color: var(--app-surface);
-  background-image: var(--app-surface-gradient);
-  background-attachment: fixed;
+  background-color: var(--app-surface-gradient-start);
   z-index: 9999;
 }
 
@@ -73,6 +72,7 @@ body {
     --radius: 0.5rem;
 
     --app-surface: #0b1320;
+    --app-surface-gradient-start: #0b1320;
     --app-surface-gradient:
       radial-gradient(circle at 20% 18%, rgba(99, 102, 241, 0.28), transparent 52%),
       radial-gradient(circle at 82% 8%, rgba(56, 189, 248, 0.24), transparent 44%),
