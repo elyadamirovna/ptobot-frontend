@@ -81,7 +81,7 @@ export function ContractorHomeScreen({
 }
 
 function ContractorHero({
-  userName: _userName,
+  userName,
   activeCount,
   todayReports,
 }: {
@@ -91,7 +91,7 @@ function ContractorHero({
 }) {
   return (
     <div className="contractor-hero">
-      <div className="contractor-hero-title">Добрый день, Никита</div>
+      <div className="contractor-hero-title">Добрый день, {userName}</div>
 
       <div className="contractor-hero-divider" />
 
